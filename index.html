@@ -625,13 +625,14 @@ function renderTable(){
       });
     });
     drop.addEventListener('mouseleave',function(){drop.style.display='none';});
-    // Allow page to scroll when dropdown is at its scroll limits
+    // Wheel on dropdown: scroll dropdown if possible, else scroll page
     drop.addEventListener('wheel',function(e){
-      var atTop=this.scrollTop===0;
-      var atBottom=this.scrollTop+this.clientHeight>=this.scrollHeight-1;
+      e.stopPropagation();
+      var atTop=this.scrollTop<=0;
+      var atBottom=this.scrollTop+this.clientHeight>=this.scrollHeight;
       if((e.deltaY<0&&atTop)||(e.deltaY>0&&atBottom)){
         e.preventDefault();
-        window.scrollBy(0,e.deltaY);
+        window.scrollBy({top:e.deltaY,behavior:'auto'});
       }
     },{passive:false});
   }
@@ -652,12 +653,17 @@ function renderTable(){
   }
 
   document.addEventListener('click',function(){
-    w.querySelectorAll('[id$="-drop"]').forEach(function(d){d.style.display='none';});
+    document.querySelectorAll('[id$="-drop"]').forEach(function(d){d.style.display='none';});
   });
-  // Close dropdowns on scroll so they don't block page scroll
-  window.addEventListener('scroll',function(){
-    w.querySelectorAll('[id$="-drop"]').forEach(function(d){d.style.display='none';});
+  document.addEventListener('touchstart',function(){
+    document.querySelectorAll('[id$="-drop"]').forEach(function(d){d.style.display='none';});
   },{passive:true});
+  // Close ALL dropdowns on any scroll
+  function closeAllDrops(){
+    document.querySelectorAll('[id$="-drop"]').forEach(function(d){d.style.display='none';});
+  }
+  window.addEventListener('scroll',closeAllDrops,{passive:true});
+  document.addEventListener('scroll',closeAllDrops,{capture:true,passive:true});
 
   // Dup-ok checkbox
   w.querySelectorAll('.dup-ok-chk').forEach(function(chk){
