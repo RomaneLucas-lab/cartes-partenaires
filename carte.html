@@ -40,6 +40,32 @@ body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#1a1a1a}
 .pop-nav{font-size:12px;padding:5px 12px;background:#f0f0f0;color:#555;border-radius:6px;text-decoration:none}
 #loading{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;z-index:9999;flex-direction:column;gap:12px}
 #loading p{color:#aaa;font-size:13px}
+
+/* ── DESKTOP ──────────────────────────────── */
+@media(min-width:601px){
+  #hdr{flex-direction:row;flex-wrap:wrap;padding:10px 16px 10px 56px;gap:8px}
+  #hdr > div{width:auto}
+  #si{width:200px}
+  .fbtn{font-size:12px;padding:4px 12px}
+  #loc-btn{font-size:13px;padding:5px 12px}
+  #cnt{font-size:12px}
+}
+
+/* ── MOBILE ──────────────────────────────── */
+@media(max-width:600px){
+  #hdr{flex-direction:column;padding:8px 8px 8px 48px;gap:5px}
+  #hdr > div{width:100%}
+  #si{width:100%;font-size:13px;box-sizing:border-box}
+  #sb{flex:1;width:100%}
+  .fbtn{font-size:12px;padding:4px 10px}
+  #loc-btn{font-size:12px;padding:4px 10px}
+  #cnt{font-size:11px;padding:2px 8px}
+  #sr{width:100%;left:0}
+  /* Popup plus large sur mobile */
+  .leaflet-popup-content-wrapper{width:90vw!important;max-width:320px}
+  .leaflet-popup-content{width:100%!important}
+}
+
 </style>
 </head>
 <body>
