@@ -58,26 +58,26 @@ body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#1a1a1a}
 var SB_URL='https://hfxpobmdolslwjrygaww.supabase.co';
 var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmeHBvYm1kb2xzbHdqcnlnYXd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzM0MzcsImV4cCI6MjA5NTQ0OTQzN30.4cneDKHlJQmUCsJZ_LRNLNqHMmcZAZ-ykyBQQyx4kOs';
 var SB_HDR={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
- 
+
 // Get programme from URL param
 var PROG=(new URLSearchParams(window.location.search)).get('prog')||'';
 var TITLE=(new URLSearchParams(window.location.search)).get('title')||'Carte interactive';
 document.getElementById('map-title').textContent=TITLE;
 document.title=TITLE;
 document.getElementById('cnt').textContent='⏳ Chargement...';
- 
+
 var map=L.map('map',{zoomControl:true,attributionControl:true}).setView([46.8,2.3],5);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
 var CG=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,spiderfyOnMaxZoom:true,disableClusteringAtZoom:16});
 map.addLayer(CG);
- 
+
 var AM=[],AF=[],S=[];
- 
+
 function mkI(ic,col){
   return L.divIcon({className:'',iconSize:[30,30],iconAnchor:[15,15],popupAnchor:[0,-16],
     html:'<div style="width:30px;height:30px;border-radius:50%;background:'+col+';border:2.5px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:15px">'+ic+'</div>'});
 }
- 
+
 function mkMarker(s,BT){
   var m=L.marker([s.lat,s.lng],{icon:mkI(s.icon||'📍',s.color||'#7F77DD')});
   var rem=s.remise?'<div class="pop-remise">'+s.remise+'</div>':'';
@@ -88,16 +88,16 @@ function mkMarker(s,BT){
   m.bindPopup(h,{maxWidth:270,minWidth:250});
   CG.addLayer(m);AM.push({m:m,s:s});
 }
- 
+
 function inAF(c){for(var i=0;i<AF.length;i++)if(AF[i]===c)return true;return false;}
 function addAF(c){if(!inAF(c))AF.push(c);}
 function delAF(c){for(var i=0;i<AF.length;i++)if(AF[i]===c){AF.splice(i,1);return;}}
- 
+
 function upd(){
   var n=CG.getLayers().length;
   document.getElementById('cnt').textContent=n+' offre'+(n>1?'s':'')+' affiché'+(n>1?'es':'e');
 }
- 
+
 function initFilters(cats,catData){
   var filt=document.getElementById('filters');
   filt.innerHTML='';
@@ -127,7 +127,7 @@ function initFilters(cats,catData){
     })(cats[i]);
   }
 }
- 
+
 // Search
 var si=document.getElementById('si'),sr=document.getElementById('sr'),_lst=null;
 si.addEventListener('input',function(){
@@ -192,7 +192,7 @@ si.addEventListener('input',function(){
   },400);
 });
 document.addEventListener('click',function(e){if(!document.getElementById('sb').contains(e.target))sr.style.display='none';});
- 
+
 // Geolocation
 var _lm=null,_lw=null,_la=false;
 document.getElementById('loc-btn').addEventListener('click',function(){
@@ -211,7 +211,7 @@ document.getElementById('loc-btn').addEventListener('click',function(){
   function errPos(){btn.disabled=false;if(!_la){btn.textContent='📍 Me localiser';}}
   _lw=navigator.geolocation.watchPosition(updPos,errPos,{enableHighAccuracy:true,timeout:10000,maximumAge:2000});
 });
- 
+
 // ── LOAD DATA FROM SUPABASE ──────────────────────────────────
 (async function(){
   if(!PROG){
@@ -224,12 +224,12 @@ document.getElementById('loc-btn').addEventListener('click',function(){
     var r=await fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(PROG)+'&ok=eq.true&order=id',{headers:SB_HDR});
     var rows=await r.json();
     if(!rows||!rows.length){document.getElementById('load-status').textContent='Aucune offre trouvée pour ce programme.';return;}
- 
+
     // Load config (icons/colors)
     var rc=await fetch(SB_URL+'/rest/v1/configs?programme=eq.'+encodeURIComponent(PROG),{headers:SB_HDR});
     var cfgData=await rc.json();
     var cfg=(cfgData&&cfgData[0])?cfgData[0].cfg:{};
- 
+
     // Build catData
     var catData={};
     var DEFCOLS=['#7F77DD','#E8703A','#1D9E75','#D4537E','#BA7BEE','#2196F3','#FF9800','#009688'];
@@ -238,35 +238,38 @@ document.getElementById('loc-btn').addEventListener('click',function(){
       var cat=rows[i].category||'Loisirs';
       if(!catData[cat]){
         var col=(cfg[cat]&&cfg[cat].color)||DEFCOLS[ci%DEFCOLS.length];
-        var icon=(cfg[cat]&&cfg[cat]._)||'📍';
+        var subcat=rows[i].subcategory||'';
+        var icon=(cfg[cat]&&subcat&&cfg[cat][subcat])||( cfg[cat]&&cfg[cat]._)||'📍';
         catData[cat]={icon:icon,color:col};
         ci++;
       }
     }
- 
+
     // Build BT (button text) - default
     var BT="Voir l'offre";
- 
+
     // Create markers
     for(var i=0;i<rows.length;i++){
       var row=rows[i];
       var cat=row.category||'Loisirs';
       var cd=catData[cat]||{icon:'📍',color:'#7F77DD'};
-      var s={name:row.name,lat:row.lat,lng:row.lng,cat:cat,sub:row.subcategory||'',desc:row.description||'',url:row.url||'',remise:row.remise||'',icon:cd.icon,color:cd.color};
+      var subcat2=row.subcategory||'';
+      var sIcon=(cfg[cat]&&subcat2&&cfg[cat][subcat2])||(cd.icon)||'📍';
+      var s={name:row.name,lat:row.lat,lng:row.lng,cat:cat,sub:subcat2,desc:row.description||'',url:row.url||'',remise:row.remise||'',icon:sIcon,color:cd.color};
       S.push(s);
       mkMarker(s,BT);
     }
- 
+
     // Init filters
     var cats=Object.keys(catData);
     initFilters(cats,catData);
     upd();
- 
+
     // Show map first so invalidateSize works
     document.getElementById('loading').style.display='none';
     document.getElementById('app').style.display='flex';
     map.invalidateSize();
- 
+
     // Fit bounds after map is visible
     setTimeout(function(){
       if(AM.length>0){
@@ -275,7 +278,7 @@ document.getElementById('loc-btn').addEventListener('click',function(){
         map.fitBounds(L.latLngBounds(grp).pad(0.05),{maxZoom:13,animate:false});
       }
     },100);
- 
+
   }catch(e){
     document.getElementById('load-status').textContent='Erreur: '+e.message;
     console.error(e);
