@@ -203,7 +203,7 @@ function getProgs(){return _pc||[{'name':'Banque Populaire'},{'name':"Caisse d'�
 function saveProgs(p){_pc=p;}
 function countProg(n){var d=_dc[n];return d?d.filter(function(r){return r.ok;}).length:0;}
 
-function saveData(){saveDataAsync();}
+function saveData(){saveDataAsync();saveCorrections();}
 async function saveDataAsync(){
   try{
     await fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(currentProg),{method:'DELETE',headers:SB_H});
@@ -213,6 +213,37 @@ async function saveDataAsync(){
     }
     await fetch(SB_URL+'/rest/v1/configs',{method:'POST',headers:Object.assign({},SB_H,{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({programme:currentProg,cfg:iconCfg})});
   }catch(e){console.error('saveData',e);}
+}
+
+// Apply known corrections to a results array
+async function applyCorrections(res){
+  try{
+    if(!res||!res.length)return res;
+    var r=await fetch(SB_URL+'/rest/v1/corrections?select=name,address_original,lat,lng,fmt,prec',{headers:SB_H});
+    var cors=await r.json();
+    if(!cors||!cors.length)return res;
+    var corMap={};
+    cors.forEach(function(c){corMap[(c.name+'|'+c.address_original).toLowerCase()]=c;});
+    var applied=0;
+    for(var i=0;i<res.length;i++){
+      if(!res[i].ok)continue;
+      var key=(res[i].name+'|'+(res[i].address||'')).toLowerCase();
+      var c=corMap[key];
+      if(c){res[i].lat=c.lat;res[i].lng=c.lng;res[i].fmt=c.fmt||res[i].fmt;res[i].prec=c.prec;applied++;}
+    }
+    if(applied)console.log('Applied',applied,'correction(s)');
+  }catch(e){console.error('applyCorrections',e);}
+  return res;
+}
+
+// Save manual/nominatim corrections globally
+async function saveCorrections(){
+  try{
+    var corrected=results.filter(function(r){return r.ok&&(r.prec==='MANUAL'||r.prec==='NOMINATIM')&&r.address;});
+    if(!corrected.length)return;
+    var rows=corrected.map(function(r){return {name:r.name,address_original:r.address,lat:r.lat,lng:r.lng,fmt:r.fmt||'',prec:r.prec,updated_at:new Date().toISOString()};});
+    await fetch(SB_URL+'/rest/v1/corrections',{method:'POST',headers:Object.assign({},SB_H,{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(rows)});
+  }catch(e){console.error('saveCorrections',e);}
 }
 
 async function sbLoadProg(name){
@@ -319,8 +350,10 @@ function openProg(name){
   document.getElementById('ctxt').value='';
   document.getElementById('pvwrap').style.display='none';
   setStep(1);
-  sbLoadProg(name).then(function(loaded){
+  sbLoadProg(name).then(async function(loaded){
     results=loaded.results; iconCfg=loaded.cfg||{};
+    // Apply known corrections
+    results=await applyCorrections(results);
     document.getElementById('gs').textContent='✅ '+results.filter(function(r){return r.ok;}).length+' offres chargées';
     if(results.length>0){renderTable();document.getElementById('p1act').style.display='flex';}
   }).catch(function(e){document.getElementById('gs').textContent='❌ '+e.message;});
@@ -406,7 +439,10 @@ document.getElementById('geo-btn').addEventListener('click',async function(){
   document.getElementById('gs').textContent='✅ '+ok+' géocodés, '+(results.length-ok)+' échec(s)'+(rows.length-todo.length>0?', '+(rows.length-todo.length)+' déjà présents':'');
   btn.disabled=false;btn.textContent='▶ Géocoder';
   document.getElementById('p1act').style.display='flex';
+  results=await applyCorrections(results);
+  renderTable();
   saveData();
+  saveCorrections();
 });
 
 document.getElementById('load-btn').addEventListener('click',function(){
