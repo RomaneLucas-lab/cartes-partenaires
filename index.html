@@ -279,7 +279,32 @@ document.getElementById('add-prog-btn').addEventListener('click',function(){
   for(var i=0;i<progs.length;i++){if(progs[i].name===name){alert('Ce programme existe déjà.');return;}}
   progs.push({name:name});_pc=progs;
   fetch(SB_URL+'/rest/v1/programmes',{method:'POST',headers:Object.assign({},SB_H,{'Prefer':'resolution=ignore-duplicates,return=minimal'}),body:JSON.stringify({name:name})});
-  document.getElementById('new-prog-input').value='';renderProgs();
+  document.getElementById('new-prog-input').value='';
+  // Add row directly without waiting for async renderProgs
+  var list=document.getElementById('prog-list');
+  var row=document.createElement('div');
+  row.style.cssText='display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #e8e8e4;border-radius:10px;padding:14px 16px;margin-bottom:8px';
+  var info=document.createElement('div');
+  info.innerHTML='<div style="font-size:14px;font-weight:600">'+name+'</div><div style="font-size:12px;color:#aaa;margin-top:2px">Aucune donnée</div>';
+  var btnWrap=document.createElement('div');btnWrap.style.cssText='display:flex;gap:8px;flex-shrink:0';
+  var openBtn=document.createElement('button');
+  openBtn.textContent='Ouvrir';
+  openBtn.style.cssText='font-size:12px;padding:6px 14px;border-radius:8px;border:none;background:#7F77DD;color:#fff;cursor:pointer';
+  var delBtn=document.createElement('button');
+  delBtn.textContent='Supprimer';
+  delBtn.style.cssText='font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid #e74c3c;background:#fff;color:#e74c3c;cursor:pointer';
+  (function(n){
+    openBtn.addEventListener('click',function(){openProg(n);});
+    delBtn.addEventListener('click',async function(){
+      if(!confirm('Supprimer "'+n+'" ?'))return;
+      row.remove();_pc=(_pc||[]).filter(function(x){return x.name!==n;});
+      await fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(n),{method:'DELETE',headers:SB_H});
+      await fetch(SB_URL+'/rest/v1/programmes?name=eq.'+encodeURIComponent(n),{method:'DELETE',headers:SB_H});
+    });
+  })(name);
+  btnWrap.appendChild(openBtn);btnWrap.appendChild(delBtn);
+  row.appendChild(info);row.appendChild(btnWrap);
+  list.appendChild(row);
 });
 document.getElementById('new-prog-input').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('add-prog-btn').click();});
  
@@ -946,7 +971,7 @@ function genHTML(){
     +'},function(err){alert("Position indisponible.");},{enableHighAccuracy:true,timeout:10000});\n'
     +'});\n'
     +'upd();\n'
-    +'if(AM.length>0){var grp=[];for(var i=0;i<AM.length;i++)grp.push(AM[i].m.getLatLng());map.fitBounds(L.latLngBounds(grp).pad(0.1),{maxZoom:14});}\n'
+    +'if(S.length>0){var grp=[];for(var i=0;i<S.length;i++)grp.push([S[i].lat,S[i].lng]);map.fitBounds(L.latLngBounds(grp).pad(0.05),{maxZoom:13,animate:false});}\n'
     +'<\/script>\n</body>\n</html>';
 }
  
