@@ -12,21 +12,21 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#1a1a1a}
-#app{display:flex;flex-direction:column;height:100vh}
-#hdr{padding:10px 16px;background:rgba(255,255,255,0.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid rgba(232,232,228,0.6);display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0;position:relative;z-index:1000}
-#hdr h1{font-size:14px;font-weight:600;white-space:nowrap}
-#sb{position:relative}
-#si{font-size:13px;padding:5px 10px 5px 28px;border:1px solid #ddd;border-radius:20px;width:180px;outline:none;background:#f8f8f6}
+#app{display:flex;flex-direction:column;height:100vh;position:relative}
+#hdr{padding:10px 16px;background:transparent;display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0;position:absolute;top:0;left:0;right:0;z-index:1000;pointer-events:none}
+#hdr h1{font-size:14px;font-weight:600;white-space:nowrap;pointer-events:auto;background:rgba(255,255,255,0.9);padding:4px 10px;border-radius:20px;backdrop-filter:blur(4px)}
+#sb{position:relative;pointer-events:auto}
+#si{font-size:13px;padding:5px 10px 5px 28px;border:1px solid rgba(200,200,200,0.8);border-radius:20px;width:180px;outline:none;background:rgba(255,255,255,0.9);backdrop-filter:blur(4px)}
 #si:focus{background:#fff}
 #sico{position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:12px;pointer-events:none}
 #sr{position:absolute;top:34px;left:0;width:240px;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:2000;display:none;max-height:260px;overflow-y:auto}
 #sr div{padding:8px 12px;font-size:12px;cursor:pointer;border-bottom:1px solid #f0f0ee}
 #sr div:hover{background:#f5f5ff}
-#filters{display:flex;gap:6px;flex-wrap:wrap}
-.fbtn{font-size:12px;padding:4px 12px;border-radius:20px;border:2px solid transparent;cursor:pointer}
-#loc-btn{background:#fff;border:1px solid #ddd;border-radius:8px;padding:5px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
-#cnt{font-size:12px;color:#888;margin-left:auto;white-space:nowrap}
-#map{flex:1}
+#filters{display:flex;gap:6px;flex-wrap:wrap;pointer-events:auto}
+.fbtn{font-size:12px;padding:4px 12px;border-radius:20px;border:2px solid transparent;cursor:pointer;backdrop-filter:blur(4px)}
+#loc-btn{background:rgba(255,255,255,0.9);border:1px solid rgba(200,200,200,0.8);border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;white-space:nowrap;pointer-events:auto;backdrop-filter:blur(4px)}
+#cnt{font-size:12px;color:#555;margin-left:auto;white-space:nowrap;background:rgba(255,255,255,0.85);padding:3px 10px;border-radius:20px;pointer-events:auto;backdrop-filter:blur(4px)}
+#map{position:absolute;inset:0;z-index:1}
 .leaflet-popup-content-wrapper{border-radius:10px!important;border:1px solid #e8e8e4!important;box-shadow:0 4px 20px rgba(0,0,0,.12)!important;padding:0!important;overflow:hidden}
 .leaflet-popup-content{margin:0!important;width:250px!important}
 .leaflet-popup-tip-container{display:none}
@@ -211,7 +211,7 @@ document.getElementById('loc-btn').addEventListener('click',function(){
       btn.textContent='📍 Live ■';
       btn.style.background='#3A8AE8';
       btn.style.color='#fff';
-      map.setView([lat,lng],16);
+      map.setView([lat,lng],17);
     }
   }
   function errPos(e){
