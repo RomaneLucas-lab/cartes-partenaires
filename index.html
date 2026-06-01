@@ -74,7 +74,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #ddd;border-radius:6px
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
-
+ 
 <div id="prog-screen" style="padding:32px 24px;max-width:600px;margin:0 auto">
   <h2 style="font-size:18px;font-weight:600;margin-bottom:6px">Générateur de carte interactive</h2>
   <p style="font-size:13px;color:#666;margin-bottom:20px">Sélectionnez un programme ou créez-en un nouveau.</p>
@@ -85,11 +85,12 @@ input[type=color]{width:32px;height:28px;border:1px solid #ddd;border-radius:6px
   </div>
   <div style="display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid #e8e8e4">
     <button id="export-all-btn" class="btn bo" style="flex:1;font-size:12px">⬇ Exporter tout</button>
-    <input type="file" id="import-all-file" accept=".json" style="flex:1;font-size:12px;cursor:pointer;padding:6px 12px;border:1px solid #d0ccf0;border-radius:8px;background:#fff;color:#7F77DD;font-family:inherit" title="⬆ Restaurer tout"/>
+    <button id="import-all-btn" class="btn bo" style="flex:1;font-size:12px" onclick="document.getElementById('import-all-file').click()">⬆ Restaurer tout</button>
+    <input type="file" id="import-all-file" accept=".json" style="display:none"/>
   </div>
   <div id="import-status" style="font-size:12px;margin-top:8px;min-height:18px"></div>
 </div>
-
+ 
 <div id="main-app" style="display:none">
   <div id="steps">
     <div class="step" id="back-btn" style="cursor:pointer">← Programmes</div>
@@ -98,13 +99,13 @@ input[type=color]{width:32px;height:28px;border:1px solid #ddd;border-radius:6px
     <div class="step" id="s2"><span class="sn">2</span>Personnalisation</div>
     <div class="step" id="s3"><span class="sn">3</span>Génération</div>
   </div>
-
+ 
   <div id="mo"><div id="md">
     <h3>Choisir une icône</h3>
     <div class="ig" id="mgrid"></div>
     <button class="btn bo" id="modal-close-btn" style="margin-top:12px;width:100%">Fermer</button>
   </div></div>
-
+ 
   <div class="pg on" id="p1">
     <h2>Import & Géocodage</h2>
     <p style="font-size:13px;color:#666;margin-bottom:14px">Importez le CSV de ce programme.</p>
@@ -128,7 +129,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #ddd;border-radius:6px
       <button class="btn bp" id="to-step2-btn">Personnaliser →</button>
     </div>
   </div>
-
+ 
   <div class="pg" id="p2">
     <h2>Personnalisation</h2>
     <span class="lbl">Titre de la carte</span>
@@ -142,7 +143,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #ddd;border-radius:6px
       <button class="btn bp" id="to-step3-btn">Générer →</button>
     </div>
   </div>
-
+ 
   <div class="pg" id="p3">
     <h2>Génération</h2>
     <div class="sgrid">
@@ -160,7 +161,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #ddd;border-radius:6px
     </div>
   </div>
 </div>
-
+ 
 <script>
 var currentProg=null, results=[], iconCfg={}, pickTarget=null;
 var DEFS=['🎡','🐾','🏛️','🐠','🌿','🎨','🏰','⭐','🎪','🔭','👗','🛋️','🍔','💪'];
@@ -180,16 +181,16 @@ var ICONS={
   'Enfants':['🏫','📚','✏️','🎒','🧸','🪀','🧩','🪁','🖍️','🎓','🌈','🎈','🪅'],
   'Général':['📍','⭐','🏆','🎁','🛒','💰','🏪','🏬','🏢','🔑','💎','✅','❤️','🌟','🔥','👑']
 };
-
+ 
 // ── SUPABASE ──────────────────────────────
 var SB_URL='https://hfxpobmdolslwjrygaww.supabase.co';
 var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmeHBvYm1kb2xzbHdqcnlnYXd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzM0MzcsImV4cCI6MjA5NTQ0OTQzN30.4cneDKHlJQmUCsJZ_LRNLNqHMmcZAZ-ykyBQQyx4kOs';
 var SB_H={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
 var _pc=null, _dc={};
-
+ 
 function progKey(n){return 'gv6_data_'+n.replace(/\W/g,'_');}
 function cfgKey(n){return 'gv6_cfg_'+n.replace(/\W/g,'_');}
-
+ 
 async function sbGetProgs(){
   try{
     var r=await fetch(SB_URL+'/rest/v1/programmes?select=name&order=created_at',{headers:SB_H});
@@ -198,11 +199,11 @@ async function sbGetProgs(){
   }catch(e){console.error('getProgs',e);}
   return [{'name':'Banque Populaire'},{'name':"Caisse d'Épargne"},{'name':'Fnac'},{'name':'Intersport'},{'name':'Direct Avantages'},{'name':'Unéo'},{'name':'Macif'}];
 }
-
+ 
 function getProgs(){return _pc||[{'name':'Banque Populaire'},{'name':"Caisse d'Épargne"},{'name':'Fnac'},{'name':'Intersport'},{'name':'Direct Avantages'},{'name':'Unéo'},{'name':'Macif'}];}
 function saveProgs(p){_pc=p;}
 function countProg(n){var d=_dc[n];return d?d.filter(function(r){return r.ok;}).length:0;}
-
+ 
 function saveData(){saveDataAsync();}
 async function saveDataAsync(){
   try{
@@ -214,7 +215,7 @@ async function saveDataAsync(){
     await fetch(SB_URL+'/rest/v1/configs',{method:'POST',headers:Object.assign({},SB_H,{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({programme:currentProg,cfg:iconCfg})});
   }catch(e){console.error('saveData',e);}
 }
-
+ 
 async function sbLoadProg(name){
   try{
     var r=await fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(name)+'&order=id',{headers:SB_H});
@@ -226,7 +227,7 @@ async function sbLoadProg(name){
     return {results:mapped,cfg:(cd&&cd[0])?cd[0].cfg:{}};
   }catch(e){return {results:[],cfg:{}};}
 }
-
+ 
 async function renderProgs(){
   var list=document.getElementById('prog-list');
   list.innerHTML='<div style="text-align:center;padding:20px;color:#aaa;font-size:13px">⏳ Chargement...</div>';
@@ -270,7 +271,7 @@ async function renderProgs(){
   }
   document.getElementById('prog-screen').style.display='block';
 }
-
+ 
 document.getElementById('add-prog-btn').addEventListener('click',function(){
   var name=document.getElementById('new-prog-input').value.trim();
   if(!name){alert('Entrez un nom.');return;}
@@ -281,7 +282,7 @@ document.getElementById('add-prog-btn').addEventListener('click',function(){
   document.getElementById('new-prog-input').value='';renderProgs();
 });
 document.getElementById('new-prog-input').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('add-prog-btn').click();});
-
+ 
 function openProg(name){
   currentProg=name;results=[];iconCfg={};
   document.getElementById('prog-screen').style.display='none';
@@ -300,13 +301,13 @@ function openProg(name){
     if(results.length>0){renderTable();document.getElementById('p1act').style.display='flex';}
   }).catch(function(e){document.getElementById('gs').textContent='❌ '+e.message;});
 }
-
+ 
 document.getElementById('back-btn').addEventListener('click',function(){
   document.getElementById('main-app').style.display='none';
   document.getElementById('prog-screen').style.display='block';
   renderProgs();
 });
-
+ 
 function setStep(n){
   for(var i=1;i<=3;i++){
     document.getElementById('p'+i).classList.toggle('on',i===n);
@@ -320,14 +321,14 @@ document.getElementById('to-step2-btn').addEventListener('click',function(){buil
 document.getElementById('to-step1-btn').addEventListener('click',function(){setStep(1);});
 document.getElementById('to-step3-btn').addEventListener('click',function(){buildSummary();setStep(3);});
 document.getElementById('to-step2b-btn').addEventListener('click',function(){buildCatCfg();setStep(2);});
-
+ 
 document.getElementById('cfile').addEventListener('change',function(e){
   var f=e.target.files[0];if(!f)return;
   var r=new FileReader();
   r.onload=function(ev){document.getElementById('ctxt').value=ev.target.result;};
   r.readAsText(f,'UTF-8');
 });
-
+ 
 function parseCSV(txt){
   var lines=txt.trim().split('\n').filter(function(l){return l.trim();});
   var sep=lines[0].indexOf(';')>=0?';':',';
@@ -338,7 +339,7 @@ function parseCSV(txt){
   if(idx.name<0||idx.addr<0)throw new Error('Colonnes Nom et Adresse introuvables.');
   return{rows:rows.slice(1).filter(function(r){return r.length>1&&r[idx.name]&&r[idx.addr];}),idx:idx};
 }
-
+ 
 async function geoOne(addr,key){
   try{
     var r=await fetch('https://maps.googleapis.com/maps/api/geocode/json?address='+encodeURIComponent(addr)+'&key='+key+'&language=fr&region=fr');
@@ -350,7 +351,7 @@ async function geoOne(addr,key){
     return{ok:false,err:d.status};
   }catch(e){return{ok:false,err:e.message};}
 }
-
+ 
 document.getElementById('geo-btn').addEventListener('click',async function(){
   var txt=document.getElementById('ctxt').value.trim();
   var key=document.getElementById('apikey').value.trim();
@@ -383,7 +384,7 @@ document.getElementById('geo-btn').addEventListener('click',async function(){
   document.getElementById('p1act').style.display='flex';
   saveData();
 });
-
+ 
 document.getElementById('load-btn').addEventListener('click',function(){
   document.getElementById('gs').textContent='⏳ Chargement...';
   sbLoadProg(currentProg).then(function(loaded){
@@ -392,7 +393,7 @@ document.getElementById('load-btn').addEventListener('click',function(){
     else{document.getElementById('gs').textContent='Aucune donnée pour ce programme.';}
   });
 });
-
+ 
 document.getElementById('clear-btn').addEventListener('click',async function(){
   if(!window.confirm('Effacer les données de "'+currentProg+'" ?'))return;
   results=[];iconCfg={};
@@ -402,7 +403,7 @@ document.getElementById('clear-btn').addEventListener('click',async function(){
   document.getElementById('p1act').style.display='none';
   document.getElementById('gs').textContent='';
 });
-
+ 
 document.getElementById('retry-btn').addEventListener('click',async function(){
   var key=document.getElementById('apikey').value.trim();
   var failed=results.filter(function(r){return !r.ok;});
@@ -415,20 +416,20 @@ document.getElementById('retry-btn').addEventListener('click',async function(){
   }
   document.getElementById('gs').textContent='✅ Retry terminé';saveData();
 });
-
+ 
 document.getElementById('json-btn').addEventListener('click',function(){
   var b=new Blob([JSON.stringify(results.filter(function(r){return r.ok;}),null,2)],{type:'application/json'});
   var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=currentProg.replace(/\s/g,'_')+'.json';a.click();
 });
-
+ 
 function pb(p){return{ROOFTOP:'🟢',RANGE_INTERPOLATED:'🟡',GEOMETRIC_CENTER:'🟠',APPROXIMATE:'🔴',NOMINATIM:'🔵',MANUAL:'🔵'}[p]||'⚪';}
-
+ 
 var _nameFilter='', _catFilter='', _precFilter='', _nameSearch='';
-
+ 
 function renderTable(){
   var w=document.getElementById('tw');
   w.style.display='block';
-
+ 
   // ── Filter bar ──
   if(!document.getElementById('tw-filter-wrap')){
     var fw=document.createElement('div');
@@ -440,10 +441,10 @@ function renderTable(){
     document.getElementById('tw-search').addEventListener('input',function(){_nameSearch=this.value.toLowerCase();renderTable();});
     document.getElementById('tw-dup-only').addEventListener('change',function(){renderTable();});
   }
-
+ 
   var dupOnly = document.getElementById('tw-dup-only') && document.getElementById('tw-dup-only').checked;
   var search  = _nameSearch;
-
+ 
   // ── Detect duplicates ──
   var seen={};
   for(var i=0;i<results.length;i++){
@@ -453,7 +454,7 @@ function renderTable(){
     seen[k1]=(seen[k1]||0)+1;
     seen[k2]=(seen[k2]||0)+1;
   }
-
+ 
   // ── Tag & sort ──
   var tagged=[];
   for(var i=0;i<results.length;i++){
@@ -469,7 +470,7 @@ function renderTable(){
     var sa=a.isDup?0:(!a.r.ok?1:2), sb=b.isDup?0:(!b.r.ok?1:2);
     return sa-sb;
   });
-
+ 
   // ── Build header with filter dropdowns ──
   var allNames=[], allCats=[], nsSeen={}, csSeen={};
   for(var i=0;i<results.length;i++){
@@ -477,11 +478,11 @@ function renderTable(){
     if(!csSeen[results[i].category]){csSeen[results[i].category]=1;allCats.push(results[i].category||'');}
   }
   allNames.sort(); allCats.sort();
-
+ 
   var pLabel={'':"P ▾",'ROOFTOP':'🟢 ▾','RANGE_INTERPOLATED':'🟡 ▾','GEOMETRIC_CENTER':'🟠 ▾','APPROXIMATE':'🔴 ▾','NOMINATIM|MANUAL':'🔵 ▾'}[_precFilter]||"P ▾";
   var nLabel=_nameFilter?'<b>'+_nameFilter+'</b> ▾':'Nom ▾';
   var cLabel=_catFilter?'<b>'+_catFilter+'</b> ▾':'Cat. ▾';
-
+ 
   // Build dropdown HTML helpers
   function mkDrop(id, items, valAttr, activeVal, extraTop){
     var s='<div id="'+id+'" style="display:none;position:absolute;left:0;top:100%;background:#fff;border:1px solid #e0e0e0;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.18);z-index:99999;padding:4px 0;min-width:200px;font-weight:400;max-height:300px;overflow-y:auto">';
@@ -492,13 +493,13 @@ function renderTable(){
     });
     return s+'</div>';
   }
-
+ 
   var nomItems=[{val:'',label:'Tous'}].concat(allNames.map(function(n){return {val:n,label:n};}));
   var catItems=[{val:'',label:'Tous'}].concat(allCats.map(function(c){return {val:c,label:c||'—'};}));
   var precItems=[{val:'',label:'Tous'},{val:'ROOFTOP',label:'🟢 Précis'},{val:'RANGE_INTERPOLATED',label:'🟡 Interpolé'},{val:'GEOMETRIC_CENTER',label:'🟠 Géométrique'},{val:'APPROXIMATE',label:'🔴 Approximatif'},{val:'NOMINATIM|MANUAL',label:'🔵 Nominatim/Manuel'}];
-
+ 
   var nomSearch='<div style="padding:6px 10px;border-bottom:1px solid #f0f0ee"><input id="nom-drop-search" type="text" placeholder="Rechercher..." style="width:100%;padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;outline:none;box-sizing:border-box" onclick="event.stopPropagation()"/></div>';
-
+ 
   var h='<table style="width:100%;border-collapse:collapse"><thead><tr>'
     +'<th style="padding:8px 6px;text-align:left;font-size:11px;color:#888;font-weight:600;border-bottom:2px solid #e8e8e4;white-space:nowrap">#</th>'
     +'<th style="padding:8px 6px;text-align:left;font-size:11px;color:#888;font-weight:600;border-bottom:2px solid #e8e8e4;position:relative;cursor:pointer;user-select:none" id="th-nom">'+nLabel+mkDrop('nom-drop',nomItems,'data-val',_nameFilter,nomSearch)+'</th>'
@@ -511,7 +512,7 @@ function renderTable(){
     +'</tr></thead>'
     +'<tbody style="display:block;max-height:340px;overflow-y:auto">'
     +'<tr style="display:table;width:100%;table-layout:fixed"><!-- spacer --></tr>';
-
+ 
   // ── Filter & render rows ──
   var filtered=tagged.filter(function(t){
     if(search && t.r.name.toLowerCase().indexOf(search)<0) return false;
@@ -524,9 +525,9 @@ function renderTable(){
     }
     return true;
   });
-
+ 
   if(!filtered.length) h+='<tr style="display:table;width:100%;table-layout:fixed"><td colspan="8" style="text-align:center;color:#aaa;padding:16px;font-size:12px">Aucun résultat</td></tr>';
-
+ 
   filtered.forEach(function(t){
     var r=t.r, i=t.idx;
     var bg=t.isDup?'background:#fffbe6':(!r.ok?'background:#fff8f8':'');
@@ -560,15 +561,15 @@ function renderTable(){
         +'</td></tr>';
     }
   });
-
+ 
   h+='</tbody></table>';
-
+ 
   // ── Also show thead as sticky ──
   w.innerHTML=h;
   w.style.border='1px solid #ddd';w.style.borderRadius='8px';w.style.overflow='hidden';
-
+ 
   // ── Event listeners ──
-
+ 
   // Header dropdowns
   function setupDrop(thId, dropId, filterKey){
     var th=document.getElementById(thId), drop=document.getElementById(dropId);
@@ -593,7 +594,7 @@ function renderTable(){
   setupDrop('th-nom','nom-drop','_nameFilter');
   setupDrop('th-cat','cat-drop','_catFilter');
   setupDrop('th-prec','prec-drop','_precFilter');
-
+ 
   // Nom search inside dropdown
   var nomDS=document.getElementById('nom-drop-search');
   if(nomDS){
@@ -605,11 +606,11 @@ function renderTable(){
       });
     });
   }
-
+ 
   document.addEventListener('click',function(){
     w.querySelectorAll('[id$="-drop"]').forEach(function(d){d.style.display='none';});
   });
-
+ 
   // Dup-ok checkbox
   w.querySelectorAll('.dup-ok-chk').forEach(function(chk){
     chk.addEventListener('change',function(){
@@ -617,7 +618,7 @@ function renderTable(){
       results[idx].dupOk=this.checked; saveData(); renderTable();
     });
   });
-
+ 
   // Editable address
   w.querySelectorAll('.addr-edit').forEach(function(inp){
     inp.addEventListener('keydown',function(e){if(e.key==='Enter')this.blur();});
@@ -626,7 +627,7 @@ function renderTable(){
       results[idx].fmt=this.value; saveData();
     });
   });
-
+ 
   // Editable lat/lng
   w.querySelectorAll('.lat-edit,.lng-edit').forEach(function(inp){
     inp.addEventListener('change',function(){
@@ -638,7 +639,7 @@ function renderTable(){
       }
     });
   });
-
+ 
   // Regeocode button (Nominatim)
   w.querySelectorAll('.regeo-btn').forEach(function(btn){
     btn.addEventListener('click',async function(){
@@ -665,7 +666,7 @@ function renderTable(){
       self.textContent='🔄'; self.disabled=false;
     });
   });
-
+ 
   // Delete button
   w.querySelectorAll('.del-btn').forEach(function(btn){
     btn.addEventListener('click',function(){
@@ -676,7 +677,7 @@ function renderTable(){
       }
     });
   });
-
+ 
   // Map reposition button
   w.querySelectorAll('.map-btn').forEach(function(btn){
     btn.addEventListener('click',function(){
@@ -687,7 +688,7 @@ function renderTable(){
     });
   });
 }
-
+ 
 function buildCatCfg(){
   var ok=results.filter(function(r){return r.ok;});
   var struct={};
@@ -737,9 +738,9 @@ function buildCatCfg(){
     })(cats[i],i);
   }
 }
-
+ 
 function toggleCat(i){var b=document.getElementById('cb'+i),t=document.getElementById('tg'+i);if(!b)return;b.classList.toggle('on');if(t)t.textContent=b.classList.contains('on')?'▲':'▼';}
-
+ 
 function openModal(cat,sub,ci,si){
   pickTarget={cat:cat,sub:sub,ci:ci,si:si};
   var cur=sub?iconCfg[cat][sub]:iconCfg[cat]._;
@@ -766,18 +767,18 @@ function applyIcon(ic){
 }
 document.getElementById('modal-close-btn').addEventListener('click',function(){document.getElementById('mo').classList.remove('on');});
 document.getElementById('mo').addEventListener('click',function(e){if(e.target.id==='mo')document.getElementById('mo').classList.remove('on');});
-
+ 
 function buildSummary(){
   var ok=results.filter(function(r){return r.ok;});
   document.getElementById('spts').textContent=ok.length;
   var cats={};for(var i=0;i<ok.length;i++)cats[ok[i].category||'Loisirs']=1;
   document.getElementById('scats').textContent=Object.keys(cats).length;
 }
-
+ 
 function getIcon(s){var c=s.category||'Loisirs',sb=s.subcategory||'';if(sb&&iconCfg[c]&&iconCfg[c][sb])return iconCfg[c][sb];if(iconCfg[c]&&iconCfg[c]._)return iconCfg[c]._;return '📍';}
 function getColor(cat){return(iconCfg[cat]&&iconCfg[cat].color)||DEFCOLS[0];}
 function extractCity(addr){if(!addr)return '';var parts=addr.split(',');var result='';for(var i=0;i<parts.length;i++){var p=parts[i].trim();var m=p.match(/^\d{4,6}\s+(.+)$/);if(m){result=m[1].trim();break;}}if(!result&&parts.length>=2)result=parts[parts.length-2].trim();return result;}
-
+ 
 function genHTML(){
   var title=document.getElementById('mtitle').value||'Carte';
   var btnTxt=document.getElementById('mbtntxt').value||"Voir l'offre";
@@ -790,9 +791,9 @@ function genHTML(){
   }
   var cats=[];for(var i=0;i<stores.length;i++){if(cats.indexOf(stores[i].cat)<0)cats.push(stores[i].cat);}
   var catData={};for(var i=0;i<cats.length;i++)catData[cats[i]]={icon:(iconCfg[cats[i]]&&iconCfg[cats[i]]._)||'📍',color:getColor(cats[i])};
-
+ 
   var sj=JSON.stringify(stores),cj=JSON.stringify(catData),bj=JSON.stringify(btnTxt),gj=JSON.stringify(gkey);
-
+ 
   return '<!DOCTYPE html>\n<html lang="fr">\n<head>\n'
     +'<meta charset="UTF-8"/>\n<meta name="viewport" content="width=device-width,initial-scale=1.0"/>\n'
     +'<title>'+title+'</title>\n'
@@ -948,7 +949,7 @@ function genHTML(){
     +'if(AM.length>0){var grp=[];for(var i=0;i<AM.length;i++)grp.push(AM[i].m);map.fitBounds(L.featureGroup(grp).getBounds().pad(0.1));}\n'
     +'<\/script>\n</body>\n</html>';
 }
-
+ 
 document.getElementById('dl-btn').addEventListener('click',function(){
   try{
     var base=window.location.origin+window.location.pathname.replace(/[^/]*$/,'');
@@ -956,7 +957,7 @@ document.getElementById('dl-btn').addEventListener('click',function(){
     window.open(url,'_blank');
   }catch(e){alert('Erreur: '+e.message);}
 });
-
+ 
 document.getElementById('preview-btn').addEventListener('click',function(){
   try{
     var h=genHTML();
@@ -968,31 +969,37 @@ document.getElementById('preview-btn').addEventListener('click',function(){
     setTimeout(function(){wrap.scrollIntoView({behavior:'smooth'});},300);
   }catch(e){alert('Erreur: '+e.message);}
 });
-
+ 
 (async function(){await renderProgs();})();
-
+ 
 // Export/Import
 document.getElementById('export-all-btn').addEventListener('click', async function(){
+  var st=document.getElementById('import-status');
+  var btn=this;
+  btn.disabled=true;btn.textContent='⏳ Export...';
+  st.style.color='#555';st.textContent='Chargement des données...';
   try{
     var progs=await sbGetProgs();
     var bundle={version:1,exported:new Date().toISOString(),progs:progs,data:{}};
     for(var i=0;i<progs.length;i++){
       var n=progs[i].name;
+      st.textContent='Export '+(i+1)+'/'+progs.length+': '+n;
       var loaded=await sbLoadProg(n);
       bundle.data[n]={results:loaded.results,cfg:loaded.cfg};
     }
     var a=document.createElement('a');
     a.href=URL.createObjectURL(new Blob([JSON.stringify(bundle,null,2)],{type:'application/json'}));
     a.download='sauvegarde_cartes_'+new Date().toISOString().slice(0,10)+'.json';
-    document.body.appendChild(a);a.click();setTimeout(function(){document.body.removeChild(a);},200);
-  }catch(e){alert('Erreur export: '+e.message);}
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){document.body.removeChild(a);},200);
+    st.style.color='#28a745';st.textContent='✅ Export terminé — '+progs.length+' programmes';
+  }catch(e){
+    st.style.color='#e74c3c';st.textContent='❌ Erreur export: '+e.message;
+  }
+  btn.disabled=false;btn.textContent='⬇ Exporter tout';
 });
-
-console.log('Registering import listener...');
-var importEl = document.getElementById('import-all-file');
-console.log('import-all-file element:', importEl);
-importEl.addEventListener('change', async function(){
-  console.log('CHANGE EVENT FIRED', this.files);
+ 
+document.getElementById('import-all-file').addEventListener('change', async function(){
   var st=document.getElementById('import-status');
   st.style.color='#555';
   st.textContent='⏳ Fichier détecté...';
@@ -1022,8 +1029,49 @@ importEl.addEventListener('change', async function(){
     }
     st.style.color='#28a745';
     st.textContent='✅ '+b.progs.length+' programmes importés !';
-    _pc=null;_dc={};
-    await renderProgs();
+    _pc=b.progs.slice();
+    _dc={};
+    // Rebuild counts from imported data
+    for(var pi=0;pi<b.progs.length;pi++){
+      var pn=b.progs[pi].name;
+      if(b.data[pn]&&b.data[pn].results){
+        _dc[pn]=b.data[pn].results.filter(function(r){return r.ok;}).map(function(){return {ok:true};});
+      }
+    }
+    // Rebuild list directly
+    var list=document.getElementById('prog-list');
+    list.innerHTML='';
+    document.getElementById('prog-screen').style.display='block';
+    document.getElementById('main-app').style.display='none';
+    for(var pi=0;pi<b.progs.length;pi++){
+      (function(pname){
+        var cnt=_dc[pname]?_dc[pname].length:0;
+        var row=document.createElement('div');
+        row.style.cssText='display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #e8e8e4;border-radius:10px;padding:14px 16px;margin-bottom:8px';
+        var info=document.createElement('div');
+        info.innerHTML='<div style="font-size:14px;font-weight:600">'+pname+'</div>'
+          +'<div style="font-size:12px;color:#aaa;margin-top:2px">'+(cnt>0?cnt+' offre'+(cnt>1?'s':''):'Aucune donnée')+'</div>';
+        var btnWrap=document.createElement('div');
+        btnWrap.style.cssText='display:flex;gap:8px;flex-shrink:0';
+        var openBtn=document.createElement('button');
+        openBtn.textContent='Ouvrir';
+        openBtn.style.cssText='font-size:12px;padding:6px 14px;border-radius:8px;border:none;background:#7F77DD;color:#fff;cursor:pointer';
+        var delBtn=document.createElement('button');
+        delBtn.textContent='Supprimer';
+        delBtn.style.cssText='font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid #e74c3c;background:#fff;color:#e74c3c;cursor:pointer';
+        openBtn.addEventListener('click',function(){openProg(pname);});
+        delBtn.addEventListener('click',async function(){
+          if(!confirm('Supprimer "'+pname+'" ?'))return;
+          row.remove();
+          _pc=(_pc||[]).filter(function(x){return x.name!==pname;});
+          await fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(pname),{method:'DELETE',headers:SB_H});
+          await fetch(SB_URL+'/rest/v1/programmes?name=eq.'+encodeURIComponent(pname),{method:'DELETE',headers:SB_H});
+        });
+        btnWrap.appendChild(openBtn);btnWrap.appendChild(delBtn);
+        row.appendChild(info);row.appendChild(btnWrap);
+        list.appendChild(row);
+      })(b.progs[pi].name);
+    }
   }catch(ex){st.style.color='#e74c3c';st.textContent='❌ '+ex.message;console.error(ex);}
 });
 </script>
@@ -1084,3 +1132,4 @@ document.getElementById('map-modal').addEventListener('click',function(e){
 </script>
 </body>
 </html>
+ 
