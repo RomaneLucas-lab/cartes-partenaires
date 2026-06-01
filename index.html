@@ -509,7 +509,7 @@ function renderTable(){
  
   // Build dropdown HTML helpers
   function mkDrop(id, items, valAttr, activeVal, extraTop){
-    var s='<div id="'+id+'" style="display:none;position:absolute;left:0;top:100%;background:#fff;border:1px solid #e0e0e0;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.18);z-index:99999;padding:4px 0;min-width:200px;font-weight:400;max-height:300px;overflow-y:auto">';
+    var s='<div id="'+id+'" style="display:none;position:fixed;background:#fff;border:1px solid #e0e0e0;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.18);z-index:99999;padding:4px 0;min-width:220px;font-weight:400">';
     if(extraTop) s+=extraTop;
     items.forEach(function(it){
       var active=(it.val||'')===(activeVal||'');
