@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Carte interactive</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#1a1a1a}
+#app{display:flex;flex-direction:column;height:100vh}
+#hdr{padding:10px 16px;background:#fff;border-bottom:1px solid #e8e8e4;display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0}
+#hdr h1{font-size:14px;font-weight:600;white-space:nowrap}
+#sb{position:relative}
+#si{font-size:13px;padding:5px 10px 5px 28px;border:1px solid #ddd;border-radius:20px;width:180px;outline:none;background:#f8f8f6}
+#si:focus{background:#fff}
+#sico{position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:12px;pointer-events:none}
+#sr{position:absolute;top:34px;left:0;width:240px;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:2000;display:none;max-height:260px;overflow-y:auto}
+#sr div{padding:8px 12px;font-size:12px;cursor:pointer;border-bottom:1px solid #f0f0ee}
+#sr div:hover{background:#f5f5ff}
+#filters{display:flex;gap:6px;flex-wrap:wrap}
+.fbtn{font-size:12px;padding:4px 12px;border-radius:20px;border:2px solid transparent;cursor:pointer}
+#loc-btn{background:#fff;border:1px solid #ddd;border-radius:8px;padding:5px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+#cnt{font-size:12px;color:#888;margin-left:auto;white-space:nowrap}
+#map{flex:1}
+.leaflet-popup-content-wrapper{border-radius:10px!important;border:1px solid #e8e8e4!important;box-shadow:0 4px 20px rgba(0,0,0,.12)!important;padding:0!important;overflow:hidden}
+.leaflet-popup-content{margin:0!important;width:250px!important}
+.leaflet-popup-tip-container{display:none}
+.pop{padding:14px}
+.pop-cat{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.pop-name{font-size:14px;font-weight:700;margin-bottom:6px}
+.pop-remise{font-size:12px;color:#1D9E75;font-weight:600;margin-bottom:4px}
+.pop-desc{font-size:12px;color:#666;margin-bottom:10px;line-height:1.4}
+.pop-actions{display:flex;gap:8px;flex-wrap:wrap}
+.pop-link{font-size:12px;padding:5px 12px;background:#7F77DD;color:#fff;border-radius:6px;text-decoration:none;font-weight:600}
+.pop-nav{font-size:12px;padding:5px 12px;background:#f0f0f0;color:#555;border-radius:6px;text-decoration:none}
+#loading{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;z-index:9999;flex-direction:column;gap:12px}
+#loading p{color:#aaa;font-size:13px}
+</style>
+</head>
+<body>
+<div id="loading"><span style="font-size:32px">🗺️</span><span>Chargement de la carte...</span><p id="load-status"></p></div>
+<div id="app" style="display:none">
+  <div id="hdr">
+    <h1 id="map-title">Carte interactive</h1>
+    <div id="sb"><span id="sico">🔍</span><input id="si" type="text" placeholder="Rechercher..."/><div id="sr"></div></div>
+    <div id="filters"></div>
+    <button id="loc-btn">📍 Me localiser</button>
+    <span id="cnt"></span>
+  </div>
+  <div id="map"></div>
+</div>
+<script>
+var SB_URL='https://hfxpobmdolslwjrygaww.supabase.co';
+var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmeHBvYm1kb2xzbHdqcnlnYXd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzM0MzcsImV4cCI6MjA5NTQ0OTQzN30.4cneDKHlJQmUCsJZ_LRNLNqHMmcZAZ-ykyBQQyx4kOs';
+var SB_HDR={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+
+// Get programme from URL param
+var PROG=(new URLSearchParams(window.location.search)).get('prog')||'';
+var TITLE=(new URLSearchParams(window.location.search)).get('title')||'Carte interactive';
+document.getElementById('map-title').textContent=TITLE;
+document.title=TITLE;
+
+var map=L.map('map',{zoomControl:true,attributionControl:true}).setView([46.5,2.5],6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+var CG=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,spiderfyOnMaxZoom:true,disableClusteringAtZoom:16});
+map.addLayer(CG);
+
+var AM=[],AF=[],S=[];
+
+function mkI(ic,col){
+  return L.divIcon({className:'',iconSize:[30,30],iconAnchor:[15,15],popupAnchor:[0,-16],
+    html:'<div style="width:30px;height:30px;border-radius:50%;background:'+col+';border:2.5px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:15px">'+ic+'</div>'});
+}
+
+function mkMarker(s,BT){
+  var m=L.marker([s.lat,s.lng],{icon:mkI(s.icon||'📍',s.color||'#7F77DD')});
+  var rem=s.remise?'<div class="pop-remise">'+s.remise+'</div>':'';
+  var lnk=s.url?'<a class="pop-link" href="'+s.url+'" target="_blank">'+BT+'</a>':'';
+  var nav='<a class="pop-nav" href="https://www.google.com/maps/dir/?api=1&destination='+s.lat+','+s.lng+'" target="_blank">S'y rendre</a>';
+  var sub=s.sub?' — '+s.sub:'';
+  var h='<div class="pop"><div class="pop-cat" style="color:'+s.color+'">'+s.cat+sub+'</div><div class="pop-name">'+s.name+'</div>'+rem+'<div class="pop-desc">'+s.desc+'</div><div class="pop-actions">'+lnk+nav+'</div></div>';
+  m.bindPopup(h,{maxWidth:270,minWidth:250});
+  CG.addLayer(m);AM.push({m:m,s:s});
+}
+
+function inAF(c){for(var i=0;i<AF.length;i++)if(AF[i]===c)return true;return false;}
+function addAF(c){if(!inAF(c))AF.push(c);}
+function delAF(c){for(var i=0;i<AF.length;i++)if(AF[i]===c){AF.splice(i,1);return;}}
+
+function upd(){
+  var n=CG.getLayers().length;
+  document.getElementById('cnt').textContent=n+' offre'+(n>1?'s':'')+' affiché'+(n>1?'es':'e');
+}
+
+function initFilters(cats,catData){
+  var filt=document.getElementById('filters');
+  filt.innerHTML='';
+  // All button
+  var all=document.createElement('button');
+  all.className='fbtn';all.textContent='Tout';
+  all.style.cssText='background:#7F77DD;color:#fff;border-color:#7F77DD';
+  all.addEventListener('click',function(){
+    for(var j=0;j<AM.length;j++)CG.addLayer(AM[j].m);
+    AF=cats.slice();
+    filt.querySelectorAll('.fbtn').forEach(function(b){b.style.background='';b.style.color='';b.style.borderColor='transparent';});
+    this.style.cssText='background:#7F77DD;color:#fff;border-color:#7F77DD';
+    upd();
+  });
+  filt.appendChild(all);
+  for(var i=0;i<cats.length;i++){
+    (function(cat){
+      var ic=catData[cat]?catData[cat].icon:'📍';
+      var col=catData[cat]?catData[cat].color:'#7F77DD';
+      addAF(cat);
+      var btn=document.createElement('button');
+      btn.className='fbtn';
+      btn.innerHTML=ic+' '+cat;
+      btn.style.cssText='background:'+col+'22;color:'+col+';border-color:'+col;
+      btn.addEventListener('click',function(){
+        if(inAF(cat)){
+          delAF(cat);
+          for(var j=0;j<AM.length;j++)if(AM[j].s.cat===cat)CG.removeLayer(AM[j].m);
+          btn.style.cssText='background:#eee;color:#aaa;border-color:transparent';
+        }else{
+          addAF(cat);
+          for(var j=0;j<AM.length;j++)if(AM[j].s.cat===cat)CG.addLayer(AM[j].m);
+          btn.style.cssText='background:'+col+'22;color:'+col+';border-color:'+col;
+        }
+        upd();
+      });
+      filt.appendChild(btn);
+    })(cats[i]);
+  }
+}
+
+// Search
+var si=document.getElementById('si'),sr=document.getElementById('sr'),_lst=null;
+si.addEventListener('input',function(){
+  var q=si.value.trim();sr.innerHTML='';sr.style.display='none';
+  if(q.length<2)return;
+  sr.style.display='block';
+  var hits=[],ql=q.toLowerCase();
+  for(var i=0;i<S.length;i++){if(S[i].name.toLowerCase().indexOf(ql)>=0)hits.push(S[i]);}
+  if(hits.length>0){
+    var nameCount={};
+    for(var i=0;i<hits.length;i++)nameCount[hits[i].name]=(nameCount[hits[i].name]||0)+1;
+    var brands={};
+    for(var i=0;i<hits.length;i++){
+      (function(s){
+        var isBrand=nameCount[s.name]>1;
+        if(isBrand&&brands[s.name])return;if(isBrand)brands[s.name]=true;
+        var d=document.createElement('div');
+        if(isBrand){
+          d.innerHTML='<strong>'+s.name+'</strong> <span style="color:#888;font-size:11px">'+nameCount[s.name]+' boutiques</span>';
+          d.addEventListener('click',function(){
+            var grp=[];
+            for(var j=0;j<AM.length;j++){if(AM[j].s.name===s.name){CG.addLayer(AM[j].m);grp.push(AM[j].m.getLatLng());}else{CG.removeLayer(AM[j].m);}}
+            if(grp.length)map.fitBounds(L.latLngBounds(grp),{padding:[60,60],maxZoom:15,animate:true});
+            sr.style.display='none';si.value='';
+          });
+        }else{
+          d.innerHTML='<strong>'+s.name+'</strong> <span style="color:#aaa;font-size:11px">'+s.cat+'</span>';
+          d.addEventListener('click',function(){
+            map.flyTo([s.lat,s.lng],16,{animate:true,duration:1});
+            for(var j=0;j<AM.length;j++){if(AM[j].s.name===s.name&&AM[j].s.lat===s.lat){if(!CG.hasLayer(AM[j].m))CG.addLayer(AM[j].m);setTimeout(function(){AM[j].m.openPopup();},900);break;}}
+            sr.style.display='none';si.value='';
+          });
+        }
+        sr.appendChild(d);
+      })(hits[i]);
+    }
+  }
+  // Nominatim
+  var lhdr=document.createElement('div');
+  lhdr.style.cssText='padding:4px 12px;font-size:10px;font-weight:700;color:#bbb;text-transform:uppercase;background:#f9f9f9;border-top:1px solid #f0f0ee';
+  lhdr.textContent='Lieux';sr.appendChild(lhdr);
+  clearTimeout(_lst);
+  _lst=setTimeout(function(){
+    fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q)+'&limit=5&addressdetails=1&accept-language=fr')
+    .then(function(r){return r.json();}).then(function(res){
+      if(!res||!res.length){lhdr.remove();return;}
+      var seen={};
+      for(var i=0;i<res.length;i++){(function(pl){
+        var addr=pl.address||{},main=addr.road||addr.city||addr.town||addr.village||pl.display_name.split(',')[0];
+        var sec=pl.display_name.split(',').slice(1,3).join(',').trim();
+        var key=(main+sec.split(',')[0]).toLowerCase().replace(/\s/g,'');if(seen[key])return;seen[key]=true;
+        var d=document.createElement('div');
+        d.innerHTML='📍 <strong>'+main+'</strong><span style="color:#aaa;font-size:11px"> '+sec+'</span>';
+        d.addEventListener('click',function(){
+          var lat=parseFloat(pl.lat),lng=parseFloat(pl.lon),tp=pl.type||'',cl=pl.class||'',a=pl.address||{};
+          var z=tp==='house'||cl==='building'?18:tp==='road'?17:tp==='suburb'?15:tp==='village'?14:tp==='city'||tp==='town'?15:cl==='boundary'?12:a.house_number?18:a.road?17:14;
+          map.flyTo([lat,lng],z,{animate:true,duration:1.2});sr.style.display='none';si.value='';
+        });
+        sr.appendChild(d);
+      })(res[i]);}
+    }).catch(function(){lhdr.remove();});
+  },400);
+});
+document.addEventListener('click',function(e){if(!document.getElementById('sb').contains(e.target))sr.style.display='none';});
+
+// Geolocation
+var _lm=null,_lw=null,_la=false;
+document.getElementById('loc-btn').addEventListener('click',function(){
+  var btn=document.getElementById('loc-btn');
+  if(!navigator.geolocation){alert('Géolocalisation non supportée.');return;}
+  if(_la){if(_lw!==null){navigator.geolocation.clearWatch(_lw);_lw=null;}if(_lm){_lm.remove();_lm=null;}_la=false;btn.textContent='📍 Me localiser';btn.style.background='';btn.style.color='';return;}
+  btn.textContent='⏳ Localisation...';btn.disabled=true;
+  function updPos(pos){
+    var lat=pos.coords.latitude,lng=pos.coords.longitude;
+    if(!_la){_la=true;btn.disabled=false;btn.textContent='📍 Live ■';btn.style.background='#3A8AE8';btn.style.color='#fff';map.flyTo([lat,lng],18,{animate:true,duration:1.4});}
+    else{map.panTo([lat,lng],{animate:true,duration:0.5});}
+    if(!document.getElementById('_lpst')){var st=document.createElement('style');st.id='_lpst';st.textContent='@keyframes lp{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.6);opacity:0}}';document.head.appendChild(st);}
+    var ph='<div style="position:relative;width:22px;height:22px"><div style="position:absolute;inset:0;border-radius:50%;background:#3A8AE8;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);"></div><div style="position:absolute;inset:-7px;border-radius:50%;background:rgba(58,138,232,.22);animation:lp 1.6s ease-out infinite;"></div></div>';
+    if(_lm){_lm.setLatLng([lat,lng]);}else{_lm=L.marker([lat,lng],{icon:L.divIcon({className:'',iconSize:[22,22],iconAnchor:[11,11],html:ph})}).addTo(map);}
+  }
+  function errPos(){btn.disabled=false;if(!_la){btn.textContent='📍 Me localiser';}}
+  _lw=navigator.geolocation.watchPosition(updPos,errPos,{enableHighAccuracy:true,timeout:10000,maximumAge:2000});
+});
+
+// ── LOAD DATA FROM SUPABASE ──────────────────────────────────
+(async function(){
+  if(!PROG){
+    document.getElementById('load-status').textContent='Aucun programme spécifié dans l'URL';
+    return;
+  }
+  document.getElementById('load-status').textContent='Chargement de "'+PROG+'"...';
+  try{
+    // Load offres
+    var r=await fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(PROG)+'&ok=eq.true&order=id',{headers:SB_HDR});
+    var rows=await r.json();
+    if(!rows||!rows.length){document.getElementById('load-status').textContent='Aucune offre trouvée pour ce programme.';return;}
+
+    // Load config (icons/colors)
+    var rc=await fetch(SB_URL+'/rest/v1/configs?programme=eq.'+encodeURIComponent(PROG),{headers:SB_HDR});
+    var cfgData=await rc.json();
+    var cfg=(cfgData&&cfgData[0])?cfgData[0].cfg:{};
+
+    // Build catData
+    var catData={};
+    var DEFCOLS=['#7F77DD','#E8703A','#1D9E75','#D4537E','#BA7BEE','#2196F3','#FF9800','#009688'];
+    var ci=0;
+    for(var i=0;i<rows.length;i++){
+      var cat=rows[i].category||'Loisirs';
+      if(!catData[cat]){
+        var col=(cfg[cat]&&cfg[cat].color)||DEFCOLS[ci%DEFCOLS.length];
+        var icon=(cfg[cat]&&cfg[cat]._)||'📍';
+        catData[cat]={icon:icon,color:col};
+        ci++;
+      }
+    }
+
+    // Build BT (button text) - default
+    var BT='Voir l'offre';
+
+    // Create markers
+    for(var i=0;i<rows.length;i++){
+      var row=rows[i];
+      var cat=row.category||'Loisirs';
+      var cd=catData[cat]||{icon:'📍',color:'#7F77DD'};
+      var s={name:row.name,lat:row.lat,lng:row.lng,cat:cat,sub:row.subcategory||'',desc:row.description||'',url:row.url||'',remise:row.remise||'',icon:cd.icon,color:cd.color};
+      S.push(s);
+      mkMarker(s,BT);
+    }
+
+    // Init filters
+    var cats=Object.keys(catData);
+    initFilters(cats,catData);
+    upd();
+
+    // Fit bounds
+    if(AM.length>0){
+      var grp=[];for(var i=0;i<AM.length;i++)grp.push(AM[i].m);
+      map.fitBounds(L.featureGroup(grp).getBounds().pad(0.1));
+    }
+
+    // Show map
+    document.getElementById('loading').style.display='none';
+    document.getElementById('app').style.display='flex';
+    map.invalidateSize();
+
+  }catch(e){
+    document.getElementById('load-status').textContent='Erreur: '+e.message;
+    console.error(e);
+  }
+})();
+</script>
+</body>
+</html>
