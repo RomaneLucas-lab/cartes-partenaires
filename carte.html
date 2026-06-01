@@ -64,8 +64,9 @@ var PROG=(new URLSearchParams(window.location.search)).get('prog')||'';
 var TITLE=(new URLSearchParams(window.location.search)).get('title')||'Carte interactive';
 document.getElementById('map-title').textContent=TITLE;
 document.title=TITLE;
+document.getElementById('cnt').textContent='⏳ Chargement...';
  
-var map=L.map('map',{zoomControl:true,attributionControl:true}).setView([46.5,2.5],6);
+var map=L.map('map',{zoomControl:true,attributionControl:true}).setView([46.8,2.3],5);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
 var CG=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,spiderfyOnMaxZoom:true,disableClusteringAtZoom:16});
 map.addLayer(CG);
@@ -100,23 +101,12 @@ function upd(){
 function initFilters(cats,catData){
   var filt=document.getElementById('filters');
   filt.innerHTML='';
-  // All button
-  var all=document.createElement('button');
-  all.className='fbtn';all.textContent='Tout';
-  all.style.cssText='background:#7F77DD;color:#fff;border-color:#7F77DD';
-  all.addEventListener('click',function(){
-    for(var j=0;j<AM.length;j++)CG.addLayer(AM[j].m);
-    AF=cats.slice();
-    filt.querySelectorAll('.fbtn').forEach(function(b){b.style.background='';b.style.color='';b.style.borderColor='transparent';});
-    this.style.cssText='background:#7F77DD;color:#fff;border-color:#7F77DD';
-    upd();
-  });
-  filt.appendChild(all);
+  // All categories active by default - no "Tout" button
+  AF=cats.slice();
   for(var i=0;i<cats.length;i++){
     (function(cat){
       var ic=catData[cat]?catData[cat].icon:'📍';
       var col=catData[cat]?catData[cat].color:'#7F77DD';
-      addAF(cat);
       var btn=document.createElement('button');
       btn.className='fbtn';
       btn.innerHTML=ic+' '+cat;
