@@ -28,9 +28,9 @@ textarea{font-family:monospace;resize:vertical}
 #bw{height:4px;background:#eee;border-radius:4px;margin:10px 0 4px;display:none}
 #bp2{height:4px;background:#7F77DD;border-radius:4px;width:0%;transition:width .3s}
 #gs{font-size:12px;color:#666;min-height:16px;margin-bottom:8px}
-#tw{border:1px solid #ddd;border-radius:8px;margin-top:12px;display:none;overflow:hidden}
+#tw{border:1px solid #ddd;border-radius:8px;margin-top:12px;display:none;overflow:visible}
 #tw table{width:100%;border-collapse:collapse}
-#tw thead{position:sticky;top:0;z-index:10;background:#fff}
+#tw thead{position:sticky;top:0;z-index:50;background:#fff}
 #tw thead tr{display:table;width:100%;table-layout:fixed}
 #map-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;align-items:center;justify-content:center}
 #map-modal.open{display:flex}
@@ -599,11 +599,17 @@ function renderTable(){
   function setupDrop(thId, dropId, filterKey){
     var th=document.getElementById(thId), drop=document.getElementById(dropId);
     if(!th||!drop) return;
+    drop.style.position='fixed';
     th.addEventListener('click',function(e){
       e.stopPropagation();
       var open=drop.style.display==='block';
       w.querySelectorAll('[id$="-drop"]').forEach(function(d){d.style.display='none';});
-      if(!open) drop.style.display='block';
+      if(!open){
+        var rect=th.getBoundingClientRect();
+        drop.style.top=(rect.bottom+2)+'px';
+        drop.style.left=rect.left+'px';
+        drop.style.display='block';
+      }
     });
     drop.querySelectorAll('div[data-val]').forEach(function(opt){
       opt.addEventListener('click',function(e){
