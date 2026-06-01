@@ -262,16 +262,19 @@ document.getElementById('loc-btn').addEventListener('click',function(){
     initFilters(cats,catData);
     upd();
  
-    // Fit bounds
-    if(AM.length>0){
-      var grp=[];for(var i=0;i<AM.length;i++)grp.push(AM[i].m);
-      map.fitBounds(L.featureGroup(grp).getBounds().pad(0.1));
-    }
- 
-    // Show map
+    // Show map first so invalidateSize works
     document.getElementById('loading').style.display='none';
     document.getElementById('app').style.display='flex';
     map.invalidateSize();
+ 
+    // Fit bounds after map is visible
+    setTimeout(function(){
+      if(AM.length>0){
+        var grp=[];
+        for(var i=0;i<AM.length;i++)grp.push([AM[i].s.lat,AM[i].s.lng]);
+        map.fitBounds(L.latLngBounds(grp).pad(0.05),{maxZoom:13,animate:false});
+      }
+    },100);
  
   }catch(e){
     document.getElementById('load-status').textContent='Erreur: '+e.message;
