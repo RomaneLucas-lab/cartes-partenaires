@@ -225,7 +225,7 @@ document.getElementById('loc-btn').addEventListener('click',function(){
 // ── LOAD DATA FROM SUPABASE ──────────────────────────────────
 (async function(){
   if(!PROG){
-    document.getElementById('load-status').textContent='Aucun programme spécifié dans l'URL';
+    document.getElementById('load-status').textContent='Aucun programme spécifié dans l\'URL';
     return;
   }
   document.getElementById('load-status').textContent='Chargement de "'+PROG+'"...';
@@ -255,7 +255,7 @@ document.getElementById('loc-btn').addEventListener('click',function(){
     }
  
     // Build BT (button text) - default
-    var BT='Voir l'offre';
+    var BT="Voir l'offre";
  
     // Create markers
     for(var i=0;i<rows.length;i++){
