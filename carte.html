@@ -13,7 +13,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#1a1a1a}
 #app{display:flex;flex-direction:column;height:100vh;position:relative}
-#hdr{padding:10px 16px 10px 56px;background:transparent;display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0;position:absolute;top:0;left:0;right:0;z-index:1000;pointer-events:none}
+#hdr{padding:8px 8px 8px 52px;background:transparent;display:flex;flex-direction:column;gap:6px;flex-shrink:0;position:absolute;top:0;left:0;right:0;z-index:1000;pointer-events:none}
 
 #sb{position:relative;pointer-events:auto}
 #si{font-size:13px;padding:5px 10px 5px 28px;border:1px solid rgba(200,200,200,0.8);border-radius:20px;width:180px;outline:none;background:rgba(255,255,255,0.9);backdrop-filter:blur(4px)}
@@ -46,11 +46,14 @@ body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#1a1a1a}
 <div id="loading"><span style="font-size:32px">🗺️</span><span>Chargement de la carte...</span><p id="load-status"></p></div>
 <div id="app" style="display:none">
   <div id="hdr">
-    
-    <div id="sb"><span id="sico">🔍</span><input id="si" type="text" placeholder="Rechercher..."/><div id="sr"></div></div>
-    <div id="filters"></div>
-    <button id="loc-btn">📍 Me localiser</button>
-    <span id="cnt"></span>
+    <div style="display:flex;align-items:center;gap:6px;width:100%">
+      <div id="sb" style="flex:1;max-width:260px;pointer-events:auto"><span id="sico">🔍</span><input id="si" type="text" placeholder="Rechercher..."/><div id="sr"></div></div>
+      <span id="cnt" style="pointer-events:auto;margin-left:auto"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;width:100%;flex-wrap:wrap">
+      <div id="filters" style="pointer-events:auto;display:flex;gap:6px;flex-wrap:wrap"></div>
+      <button id="loc-btn" style="pointer-events:auto;margin-left:auto">📍 Me localiser</button>
+    </div>
   </div>
   <div id="map"></div>
 </div>
