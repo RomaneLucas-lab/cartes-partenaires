@@ -110,7 +110,7 @@ function initFilters(cats,catData){
       var btn=document.createElement('button');
       btn.className='fbtn';
       btn.innerHTML=ic+' '+cat;
-      btn.style.cssText='background:'+col+'22;color:'+col+';border-color:'+col;
+      btn.style.cssText='background:'+col+';color:#fff;border-color:'+col+';font-weight:600';
       btn.addEventListener('click',function(){
         if(inAF(cat)){
           delAF(cat);
@@ -119,7 +119,7 @@ function initFilters(cats,catData){
         }else{
           addAF(cat);
           for(var j=0;j<AM.length;j++)if(AM[j].s.cat===cat)CG.addLayer(AM[j].m);
-          btn.style.cssText='background:'+col+'22;color:'+col+';border-color:'+col;
+          btn.style.cssText='background:'+col+';color:#fff;border-color:'+col+';font-weight:600';
         }
         upd();
       });
