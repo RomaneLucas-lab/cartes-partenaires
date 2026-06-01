@@ -85,7 +85,8 @@ input[type=color]{width:32px;height:28px;border:1px solid #ddd;border-radius:6px
   </div>
   <div style="display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid #e8e8e4">
     <button id="export-all-btn" class="btn bo" style="flex:1;font-size:12px">⬇ Exporter tout</button>
-    <input type="file" id="import-all-file" accept=".json" style="flex:1;min-width:0;font-size:12px;padding:6px 10px;border:1px solid #c8c4e8;border-radius:8px;background:#fff;color:#7F77DD;font-family:inherit;cursor:pointer"/>
+    <label for="import-all-file" class="btn bo" style="flex:1;font-size:12px;text-align:center;cursor:pointer;margin:0">⬆ Restaurer tout</label>
+    <input type="file" id="import-all-file" accept=".json" style="position:absolute;left:-9999px;opacity:0"/>
   </div>
   <div id="import-status" style="font-size:12px;margin-top:8px;min-height:18px"></div>
 </div>
@@ -843,7 +844,7 @@ function genHTML(){
     +'var CD='+cj+';\n'
     +'var BT='+bj+';\n'
     +'var GKEY='+gj+';\n'
-    +'var map=L.map("map",{zoomControl:true,attributionControl:false}).setView([46.8,2.3],5);\n'
+    +'var map=L.map("map",{zoomControl:true,attributionControl:false}).setView([46.8,2.3],6);\n'
     +'L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap contributors"}).addTo(map);\n'
     +'var CG=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,disableClusteringAtZoom:16});map.addLayer(CG);\n'
     +'L.control.attribution({prefix:"© CartoDB © OpenStreetMap"}).addTo(map);\n'
@@ -945,7 +946,7 @@ function genHTML(){
     +'},function(err){alert("Position indisponible.");},{enableHighAccuracy:true,timeout:10000});\n'
     +'});\n'
     +'upd();\n'
-    +'if(AM.length>0){var grp=[];for(var i=0;i<AM.length;i++)grp.push(AM[i].m);map.fitBounds(L.featureGroup(grp).getBounds().pad(0.1));}\n'
+    +'if(AM.length>0){var grp=[];for(var i=0;i<AM.length;i++)grp.push(AM[i].m.getLatLng());map.fitBounds(L.latLngBounds(grp).pad(0.1),{maxZoom:14});}\n'
     +'<\/script>\n</body>\n</html>';
 }
  
