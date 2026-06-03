@@ -14,6 +14,16 @@
 body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#1a1a1a}
 #app{display:flex;flex-direction:column;height:100vh;position:relative}
 #hdr{padding:8px 8px 8px 52px;background:transparent;display:flex;flex-direction:column;gap:6px;flex-shrink:0;position:absolute;top:0;left:0;right:0;z-index:1000;pointer-events:none}
+@media(min-width:601px){
+  #hdr{flex-direction:row;align-items:center;flex-wrap:wrap;padding:10px 16px 10px 56px;gap:8px}
+  #hdr > div{width:auto;flex-shrink:0}
+  #hdr > div:first-child{flex:1}
+  #loc-btn{display:none}
+  #loc-btn-desktop{display:inline-flex!important}
+}
+@media(max-width:600px){
+  #loc-btn-desktop{display:none!important}
+}
 
 #sb{position:relative;pointer-events:auto}
 #si{font-size:13px;padding:5px 10px 5px 28px;border:1px solid rgba(200,200,200,0.8);border-radius:20px;width:180px;outline:none;background:rgba(255,255,255,0.9);backdrop-filter:blur(4px)}
@@ -75,6 +85,7 @@ body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#1a1a1a}
     <div style="display:flex;align-items:center;gap:6px;width:100%">
       <div id="sb" style="flex:1;pointer-events:auto"><span id="sico">🔍</span><input id="si" type="text" placeholder="Rechercher..."/><div id="sr"></div></div>
       <button id="loc-btn" style="pointer-events:auto;flex-shrink:0">📍 Me localiser</button>
+      <button id="loc-btn-desktop" style="display:none;pointer-events:auto;flex-shrink:0">📍 Me localiser</button>
     </div>
     <div style="display:flex;align-items:center;gap:6px;width:100%;flex-wrap:wrap">
       <div id="filters" style="pointer-events:auto;display:flex;gap:6px;flex-wrap:wrap"></div>
@@ -223,7 +234,7 @@ document.addEventListener('click',function(e){if(!document.getElementById('sb').
 
 // Geolocation
 var _lm=null,_lw=null,_la=false;
-document.getElementById('loc-btn').addEventListener('click',function(){
+function handleLocClick(){
   var btn=document.getElementById('loc-btn');
   if(!navigator.geolocation){alert('Géolocalisation non supportée.');return;}
   if(_la){if(_lw!==null){navigator.geolocation.clearWatch(_lw);_lw=null;}if(_lm){_lm.remove();_lm=null;}_la=false;btn.textContent='📍 Me localiser';btn.style.background='';btn.style.color='';return;}
@@ -251,7 +262,9 @@ document.getElementById('loc-btn').addEventListener('click',function(){
   // Get position immediately first, then watch
   navigator.geolocation.getCurrentPosition(updPos,errPos,{enableHighAccuracy:true,timeout:10000,maximumAge:0});
   _lw=navigator.geolocation.watchPosition(updPos,function(){},{enableHighAccuracy:true,timeout:15000,maximumAge:5000});
-});
+}
+document.getElementById('loc-btn').addEventListener('click',handleLocClick);
+document.getElementById('loc-btn-desktop').addEventListener('click',handleLocClick););
 
 // ── LOAD DATA FROM SUPABASE ──────────────────────────────────
 (async function(){
