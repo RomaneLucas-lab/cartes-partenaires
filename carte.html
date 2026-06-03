@@ -264,7 +264,7 @@ function handleLocClick(){
   _lw=navigator.geolocation.watchPosition(updPos,function(){},{enableHighAccuracy:true,timeout:15000,maximumAge:5000});
 }
 document.getElementById('loc-btn').addEventListener('click',handleLocClick);
-document.getElementById('loc-btn-desktop').addEventListener('click',handleLocClick););
+document.getElementById('loc-btn-desktop').addEventListener('click',handleLocClick);
 
 // ── LOAD DATA FROM SUPABASE ──────────────────────────────────
 (async function(){
