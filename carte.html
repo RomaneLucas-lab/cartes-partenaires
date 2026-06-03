@@ -32,7 +32,7 @@ body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#1a1a1a}
 .leaflet-popup-content{margin:0!important;width:250px!important}
 .leaflet-popup-tip-container{display:none}
 .pop{padding:14px}
-.pop-cat{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.pop-cat{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
 .pop-name{font-size:14px;font-weight:700;margin-bottom:6px}
 .pop-remise{font-size:12px;color:#1D9E75;font-weight:600;margin-bottom:4px}
 .pop-desc{font-size:12px;color:#666;margin-bottom:10px;line-height:1.4}
@@ -102,11 +102,11 @@ function mkI(ic,col){
 
 function mkMarker(s,BT){
   var m=L.marker([s.lat,s.lng],{icon:mkI(s.icon||'📍',s.color||'#7F77DD')});
-  var rem=s.remise?'<div class="pop-remise">'+s.remise+'</div>':'';
+  var rem=s.remise?'<div class="pop-remise" style="color:'+s.color+'">'+s.remise+'</div>':'';
   var lnk=s.url?'<a class="pop-link" href="'+s.url+'" target="_blank" style="background:'+s.color+';color:#1a1a1a">'+BT+'</a>':'';
   var nav='<a class="pop-nav" href="https://www.google.com/maps/dir/?api=1&destination='+s.lat+','+s.lng+'" target="_blank">S&#39;y rendre</a>';
   var sub=s.sub?' — '+s.sub:'';
-  var h='<div class="pop"><div class="pop-cat" style="color:'+s.color+'">'+s.cat+sub+'</div><div class="pop-name">'+s.name+'</div>'+rem+'<div class="pop-desc">'+s.desc+'</div><div class="pop-actions">'+lnk+nav+'</div></div>';
+  var h='<div class="pop"><div class="pop-cat" style="color:'+s.color+';filter:brightness(0.7)">'+s.cat+sub+'</div><div class="pop-name">'+s.name+'</div>'+rem+'<div class="pop-desc">'+s.desc+'</div><div class="pop-actions">'+lnk+nav+'</div></div>';
   m.bindPopup(h,{maxWidth:270,minWidth:250});
   CG.addLayer(m);AM.push({m:m,s:s});
 }
