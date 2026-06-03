@@ -37,7 +37,7 @@ body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#1a1a1a}
 .pop-remise{font-size:12px;color:#1D9E75;font-weight:600;margin-bottom:4px}
 .pop-desc{font-size:12px;color:#666;margin-bottom:10px;line-height:1.4}
 .pop-actions{display:flex;gap:8px;flex-wrap:wrap}
-.pop-link{font-size:12px;padding:5px 12px;background:#7F77DD;color:#fff;border-radius:6px;text-decoration:none;font-weight:600}
+.pop-link{font-size:12px;padding:5px 12px;border-radius:6px;text-decoration:none;font-weight:600}
 .pop-nav{font-size:12px;padding:5px 12px;background:#f0f0f0;color:#555;border-radius:6px;text-decoration:none}
 #loading{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;z-index:9999;flex-direction:column;gap:12px}
 #loading p{color:#aaa;font-size:13px}
@@ -103,7 +103,7 @@ function mkI(ic,col){
 function mkMarker(s,BT){
   var m=L.marker([s.lat,s.lng],{icon:mkI(s.icon||'📍',s.color||'#7F77DD')});
   var rem=s.remise?'<div class="pop-remise">'+s.remise+'</div>':'';
-  var lnk=s.url?'<a class="pop-link" href="'+s.url+'" target="_blank">'+BT+'</a>':'';
+  var lnk=s.url?'<a class="pop-link" href="'+s.url+'" target="_blank" style="background:'+s.color+';color:#1a1a1a">'+BT+'</a>':'';
   var nav='<a class="pop-nav" href="https://www.google.com/maps/dir/?api=1&destination='+s.lat+','+s.lng+'" target="_blank">S&#39;y rendre</a>';
   var sub=s.sub?' — '+s.sub:'';
   var h='<div class="pop"><div class="pop-cat" style="color:'+s.color+'">'+s.cat+sub+'</div><div class="pop-name">'+s.name+'</div>'+rem+'<div class="pop-desc">'+s.desc+'</div><div class="pop-actions">'+lnk+nav+'</div></div>';
