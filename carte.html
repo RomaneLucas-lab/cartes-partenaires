@@ -88,18 +88,8 @@ var TITLE=(new URLSearchParams(window.location.search)).get('title')||'Carte int
 document.title=TITLE;
 document.getElementById('cnt').textContent='⏳ Chargement...';
 
-var map=L.map('map',{zoomControl:true,attributionControl:true,maxZoom:20,preferCanvas:true}).setView([46.8,2.3],5);
-L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png',{
-  maxZoom:20,
-  maxNativeZoom:20,
-  tileSize:256,
-  subdomains:'abc',
-  detectRetina:true,
-  keepBuffer:4,
-  updateWhenIdle:false,
-  updateWhenZooming:false,
-  attribution:'© OpenStreetMap France'
-}).addTo(map);
+var map=L.map('map',{zoomControl:true,attributionControl:true,maxZoom:18,preferCanvas:true}).setView([46.8,2.3],5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,tileSize:256,subdomains:'abc',detectRetina:true,keepBuffer:4,updateWhenIdle:false,attribution:'© OpenStreetMap contributors'}).addTo(map);
 var CG=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,spiderfyOnMaxZoom:true,disableClusteringAtZoom:16});
 map.addLayer(CG);
 
@@ -243,7 +233,7 @@ function handleLocClick(){
       btn.textContent='📍 Live ■';
       btn.style.background='#3A8AE8';
       btn.style.color='#fff';
-      var zoomLvl=window.innerWidth<=600?18:17;
+      var zoomLvl=window.innerWidth<=600?17:16;
     map.setView([lat,lng],zoomLvl);
     }
   }
