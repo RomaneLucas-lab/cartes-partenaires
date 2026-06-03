@@ -243,9 +243,16 @@ function handleLocClick(){
     _la=false;
     alert('Position indisponible: '+(e?e.message:''));
   }
-  // Get position immediately first, then watch
-  navigator.geolocation.getCurrentPosition(updPos,errPos,{enableHighAccuracy:true,timeout:5000,maximumAge:30000});
-  _lw=navigator.geolocation.watchPosition(updPos,function(){},{enableHighAccuracy:true,timeout:8000,maximumAge:10000});
+  // 1. Get fast low-accuracy position immediately (< 1s)
+  navigator.geolocation.getCurrentPosition(updPos,function(){},
+    {enableHighAccuracy:false,timeout:2000,maximumAge:60000});
+  // 2. Then get precise position and watch
+  setTimeout(function(){
+    navigator.geolocation.getCurrentPosition(updPos,errPos,
+      {enableHighAccuracy:true,timeout:8000,maximumAge:0});
+    _lw=navigator.geolocation.watchPosition(updPos,function(){},
+      {enableHighAccuracy:true,timeout:10000,maximumAge:5000});
+  },500);
 }
 document.getElementById('loc-btn').addEventListener('click',handleLocClick);
 
