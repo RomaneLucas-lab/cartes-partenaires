@@ -241,6 +241,9 @@ function handleLocClick(){
       requestAnimationFrame(animateMarker);
     }else{
       _lm=L.marker([lat,lng],{icon:L.divIcon({className:'',iconSize:[22,22],iconAnchor:[11,11],html:ph})}).addTo(map);
+      _lm.on('click',function(){
+        map.setView(_lm.getLatLng(),19,{animate:true,duration:0.8});
+      });
     }
     if(!_la){
       _la=true;
