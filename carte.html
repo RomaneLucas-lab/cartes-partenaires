@@ -89,7 +89,7 @@ document.title=TITLE;
 document.getElementById('cnt').textContent='⏳ Chargement...';
 
 var map=L.map('map',{zoomControl:true,attributionControl:true,maxZoom:22}).setView([46.8,2.3],5);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:22,maxNativeZoom:19,subdomains:'abcd',attribution:'© OpenStreetMap © CARTO'}).addTo(map);
+L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}@2x?access_token=pk.eyJ1Ijoicm9tYW5lLSIsImEiOiJjbW5nM3QwNmMwNDBmMndzOTRpMThrY2tlIn0.yASqrU4mnA53F84BNI-OAA',{maxZoom:22,tileSize:512,zoomOffset:-1,attribution:'© Mapbox © OpenStreetMap'}).addTo(map);
 var CG=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,spiderfyOnMaxZoom:true,disableClusteringAtZoom:16});
 map.addLayer(CG);
 
