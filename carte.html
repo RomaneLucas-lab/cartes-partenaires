@@ -261,13 +261,12 @@ function handleLocClick(){
     _la=false;
     alert('Position indisponible: '+(e?e.message:''));
   }
-  // Position rapide immédiate + précise en parallèle
+  // Utilise la dernière position en cache si dispo (instantané)
   navigator.geolocation.getCurrentPosition(updPos,function(){},
-    {enableHighAccuracy:false,timeout:1000,maximumAge:30000});
-  navigator.geolocation.getCurrentPosition(updPos,errPos,
-    {enableHighAccuracy:true,timeout:6000,maximumAge:0});
-  _lw=navigator.geolocation.watchPosition(updPos,function(){},
-    {enableHighAccuracy:true,timeout:6000,maximumAge:3000});
+    {enableHighAccuracy:false,timeout:100,maximumAge:300000});
+  // Lance le watch immédiatement - affiche dès que GPS répond
+  _lw=navigator.geolocation.watchPosition(updPos,errPos,
+    {enableHighAccuracy:true,timeout:10000,maximumAge:1000});
 }
 document.getElementById('loc-btn').addEventListener('click',handleLocClick);
 
