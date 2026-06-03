@@ -261,16 +261,13 @@ function handleLocClick(){
     _la=false;
     alert('Position indisponible: '+(e?e.message:''));
   }
-  // 1. Get fast low-accuracy position immediately (< 1s)
+  // Position rapide immédiate + précise en parallèle
   navigator.geolocation.getCurrentPosition(updPos,function(){},
-    {enableHighAccuracy:false,timeout:2000,maximumAge:60000});
-  // 2. Then get precise position and watch
-  setTimeout(function(){
-    navigator.geolocation.getCurrentPosition(updPos,errPos,
-      {enableHighAccuracy:true,timeout:8000,maximumAge:0});
-    _lw=navigator.geolocation.watchPosition(updPos,function(){},
-      {enableHighAccuracy:true,timeout:10000,maximumAge:5000});
-  },500);
+    {enableHighAccuracy:false,timeout:1000,maximumAge:30000});
+  navigator.geolocation.getCurrentPosition(updPos,errPos,
+    {enableHighAccuracy:true,timeout:6000,maximumAge:0});
+  _lw=navigator.geolocation.watchPosition(updPos,function(){},
+    {enableHighAccuracy:true,timeout:6000,maximumAge:3000});
 }
 document.getElementById('loc-btn').addEventListener('click',handleLocClick);
 
