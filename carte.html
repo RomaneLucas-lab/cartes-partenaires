@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Carte interactive</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAd3sw4MZqk3cYp9P7I9MJ1l7XyMGelHRo"></script>
-<script src="https://unpkg.com/leaflet.gridlayer.googlemutant@0.13.5/dist/Leaflet.GoogleMutant.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -90,7 +88,7 @@ document.title=TITLE;
 document.getElementById('cnt').textContent='⏳ Chargement...';
 
 var map=L.map('map',{zoomControl:true,attributionControl:true,maxZoom:22}).setView([46.8,2.3],5);
-L.gridLayer.googleMutant({type:'roadmap',maxZoom:22}).addTo(map);
+L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=fr&gl=FR&key=AIzaSyAd3sw4MZqk3cYp9P7I9MJ1l7XyMGelHRo',{maxZoom:22,subdomains:['mt0','mt1','mt2','mt3'],attribution:'© Google'}).addTo(map);
 var CG=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,spiderfyOnMaxZoom:true,disableClusteringAtZoom:16});
 map.addLayer(CG);
 
