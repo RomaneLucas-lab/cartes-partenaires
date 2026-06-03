@@ -59,7 +59,7 @@ body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#1a1a1a}
 /* ── MOBILE ──────────────────────────────── */
 @media(max-width:600px){
   #hdr{flex-direction:column;padding:8px 8px 8px 48px;gap:5px}
-  #hdr > div{width:100%}
+  #hdr-top,#hdr-bot{width:100%}
   #si{width:100%;font-size:13px;box-sizing:border-box}
   #sb{flex:1;width:100%}
   .fbtn{font-size:12px;padding:4px 10px}
@@ -77,11 +77,11 @@ body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#1a1a1a}
 <div id="loading"><span style="font-size:32px">🗺️</span><span>Chargement de la carte...</span><p id="load-status"></p></div>
 <div id="app" style="display:none">
   <div id="hdr">
-    <div id="hdr-top" style="display:flex;align-items:center;gap:6px;width:100%">
+    <div id="hdr-top" style="display:flex;align-items:center;gap:6px">
       <div id="sb" style="flex:1;pointer-events:auto"><span id="sico">🔍</span><input id="si" type="text" placeholder="Rechercher..."/><div id="sr"></div></div>
       <button id="loc-btn" style="pointer-events:auto;flex-shrink:0">📍 Me localiser</button>
     </div>
-    <div id="hdr-bot" style="display:flex;align-items:center;gap:6px;width:100%;flex-wrap:wrap">
+    <div id="hdr-bot" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       <div id="filters" style="pointer-events:auto;display:flex;gap:6px;flex-wrap:wrap"></div>
     </div>
   </div>
