@@ -59,11 +59,7 @@ body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#1a1a1a}
   #hdr-bot{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
   #si{width:220px}
 }
-.leaflet-cluster-anim .leaflet-marker-icon{transition:none!important}
-.marker-cluster{background:none!important;box-shadow:none!important}
-.marker-cluster div{background:none!important;box-shadow:none!important}
-.marker-cluster span{display:none!important}
-.leaflet-cluster-anim .leaflet-marker-shadow{transition:none!important}
+
 </style>
 </head>
 <body>
@@ -93,21 +89,8 @@ document.title=TITLE;
 document.getElementById('cnt').textContent='⏳ Chargement...';
 
 var map=L.map('map',{zoomControl:true,attributionControl:true,maxZoom:22}).setView([46.8,2.3],5);
-L.tileLayer('https://{s}.google.com/vt/lyrs=r&x={x}&y={y}&z={z}&hl=fr&gl=FR&key=AIzaSyAd3sw4MZqk3cYp9P7I9MJ1l7XyMGelHRo',{maxZoom:22,subdomains:['mt0','mt1','mt2','mt3'],attribution:'© Google'}).addTo(map);
-var CG=L.markerClusterGroup({
-  showCoverageOnHover:false,
-  maxClusterRadius:40,
-  spiderfyOnMaxZoom:true,
-  disableClusteringAtZoom:17,
-  iconCreateFunction:function(cluster){
-    var n=cluster.getChildCount();
-    var size=n<10?30:n<50?36:42;
-    return L.divIcon({
-      html:'<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:rgba(127,119,221,0.85);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.25)">'+n+'</div>',
-      className:'',iconSize:[size,size],iconAnchor:[size/2,size/2]
-    });
-  }
-});
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:22,maxNativeZoom:19,subdomains:'abcd',attribution:'© OpenStreetMap © CARTO'}).addTo(map);
+var CG=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,spiderfyOnMaxZoom:true,disableClusteringAtZoom:16});
 map.addLayer(CG);
 
 var AM=[],AF=[],S=[];
