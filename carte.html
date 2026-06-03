@@ -66,7 +66,7 @@ body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#1a1a1a}
 <div id="app" style="display:none">
   <div id="hdr">
     <div id="hdr-top" style="display:flex;align-items:center;gap:6px">
-      <div id="sb" style="flex:1;pointer-events:auto"><span id="sico">🔍</span><input id="si" type="text" placeholder="Rechercher..."/><div id="sr"></div></div>
+      <div id="sb" style="pointer-events:auto"><span id="sico">🔍</span><input id="si" type="text" placeholder="Rechercher..."/><div id="sr"></div></div>
       <button id="loc-btn" style="pointer-events:auto;flex-shrink:0">📍 Me localiser</button>
     </div>
     <div id="hdr-bot" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
@@ -254,12 +254,14 @@ function adjustLayout(){
   var si  = document.getElementById('si');
   if(desktop){
     top.style.cssText='display:flex;align-items:center;gap:8px';
-    bot.style.cssText='display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:0';
+    bot.style.cssText='display:flex;align-items:center;gap:6px;flex-wrap:wrap';
     si.style.width='220px';
+    document.getElementById('sb').style.flex='';
   } else {
     top.style.cssText='display:flex;align-items:center;gap:6px;width:100%';
     bot.style.cssText='display:flex;align-items:center;gap:6px;width:100%;flex-wrap:wrap';
     si.style.width='100%';
+    document.getElementById('sb').style.flex='1';
   }
 }
 adjustLayout();
