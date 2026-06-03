@@ -226,7 +226,22 @@ function handleLocClick(){
     var lat=pos.coords.latitude,lng=pos.coords.longitude;
     if(!document.getElementById('_lpst')){var st=document.createElement('style');st.id='_lpst';st.textContent='@keyframes lp{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.6);opacity:0}}';document.head.appendChild(st);}
     var ph='<div style="position:relative;width:22px;height:22px"><div style="position:absolute;inset:0;border-radius:50%;background:#3A8AE8;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);"></div><div style="position:absolute;inset:-7px;border-radius:50%;background:rgba(58,138,232,.22);animation:lp 1.6s ease-out infinite;"></div></div>';
-    if(_lm){_lm.setLatLng([lat,lng]);}else{_lm=L.marker([lat,lng],{icon:L.divIcon({className:'',iconSize:[22,22],iconAnchor:[11,11],html:ph})}).addTo(map);}
+    if(_lm){
+      // Smooth transition using requestAnimationFrame
+      var startLat=_lm.getLatLng().lat, startLng=_lm.getLatLng().lng;
+      var endLat=lat, endLng=lng;
+      var startTime=null, duration=800;
+      function animateMarker(ts){
+        if(!startTime)startTime=ts;
+        var progress=Math.min((ts-startTime)/duration,1);
+        var ease=progress<0.5?2*progress*progress:(4-2*progress)*progress-1;
+        _lm.setLatLng([startLat+(endLat-startLat)*ease, startLng+(endLng-startLng)*ease]);
+        if(progress<1)requestAnimationFrame(animateMarker);
+      }
+      requestAnimationFrame(animateMarker);
+    }else{
+      _lm=L.marker([lat,lng],{icon:L.divIcon({className:'',iconSize:[22,22],iconAnchor:[11,11],html:ph})}).addTo(map);
+    }
     if(!_la){
       _la=true;
       btn.disabled=false;
