@@ -34,7 +34,7 @@ body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#1a1a1a}
 #sr div:hover{background:#f5f5ff}
 #filters{display:flex;gap:6px;flex-wrap:wrap;pointer-events:auto}
 .fbtn{font-size:12px;padding:4px 12px;border-radius:20px;border:2px solid transparent;cursor:pointer;backdrop-filter:blur(4px)}
-#loc-btn{background:rgba(255,255,255,0.9);border:1px solid rgba(200,200,200,0.8);border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;white-space:nowrap;pointer-events:auto;backdrop-filter:blur(4px)}
+#loc-btn,#loc-btn-desktop{background:rgba(255,255,255,0.9);border:1px solid rgba(200,200,200,0.8);border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;white-space:nowrap;pointer-events:auto;backdrop-filter:blur(4px)}
 #cnt{font-size:12px;color:#555;margin-left:auto;white-space:nowrap;background:rgba(255,255,255,0.85);padding:3px 10px;border-radius:20px;pointer-events:auto;backdrop-filter:blur(4px)}
 #map{position:absolute;inset:0;z-index:1}
 .leaflet-popup-content-wrapper{border-radius:10px!important;border:1px solid #e8e8e4!important;box-shadow:0 4px 20px rgba(0,0,0,.12)!important;padding:0!important;overflow:hidden}
@@ -235,7 +235,7 @@ document.addEventListener('click',function(e){if(!document.getElementById('sb').
 // Geolocation
 var _lm=null,_lw=null,_la=false;
 function handleLocClick(){
-  var btn=document.getElementById('loc-btn');
+  var btn=document.getElementById(window.innerWidth>600?'loc-btn-desktop':'loc-btn');
   if(!navigator.geolocation){alert('Géolocalisation non supportée.');return;}
   if(_la){if(_lw!==null){navigator.geolocation.clearWatch(_lw);_lw=null;}if(_lm){_lm.remove();_lm=null;}_la=false;btn.textContent='📍 Me localiser';btn.style.background='';btn.style.color='';return;}
   btn.textContent='⏳ Localisation...';btn.disabled=true;
