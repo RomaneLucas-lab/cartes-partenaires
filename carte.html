@@ -88,7 +88,7 @@ document.title=TITLE;
 document.getElementById('cnt').textContent='⏳ Chargement...';
 
 var map=L.map('map',{zoomControl:true,attributionControl:true,maxZoom:22}).setView([46.8,2.3],5);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,maxNativeZoom:19,tileSize:256,detectRetina:true,attribution:'© OpenStreetMap contributors'}).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19,tileSize:256,detectRetina:true,attribution:'© OpenStreetMap contributors'}).addTo(map);
 var CG=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,spiderfyOnMaxZoom:true,disableClusteringAtZoom:16});
 map.addLayer(CG);
 
@@ -232,7 +232,7 @@ function handleLocClick(){
       btn.textContent='📍 Live ■';
       btn.style.background='#3A8AE8';
       btn.style.color='#fff';
-      var zoomLvl=window.innerWidth<=600?21:20;
+      var zoomLvl=window.innerWidth<=600?18:17;
     map.setView([lat,lng],zoomLvl);
     }
   }
