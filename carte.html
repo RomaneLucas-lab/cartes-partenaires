@@ -18,11 +18,6 @@ body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#1a1a1a}
   #hdr{flex-direction:row;align-items:center;flex-wrap:wrap;padding:10px 16px 10px 56px;gap:8px}
   #hdr > div{width:auto;flex-shrink:0}
   #hdr > div:first-child{flex:1}
-  #loc-btn{display:none}
-  #loc-btn-desktop{display:inline-flex!important}
-}
-@media(max-width:600px){
-  #loc-btn-desktop{display:none!important}
 }
 
 #sb{position:relative;pointer-events:auto}
@@ -82,12 +77,11 @@ body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#1a1a1a}
 <div id="loading"><span style="font-size:32px">🗺️</span><span>Chargement de la carte...</span><p id="load-status"></p></div>
 <div id="app" style="display:none">
   <div id="hdr">
-    <div style="display:flex;align-items:center;gap:6px;width:100%">
+    <div id="hdr-top" style="display:flex;align-items:center;gap:6px;width:100%">
       <div id="sb" style="flex:1;pointer-events:auto"><span id="sico">🔍</span><input id="si" type="text" placeholder="Rechercher..."/><div id="sr"></div></div>
       <button id="loc-btn" style="pointer-events:auto;flex-shrink:0">📍 Me localiser</button>
-      <button id="loc-btn-desktop" style="display:none;pointer-events:auto;flex-shrink:0">📍 Me localiser</button>
     </div>
-    <div style="display:flex;align-items:center;gap:6px;width:100%;flex-wrap:wrap">
+    <div id="hdr-bot" style="display:flex;align-items:center;gap:6px;width:100%;flex-wrap:wrap">
       <div id="filters" style="pointer-events:auto;display:flex;gap:6px;flex-wrap:wrap"></div>
     </div>
   </div>
@@ -264,7 +258,6 @@ function handleLocClick(){
   _lw=navigator.geolocation.watchPosition(updPos,function(){},{enableHighAccuracy:true,timeout:15000,maximumAge:5000});
 }
 document.getElementById('loc-btn').addEventListener('click',handleLocClick);
-document.getElementById('loc-btn-desktop').addEventListener('click',handleLocClick);
 
 // ── LOAD DATA FROM SUPABASE ──────────────────────────────────
 (async function(){
