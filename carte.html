@@ -60,6 +60,20 @@ body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#1a1a1a}
   #si{width:220px}
 }
 
+.pop-dist{font-size:11px;color:#888;margin-bottom:4px}
+@media(prefers-color-scheme:dark){
+  body{background:#1a1a1a;color:#f0f0f0}
+  #si{background:rgba(40,40,40,0.95);color:#f0f0f0;border-color:rgba(80,80,80,0.8)}
+  #sr{background:#2a2a2a;border-color:#444}
+  #sr div{border-color:#333;color:#f0f0f0}
+  #sr div:hover{background:#333}
+  #loc-btn{background:rgba(40,40,40,0.9);color:#f0f0f0;border-color:rgba(80,80,80,0.8)}
+  .fbtn{backdrop-filter:blur(4px)}
+  .leaflet-popup-content-wrapper{background:#2a2a2a!important;border-color:#444!important}
+  .pop-name{color:#f0f0f0}
+  .pop-desc{color:#bbb}
+  .pop-nav{background:#333;color:#ccc}
+}
 </style>
 </head>
 <body>
@@ -93,7 +107,7 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribu
 var CG=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,spiderfyOnMaxZoom:true,disableClusteringAtZoom:16});
 map.addLayer(CG);
 
-var AM=[],AF=[],S=[];
+var AM=[],AF=[],S=[],_userLat=null,_userLng=null;
 
 function mkI(ic,col){
   return L.divIcon({className:'',iconSize:[30,30],iconAnchor:[15,15],popupAnchor:[0,-16],
@@ -106,7 +120,8 @@ function mkMarker(s,BT){
   var lnk=s.url?'<a class="pop-link" href="'+s.url+'" target="_blank" style="background:'+s.color+';color:#1a1a1a">'+BT+'</a>':'';
   var nav='<a class="pop-nav" href="https://www.google.com/maps/dir/?api=1&destination='+s.lat+','+s.lng+'" target="_blank">S&#39;y rendre</a>';
   var sub=s.sub?' — '+s.sub:'';
-  var h='<div class="pop"><div class="pop-cat" style="color:'+s.color+';filter:brightness(0.7)">'+s.cat+sub+'</div><div class="pop-name">'+s.name+'</div>'+rem+'<div class="pop-desc">'+s.desc+'</div><div class="pop-actions">'+lnk+nav+'</div></div>';
+  var distHtml=_userLat?'<div class="pop-dist">📍 '+fmtDist(distKm(_userLat,_userLng,s.lat,s.lng))+' de vous</div>':'';
+  var h='<div class="pop"><div class="pop-cat" style="color:'+s.color+';filter:brightness(0.7)">'+s.cat+sub+'</div><div class="pop-name">'+s.name+'</div>'+distHtml+rem+'<div class="pop-desc">'+s.desc+'</div><div class="pop-actions">'+lnk+nav+'</div></div>';
   m.bindPopup(h,{maxWidth:270,minWidth:250});
   CG.addLayer(m);AM.push({m:m,s:s});
 }
@@ -289,6 +304,16 @@ function adjustLayout(){
 }
 adjustLayout();
 window.addEventListener('resize', adjustLayout);
+
+// Distance between two lat/lng in km
+function distKm(lat1,lng1,lat2,lng2){
+  var R=6371,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function fmtDist(km){
+  return km<1?(Math.round(km*1000)+'m'):(km<10?km.toFixed(1)+'km':Math.round(km)+'km');
+}
 
 // ── LOAD DATA FROM SUPABASE ──────────────────────────────────
 (async function(){
