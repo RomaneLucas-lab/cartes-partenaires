@@ -231,6 +231,7 @@ function handleLocClick(){
   btn.textContent='⏳ Localisation...';btn.disabled=true;
   function updPos(pos){
     var lat=pos.coords.latitude,lng=pos.coords.longitude;
+    _userLat=lat;_userLng=lng;
     if(!document.getElementById('_lpst')){var st=document.createElement('style');st.id='_lpst';st.textContent='@keyframes lp{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.6);opacity:0}}';document.head.appendChild(st);}
     var ph='<div style="position:relative;width:22px;height:22px"><div style="position:absolute;inset:0;border-radius:50%;background:#3A8AE8;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);"></div><div style="position:absolute;inset:-7px;border-radius:50%;background:rgba(58,138,232,.22);animation:lp 1.6s ease-out infinite;"></div></div>';
     if(_lm){
