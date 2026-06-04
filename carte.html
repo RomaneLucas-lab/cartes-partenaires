@@ -319,6 +319,12 @@ document.querySelectorAll('.rbtn').forEach(function(btn){
       document.getElementById('radius-btn').style.color='';
     }
     applyRadiusFilter();
+    // Zoom map to show the selected radius
+    if(km>0&&_userLat){
+      var circle=L.circle([_userLat,_userLng],{radius:km*1000});
+      var bounds=circle.getBounds();
+      map.fitBounds(bounds,{padding:[20,20],animate:true,duration:0.8});
+    }
   });
 });
 document.addEventListener('click',function(){
