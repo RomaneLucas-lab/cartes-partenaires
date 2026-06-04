@@ -62,6 +62,9 @@ body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#1a1a1a}
 
 .pop-dist{font-size:11px;color:#888;margin-bottom:4px}
 
+.rbtn{display:block;width:100%;text-align:left;padding:6px 12px;border:none;background:none;font-size:13px;cursor:pointer;border-radius:8px}
+.rbtn:hover{background:#f5f5ff}
+.rbtn.active{background:#ededff;font-weight:700;color:#7F77DD}
 </style>
 </head>
 <body>
@@ -71,6 +74,18 @@ body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#1a1a1a}
     <div id="hdr-top" style="display:flex;align-items:center;gap:6px">
       <div id="sb" style="pointer-events:auto"><span id="sico">🔍</span><input id="si" type="text" placeholder="Rechercher..."/><div id="sr"></div></div>
       <button id="loc-btn" style="pointer-events:auto;flex-shrink:0">📍 Me localiser</button>
+      <div id="radius-wrap" style="display:none;pointer-events:auto;position:relative">
+        <button id="radius-btn" style="background:rgba(255,255,255,0.9);border:1px solid rgba(200,200,200,0.8);border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;backdrop-filter:blur(4px)">🎯 Autour de moi</button>
+        <div id="radius-drop" style="display:none;position:absolute;top:110%;left:0;background:#fff;border:1px solid #e0e0e0;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:9999;padding:8px;min-width:160px">
+          <div style="font-size:11px;color:#888;padding:4px 8px 8px;font-weight:600">RAYON</div>
+          <button class="rbtn" data-km="2">📍 2 km</button>
+          <button class="rbtn" data-km="5">📍 5 km</button>
+          <button class="rbtn" data-km="10">📍 10 km</button>
+          <button class="rbtn" data-km="20">📍 20 km</button>
+          <button class="rbtn" data-km="50">📍 50 km</button>
+          <button class="rbtn" data-km="0" style="color:#e74c3c;margin-top:4px;border-top:1px solid #f0f0f0;padding-top:8px">✕ Désactiver</button>
+        </div>
+      </div>
     </div>
     <div id="hdr-bot" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       <div id="filters" style="pointer-events:auto;display:flex;gap:6px;flex-wrap:wrap"></div>
@@ -278,6 +293,37 @@ function handleLocClick(){
 }
 document.getElementById('loc-btn').addEventListener('click',handleLocClick);
 
+// Radius filter
+document.getElementById('radius-btn').addEventListener('click',function(e){
+  e.stopPropagation();
+  var d=document.getElementById('radius-drop');
+  d.style.display=d.style.display==='block'?'none':'block';
+});
+document.querySelectorAll('.rbtn').forEach(function(btn){
+  btn.addEventListener('click',function(e){
+    e.stopPropagation();
+    var km=parseInt(this.getAttribute('data-km'));
+    _activeRadius=km;
+    document.getElementById('radius-drop').style.display='none';
+    document.querySelectorAll('.rbtn').forEach(function(b){b.classList.remove('active');});
+    if(km>0){
+      this.classList.add('active');
+      document.getElementById('radius-btn').textContent='🎯 '+km+' km';
+      document.getElementById('radius-btn').style.background='rgba(127,119,221,0.15)';
+      document.getElementById('radius-btn').style.color='#7F77DD';
+    } else {
+      document.getElementById('radius-btn').textContent='🎯 Autour de moi';
+      document.getElementById('radius-btn').style.background='rgba(255,255,255,0.9)';
+      document.getElementById('radius-btn').style.color='';
+    }
+    applyRadiusFilter();
+  });
+});
+document.addEventListener('click',function(){
+  var d=document.getElementById('radius-drop');
+  if(d)d.style.display='none';
+});
+
 function adjustLayout(){
   var desktop = window.innerWidth > 600;
   var top = document.getElementById('hdr-top');
@@ -297,6 +343,23 @@ function adjustLayout(){
 }
 adjustLayout();
 window.addEventListener('resize', adjustLayout);
+
+var _activeRadius=0; // 0 = no filter
+
+function applyRadiusFilter(){
+  if(!_activeRadius||!_userLat){
+    // Show all
+    for(var i=0;i<AM.length;i++){
+      if(inAF(AM[i].s.cat))CG.addLayer(AM[i].m);
+    }
+    return;
+  }
+  for(var i=0;i<AM.length;i++){
+    var d=distKm(_userLat,_userLng,AM[i].s.lat,AM[i].s.lng);
+    if(d<=_activeRadius&&inAF(AM[i].s.cat))CG.addLayer(AM[i].m);
+    else CG.removeLayer(AM[i].m);
+  }
+}
 
 // Distance between two lat/lng in km
 function distKm(lat1,lng1,lat2,lng2){
