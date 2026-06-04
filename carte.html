@@ -321,9 +321,12 @@ document.querySelectorAll('.rbtn').forEach(function(btn){
     applyRadiusFilter();
     // Zoom map to show the selected radius
     if(km>0&&_userLat){
-      var circle=L.circle([_userLat,_userLng],{radius:km*1000});
-      var bounds=circle.getBounds();
-      map.fitBounds(bounds,{padding:[20,20],animate:true,duration:0.8});
+      // Calculate bounds manually from radius in km
+      var lat=_userLat,lng=_userLng;
+      var dLat=km/111.32;
+      var dLng=km/(111.32*Math.cos(lat*Math.PI/180));
+      var bounds=[[lat-dLat,lng-dLng],[lat+dLat,lng+dLng]];
+      map.fitBounds(bounds,{padding:[30,30],animate:true});
     }
   });
 });
