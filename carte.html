@@ -62,17 +62,6 @@ body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#1a1a1a}
 
 .pop-dist{font-size:11px;color:#888;margin-bottom:4px}
 
-  #si{background:rgba(40,40,40,0.95);color:#f0f0f0;border-color:rgba(80,80,80,0.8)}
-  #sr{background:#2a2a2a;border-color:#444}
-  #sr div{border-color:#333;color:#f0f0f0}
-  #sr div:hover{background:#333}
-  #loc-btn{background:rgba(40,40,40,0.9);color:#f0f0f0;border-color:rgba(80,80,80,0.8)}
-  .fbtn{backdrop-filter:blur(4px)}
-  .leaflet-popup-content-wrapper{background:#2a2a2a!important;border-color:#444!important}
-  .pop-name{color:#f0f0f0}
-  .pop-desc{color:#bbb}
-  .pop-nav{background:#333;color:#ccc}
-}
 </style>
 </head>
 <body>
@@ -119,11 +108,13 @@ function mkMarker(s,BT){
   var lnk=s.url?'<a class="pop-link" href="'+s.url+'" target="_blank" style="background:'+s.color+';color:#1a1a1a">'+BT+'</a>':'';
   var nav='<a class="pop-nav" href="https://www.google.com/maps/dir/?api=1&destination='+s.lat+','+s.lng+'" target="_blank">S&#39;y rendre</a>';
   var sub=s.sub?' — '+s.sub:'';
-  function getPopupHtml(){
+  function buildPopup(){
     var distHtml=_userLat?'<div class="pop-dist">📍 '+fmtDist(distKm(_userLat,_userLng,s.lat,s.lng))+' de vous</div>':'';
     return '<div class="pop"><div class="pop-cat" style="color:'+s.color+';filter:brightness(0.7)">'+s.cat+sub+'</div><div class="pop-name">'+s.name+'</div>'+distHtml+rem+'<div class="pop-desc">'+s.desc+'</div><div class="pop-actions">'+lnk+nav+'</div></div>';
   }
-  m.bindPopup(getPopupHtml,{maxWidth:270,minWidth:250});
+  var pop=L.popup({maxWidth:270,minWidth:250}).setContent(buildPopup());
+  m.bindPopup(pop);
+  m.on('click',function(){pop.setContent(buildPopup());});
   CG.addLayer(m);AM.push({m:m,s:s});
 }
 
