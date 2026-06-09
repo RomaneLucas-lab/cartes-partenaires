@@ -1295,7 +1295,6 @@ document.getElementById('map-modal').addEventListener('click',function(e){
     </div>
   </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script>
 document.getElementById('qr-btn').addEventListener('click',async function(){
   var base=window.location.origin+window.location.pathname.replace(/[^/]*$/,'');
@@ -1306,16 +1305,29 @@ document.getElementById('qr-btn').addEventListener('click',async function(){
   var imgEl=document.getElementById('qr-img');
   imgEl.innerHTML='';
   modal.style.display='flex';
-  var canvas=document.createElement('canvas');
-  imgEl.appendChild(canvas);
-  QRCode.toCanvas(canvas,url,{width:200,margin:2,color:{dark:'#1a1a1a',light:'#ffffff'}},function(err){
-    if(err)imgEl.textContent='Erreur: '+err.message;
-  });
+  // Use Google Charts API to generate QR
+  var qrUrl='https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl='+encodeURIComponent(url)+'&choe=UTF-8';
+  var img=document.createElement('img');
+  img.src=qrUrl;
+  img.style.cssText='width:200px;height:200px;border-radius:8px';
+  imgEl.appendChild(img);
   document.getElementById('qr-dl').onclick=function(){
-    var a=document.createElement('a');
-    a.download='QR_'+currentProg.replace(/\s/g,'_')+'.png';
-    a.href=canvas.toDataURL('image/png');
-    a.click();
+    // Draw to canvas then download
+    var c=document.createElement('canvas');c.width=200;c.height=200;
+    var ctx=c.getContext('2d');
+    var i=new Image();i.crossOrigin='anonymous';
+    i.onload=function(){
+      ctx.drawImage(i,0,0,200,200);
+      var a=document.createElement('a');
+      a.download='QR_'+currentProg.replace(/\s/g,'_')+'.png';
+      a.href=c.toDataURL('image/png');
+      a.click();
+    };
+    i.onerror=function(){
+      // Fallback: open image in new tab
+      window.open(qrUrl,'_blank');
+    };
+    i.src=qrUrl;
   };
 });
 document.getElementById('qr-close').addEventListener('click',function(){
