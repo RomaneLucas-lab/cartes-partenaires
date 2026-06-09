@@ -409,8 +409,9 @@ function fmtDist(km){
       if(!catData[cat]){
         var col=(cfg[cat]&&cfg[cat].color)||DEFCOLS[ci%DEFCOLS.length];
         var subcat=rows[i].subcategory||'';
-        var icon=(cfg[cat]&&subcat&&cfg[cat][subcat])||( cfg[cat]&&cfg[cat]._)||'📍';
-        catData[cat]={icon:icon,color:col};
+        var catIcon=(cfg[cat]&&cfg[cat]._)||'📍';  // category icon for filter buttons
+        var subIcon=(cfg[cat]&&subcat&&cfg[cat][subcat])||catIcon; // subcategory icon for markers
+        catData[cat]={icon:catIcon,color:col,subIcon:subIcon};
         ci++;
       }
     }
@@ -424,7 +425,7 @@ function fmtDist(km){
       var cat=row.category||'Loisirs';
       var cd=catData[cat]||{icon:'📍',color:'#7F77DD'};
       var subcat2=row.subcategory||'';
-      var sIcon=(cfg[cat]&&subcat2&&cfg[cat][subcat2])||(cd.icon)||'📍';
+      var sIcon=(cfg[cat]&&subcat2&&cfg[cat][subcat2])||(cfg[cat]&&cfg[cat]._)||(cd.icon)||'📍';
       var s={name:row.name,lat:row.lat,lng:row.lng,cat:cat,sub:subcat2,desc:row.description||'',url:row.url||'',remise:row.remise||'',icon:sIcon,color:cd.color};
       S.push(s);
       mkMarker(s,BT);
