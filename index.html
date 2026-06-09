@@ -201,8 +201,8 @@ async function sbGetProgs(){
 
 async function sbGetLastUpdates(){
   try{
-    // Get max updated_at per programme from offres
-    var r=await fetch(SB_URL+'/rest/v1/offres?select=programme,updated_at&order=updated_at.desc',{headers:SB_H});
+    // Use RPC or group by - Supabase supports max via order+limit per programme
+    var r=await fetch(SB_URL+'/rest/v1/offres?select=programme,updated_at&order=programme.asc,updated_at.desc',{headers:SB_H});
     var d=await r.json();
     var map={};
     if(d&&d.length){
