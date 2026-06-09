@@ -199,6 +199,33 @@ async function sbGetProgs(){
   return [{'name':'Banque Populaire'},{'name':"Caisse d'Épargne"},{'name':'Fnac'},{'name':'Intersport'},{'name':'Direct Avantages'},{'name':'Unéo'},{'name':'Macif'}];
 }
 
+async function sbGetLastUpdates(){
+  try{
+    // Get max updated_at per programme from offres
+    var r=await fetch(SB_URL+'/rest/v1/offres?select=programme,updated_at&order=updated_at.desc',{headers:SB_H});
+    var d=await r.json();
+    var map={};
+    if(d&&d.length){
+      d.forEach(function(row){
+        if(!map[row.programme]&&row.updated_at)map[row.programme]=row.updated_at;
+      });
+    }
+    return map;
+  }catch(e){return {};}
+}
+
+function fmtDate(iso){
+  if(!iso)return 'Jamais mis à jour';
+  var d=new Date(iso);
+  var now=new Date();
+  var diff=Math.floor((now-d)/1000);
+  if(diff<60)return 'À l\'instant';
+  if(diff<3600)return 'Il y a '+Math.floor(diff/60)+'min';
+  if(diff<86400)return 'Il y a '+Math.floor(diff/3600)+'h';
+  if(diff<604800)return 'Il y a '+Math.floor(diff/86400)+' jour'+(Math.floor(diff/86400)>1?'s':'');
+  return d.toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});
+}
+
 function getProgs(){return _pc||[{'name':'Banque Populaire'},{'name':"Caisse d'Épargne"},{'name':'Fnac'},{'name':'Intersport'},{'name':'Direct Avantages'},{'name':'Unéo'},{'name':'Macif'}];}
 function saveProgs(p){_pc=p;}
 function countProg(n){var d=_dc[n];return d?d.filter(function(r){return r.ok;}).length:0;}
@@ -262,11 +289,13 @@ async function renderProgs(){
   var list=document.getElementById('prog-list');
   list.innerHTML='<div style="text-align:center;padding:20px;color:#aaa;font-size:13px">⏳ Chargement...</div>';
   var progs=await sbGetProgs();
+  var lastUpdates={};
   try{
     var r=await fetch(SB_URL+'/rest/v1/offres?select=programme,ok&ok=eq.true',{headers:SB_H});
     var all=await r.json();
     _dc={};
     (all||[]).forEach(function(row){if(!_dc[row.programme])_dc[row.programme]=[];_dc[row.programme].push({ok:true});});
+    lastUpdates=await sbGetLastUpdates();
   }catch(e){}
   list.innerHTML='';
   if(!progs.length){list.innerHTML='<div style="text-align:center;padding:20px;color:#aaa;font-size:13px">Aucun programme. Créez-en un ou restaurez une sauvegarde.</div>';return;}
@@ -276,7 +305,10 @@ async function renderProgs(){
       var row=document.createElement('div');
       row.style.cssText='display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #e8e8e4;border-radius:10px;padding:14px 16px;margin-bottom:8px';
       var info=document.createElement('div');
-      info.innerHTML='<div style="font-size:14px;font-weight:600">'+p.name+'</div><div style="font-size:12px;color:#aaa;margin-top:2px">'+(cnt>0?cnt+' offre'+(cnt>1?'s':''):'Aucune donnée')+'</div>';
+      var dateStr=fmtDate(lastUpdates[p.name]);
+      info.innerHTML='<div style="font-size:14px;font-weight:600">'+p.name+'</div>'
+        +'<div style="font-size:12px;color:#aaa;margin-top:2px">'+(cnt>0?cnt+' offre'+(cnt>1?'s':''):'Aucune donnée')+'</div>'
+        +'<div style="font-size:11px;color:#bbb;margin-top:2px">🕐 '+dateStr+'</div>';
       var btnWrap=document.createElement('div');
       btnWrap.style.cssText='display:flex;gap:8px;flex-shrink:0';
       var openBtn=document.createElement('button');
@@ -1144,7 +1176,8 @@ document.getElementById('import-all-file').addEventListener('change', async func
         row.style.cssText='display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #e8e8e4;border-radius:10px;padding:14px 16px;margin-bottom:8px';
         var info=document.createElement('div');
         info.innerHTML='<div style="font-size:14px;font-weight:600">'+pname+'</div>'
-          +'<div style="font-size:12px;color:#aaa;margin-top:2px">'+(cnt>0?cnt+' offre'+(cnt>1?'s':''):'Aucune donnée')+'</div>';
+          +'<div style="font-size:12px;color:#aaa;margin-top:2px">'+(cnt>0?cnt+' offre'+(cnt>1?'s':''):'Aucune donnée')+'</div>'
+          +'<div style="font-size:11px;color:#bbb;margin-top:2px">🕐 À l\'instant</div>';
         var btnWrap=document.createElement('div');
         btnWrap.style.cssText='display:flex;gap:8px;flex-shrink:0';
         var openBtn=document.createElement('button');
