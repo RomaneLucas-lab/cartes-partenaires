@@ -154,6 +154,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #ddd;border-radius:6px
     </div>
     <div class="row">
       <button class="btn bg" id="dl-btn">⬇ Télécharger HTML</button>
+      <button class="btn bp" id="qr-btn">⬛ QR Code</button>
       <button class="btn bp" id="preview-btn">👁 Prévisualiser</button>
       <button class="btn bo" id="to-step2b-btn">← Modifier</button>
     </div>
@@ -1226,6 +1227,46 @@ document.getElementById('map-modal').addEventListener('click',function(e){
     this.classList.remove('open');
     if(_mm){try{_mm.remove();}catch(e){}_mm=null;}
   }
+});
+</script>
+<div id="qr-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;padding:28px;max-width:340px;width:90%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.25)">
+    <h3 id="qr-title" style="margin:0 0 6px;font-size:16px"></h3>
+    <p id="qr-url" style="font-size:11px;color:#aaa;margin:0 0 16px;word-break:break-all"></p>
+    <div id="qr-img" style="margin:0 auto 16px;width:200px;height:200px;display:flex;align-items:center;justify-content:center"></div>
+    <div style="display:flex;gap:8px;justify-content:center">
+      <button id="qr-dl" class="btn bp" style="font-size:13px">⬇ Télécharger PNG</button>
+      <button id="qr-close" class="btn bo" style="font-size:13px">Fermer</button>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/qr-creator@1.0.0/dist/qr-creator.min.js"></script>
+<script>
+document.getElementById('qr-btn').addEventListener('click',function(){
+  var base=window.location.origin+window.location.pathname.replace(/[^/]*$/,'');
+  var url=base+'carte.html?prog='+encodeURIComponent(currentProg)+'&title='+encodeURIComponent(document.getElementById('mtitle').value||currentProg);
+  var modal=document.getElementById('qr-modal');
+  document.getElementById('qr-title').textContent='QR Code — '+currentProg;
+  document.getElementById('qr-url').textContent=url;
+  var imgEl=document.getElementById('qr-img');
+  imgEl.innerHTML='';
+  modal.style.display='flex';
+  var canvas=document.createElement('canvas');
+  canvas.width=200;canvas.height=200;
+  imgEl.appendChild(canvas);
+  QrCreator.render({text:url,radius:0.0,ecLevel:'H',fill:'#1a1a1a',background:'#ffffff',size:200},canvas);
+  document.getElementById('qr-dl').onclick=function(){
+    var a=document.createElement('a');
+    a.download='QR_'+currentProg.replace(/\s/g,'_')+'.png';
+    a.href=canvas.toDataURL('image/png');
+    a.click();
+  };
+});
+document.getElementById('qr-close').addEventListener('click',function(){
+  document.getElementById('qr-modal').style.display='none';
+});
+document.getElementById('qr-modal').addEventListener('click',function(e){
+  if(e.target===this)this.style.display='none';
 });
 </script>
 </body>
