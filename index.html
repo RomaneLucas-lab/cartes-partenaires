@@ -126,6 +126,11 @@ input[type=color]{width:32px;height:28px;border:1px solid #ddd;border-radius:6px
     </div>
     <div id="bw"><div id="bp2"></div></div>
     <div id="gs"></div>
+    <div id="sel-bar" style="display:none;align-items:center;gap:10px;padding:8px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;margin-bottom:8px">
+      <span id="sel-count" style="font-size:13px;font-weight:600;color:#856404">0 sélectionnée(s)</span>
+      <button id="del-sel-btn" class="btn" style="background:#e74c3c;color:#fff;border:none;font-size:12px;padding:5px 14px;border-radius:8px;cursor:pointer">🗑 Supprimer la sélection</button>
+      <button id="clear-sel-btn" class="btn bo" style="font-size:12px">✕ Désélectionner tout</button>
+    </div>
     <div id="p1act" style="display:none" class="row">
       <button class="btn bo" id="retry-btn">↺ Relancer échecs</button>
       <button class="btn bo" id="json-btn">⬇ JSON</button>
@@ -495,6 +500,19 @@ function pb(p){return{ROOFTOP:'🟢',RANGE_INTERPOLATED:'🟡',GEOMETRIC_CENTER:
 
 var _nameFilter='', _catFilter='', _precFilter='', _nameSearch='';
 
+function updateSelBar(){
+  var selected=results.filter(function(r){return r._sel;});
+  var bar=document.getElementById('sel-bar');
+  var cnt=document.getElementById('sel-count');
+  if(!bar)return;
+  if(selected.length>0){
+    bar.style.display='flex';
+    cnt.textContent=selected.length+' sélectionnée'+(selected.length>1?'s':'');
+  }else{
+    bar.style.display='none';
+  }
+}
+
 function renderTable(){
   var w=document.getElementById('tw');
   w.style.display='block';
@@ -571,8 +589,9 @@ function renderTable(){
 
   var ths='padding:8px 6px;text-align:left;font-size:11px;color:#888;font-weight:600;border-bottom:2px solid #e8e8e4;background:#fff;';
   var h='<table style="width:100%;border-collapse:collapse;table-layout:fixed">'
-    +'<colgroup><col style="width:30px"><col style="width:120px"><col style="width:90px"><col><col style="width:85px"><col style="width:85px"><col style="width:35px"><col style="width:90px"></colgroup>'
+    +'<colgroup><col style="width:28px"><col style="width:28px"><col style="width:120px"><col style="width:90px"><col><col style="width:85px"><col style="width:85px"><col style="width:35px"><col style="width:90px"></colgroup>'
     +'<thead><tr>'
+    +'<th style="'+ths+'"><input type="checkbox" id="chk-all" style="cursor:pointer;width:14px;height:14px"/></th>'
     +'<th style="'+ths+'">#</th>'
     +'<th style="'+ths+'position:relative;cursor:pointer;user-select:none" id="th-nom">'+nLabel+mkDrop('nom-drop',nomItems,'data-val',_nameFilter,nomSearch)+'</th>'
     +'<th style="'+ths+'position:relative;cursor:pointer;user-select:none" id="th-cat">'+cLabel+mkDrop('cat-drop',catItems,'data-val',_catFilter)+'</th>'
@@ -605,6 +624,7 @@ function renderTable(){
     var td='padding:6px;font-size:12px;border-bottom:1px solid #f5f5f3;vertical-align:middle';
     if(r.ok){
       h+='<tr data-idx="'+i+'" style="'+baseStyle+'">'
+        +'<td style="'+td+';width:28px"><input type="checkbox" class="row-chk" data-idx="'+i+'" style="cursor:pointer;width:14px;height:14px"'+(results[i]._sel?' checked':'')+'/></td>'
         +'<td style="'+td+';color:#aaa;width:28px">'+(i+1)+'</td>'
         +'<td style="'+td+'"><b>'+r.name+'</b>'+(t.isDup?' <span title="Doublon" style="color:#f0a500">⚠️</span> <input type="checkbox" class="dup-ok-chk" data-idx="'+i+'" '+(r.dupOk?'checked':'')+' style="cursor:pointer"/>':'')+'</td>'
         +'<td style="'+td+'">'+r.category+'</td>'
@@ -619,6 +639,7 @@ function renderTable(){
         +'</td></tr>';
     }else{
       h+='<tr data-idx="'+i+'" style="'+baseStyle+'">'
+        +'<td style="'+td+';width:28px"><input type="checkbox" class="row-chk" data-idx="'+i+'" style="cursor:pointer;width:14px;height:14px"'+(results[i]._sel?' checked':'')+'/></td>'
         +'<td style="'+td+';color:#aaa;width:28px">'+(i+1)+'</td>'
         +'<td style="'+td+'"><b>'+r.name+'</b></td>'
         +'<td style="'+td+'">'+r.category+'</td>'
@@ -709,6 +730,28 @@ function renderTable(){
   }
   window.addEventListener('scroll',closeAllDrops,{passive:true});
   document.addEventListener('scroll',closeAllDrops,{capture:true,passive:true});
+
+  // Select all checkbox
+  var chkAll=document.getElementById('chk-all');
+  if(chkAll){
+    chkAll.addEventListener('change',function(){
+      var checked=this.checked;
+      w.querySelectorAll('.row-chk').forEach(function(c){
+        var idx=parseInt(c.getAttribute('data-idx'));
+        c.checked=checked;
+        results[idx]._sel=checked;
+      });
+      updateSelBar();
+    });
+  }
+  // Row checkboxes
+  w.querySelectorAll('.row-chk').forEach(function(chk){
+    chk.addEventListener('change',function(){
+      var idx=parseInt(this.getAttribute('data-idx'));
+      results[idx]._sel=this.checked;
+      updateSelBar();
+    });
+  });
 
   // Dup-ok checkbox
   w.querySelectorAll('.dup-ok-chk').forEach(function(chk){
@@ -1076,6 +1119,20 @@ document.getElementById('preview-btn').addEventListener('click',function(){
 (async function(){await renderProgs();})();
 
 // Export/Import
+document.getElementById('del-sel-btn').addEventListener('click',function(){
+  var selected=results.filter(function(r){return r._sel;});
+  if(!selected.length)return;
+  if(!confirm('Supprimer '+selected.length+' offre'+(selected.length>1?'s':'')+' ?'))return;
+  results=results.filter(function(r){return !r._sel;});
+  saveData();
+  renderTable();
+  document.getElementById('gs').textContent='✅ '+results.filter(function(r){return r.ok;}).length+' offres';
+  document.getElementById('sel-bar').style.display='none';
+});
+document.getElementById('clear-sel-btn').addEventListener('click',function(){
+  results.forEach(function(r){r._sel=false;});
+  renderTable();
+});
 document.getElementById('export-all-btn').addEventListener('click', async function(){
   var st=document.getElementById('import-status');
   var btn=this;
