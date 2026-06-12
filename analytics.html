@@ -132,6 +132,7 @@ function renderTopTable(sorted){
 
 async function loadData(){
   _activeType='all';
+  _sortedData=[];
   filterType('all');
   var prog=document.getElementById('prog-filter').value;
   var days=parseInt(document.getElementById('period-filter').value);
