@@ -60,18 +60,7 @@ tr:hover td{background:#fafafa}
 
 <div class="section">
   <h2>🔝 Top recherches</h2>
-  <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
-    <span style="font-size:12px;color:#888">Filtrer par type :</span>
-    <button onclick="filterType('all')" id="ft-all" style="padding:4px 12px;border-radius:20px;border:1px solid #7F77DD;background:#7F77DD;color:#fff;font-size:12px;cursor:pointer">Tous</button>
-    <button onclick="filterType('offre')" id="ft-offre" style="padding:4px 12px;border-radius:20px;border:1px solid #ddd;background:#fff;color:#555;font-size:12px;cursor:pointer">🏪 Offres</button>
-    <button onclick="filterType('geo')" id="ft-geo" style="padding:4px 12px;border-radius:20px;border:1px solid #ddd;background:#fff;color:#555;font-size:12px;cursor:pointer">🗺️ Géographiques</button>
-  </div>
   <div id="top-table"><div class="empty">Chargement...</div></div>
-</div>
-
-<div class="section">
-  <h2>❌ Recherches sans résultat</h2>
-  <div id="noresult-table"><div class="empty">Chargement...</div></div>
 </div>
 
 <div class="section">
@@ -95,45 +84,7 @@ async function loadProgs(){
   });
 }
 
-var _sortedData=[];
-var _activeType='all';
-
-function filterType(type){
-  _activeType=type;
-  ['all','offre','geo'].forEach(function(t){
-    var btn=document.getElementById('ft-'+t);
-    if(btn){
-      btn.style.background=t===type?'#7F77DD':'#fff';
-      btn.style.color=t===type?'#fff':'#555';
-      btn.style.borderColor=t===type?'#7F77DD':'#ddd';
-    }
-  });
-  renderTopTable(_sortedData);
-}
-
-function renderTopTable(sorted){
-  if(!sorted.length){document.getElementById('top-table').innerHTML='<div class="empty">Aucune recherche pour cette période</div>';return;}
-  var filtered=_activeType==='all'?sorted:sorted.filter(function(e){return _activeType==='geo'?e[1].isGeo:!e[1].isGeo;});
-  var maxCount=filtered.length?filtered[0][1].count:1;
-  var topHtml='<table><thead><tr><th>#</th><th>Terme</th><th>Recherches</th><th>Sans résultat</th><th>Programmes</th></tr></thead><tbody>';
-  filtered.slice(0,20).forEach(function(e,i){
-    var q=e[0],s=e[1];
-    var pct=Math.round(s.noRes/s.count*100);
-    var progs=Object.keys(s.progs).join(', ');
-    topHtml+='<tr><td style="color:#aaa">'+(i+1)+'</td>'
-      +'<td><b>'+q+'</b></td>'
-      +'<td><div class="row-bar"><span style="min-width:30px">'+s.count+'</span><div class="bar-wrap"><div class="bar" style="width:'+Math.round(s.count/maxCount*100)+'%"></div></div></div></td>'
-      +'<td>'+(s.isGeo?'<span style="color:#aaa;font-size:12px">N/A</span>':(s.noRes>0?'<span class="badge no">'+s.noRes+' ('+pct+'%)</span>':'<span class="badge ok">0</span>'))+'</td>'
-      +'<td style="color:#888;font-size:12px">'+progs+'</td></tr>';
-  });
-  topHtml+='</tbody></table>';
-  document.getElementById('top-table').innerHTML=topHtml;
-}
-
 async function loadData(){
-  _activeType='all';
-  _sortedData=[];
-  filterType('all');
   var prog=document.getElementById('prog-filter').value;
   var days=parseInt(document.getElementById('period-filter').value);
   
@@ -159,16 +110,13 @@ async function loadData(){
   
   // KPIs
   var total=data.length;
-  var noRes=data.filter(function(d){return !d.has_results;}).length;
+  
   var terms={};
   data.forEach(function(d){
     var q=(d.query||'').toLowerCase().trim();
     if(!q)return;
-    if(!terms[q])terms[q]={count:0,noRes:0,progs:{},isGeo:false};
+    if(!terms[q])terms[q]={count:0,progs:{}};
     terms[q].count++;
-    var stype=d.search_type||'offre';
-    if(stype==='geo')terms[q].isGeo=true;
-    if(!d.has_results&&stype!=='geo')terms[q].noRes++;
     terms[q].progs[d.programme]=(terms[q].progs[d.programme]||0)+1;
   });
   var unique=Object.keys(terms).length;
@@ -177,44 +125,39 @@ async function loadData(){
   
   document.getElementById('kpi-total').textContent=total;
   document.getElementById('kpi-unique').textContent=unique;
-  document.getElementById('kpi-noresult').textContent=noRes+' ('+(Math.round(noRes/total*100)||0)+'%)';
+  document.getElementById('kpi-noresult').textContent='N/A';
   document.getElementById('kpi-top').textContent=topTerm;
   
   // Top table
-  _sortedData=sorted;
-  renderTopTable(sorted);
+  var maxCount=sorted.length?sorted[0][1].count:1;
+  var topHtml='<table><thead><tr><th>#</th><th>Terme</th><th>Recherches</th><th>Programmes</th></tr></thead><tbody>';
+  sorted.slice(0,20).forEach(function(e,i){
+    var q=e[0],s=e[1];
+    var progs=Object.keys(s.progs).join(', ');
+    topHtml+='<tr><td style="color:#aaa">'+(i+1)+'</td>'
+      +'<td><b>'+q+'</b></td>'
+      +'<td><div class="row-bar"><span style="min-width:30px">'+s.count+'</span><div class="bar-wrap"><div class="bar" style="width:'+Math.round(s.count/maxCount*100)+'%"></div></div></div></td>'
+      +'<td style="color:#888;font-size:12px">'+progs+'</td></tr>';
+  });
+  topHtml+='</tbody></table>';
+  document.getElementById('top-table').innerHTML=topHtml;
   
-  // No result table
-  var noResTerms=sorted.filter(function(e){return e[1].noRes>0&&!e[1].isGeo;}).sort(function(a,b){return b[1].noRes-a[1].noRes;});
-  if(noResTerms.length){
-    var noHtml='<table><thead><tr><th>Terme</th><th>Fois sans résultat</th><th>Programmes</th></tr></thead><tbody>';
-    noResTerms.slice(0,15).forEach(function(e){
-      var q=e[0],s=e[1];
-      var progs=Object.keys(s.progs).join(', ');
-      noHtml+='<tr><td><b>'+q+'</b></td><td><span class="badge no">'+s.noRes+'</span></td><td style="color:#888;font-size:12px">'+progs+'</td></tr>';
-    });
-    noHtml+='</tbody></table>';
-    document.getElementById('noresult-table').innerHTML=noHtml;
-  } else {
-    document.getElementById('noresult-table').innerHTML='<div class="empty">✅ Toutes les recherches ont trouvé des résultats</div>';
-  }
+
   
   // Per programme table
   var progStats={};
   data.forEach(function(d){
     var p=d.programme||'Inconnu';
-    if(!progStats[p])progStats[p]={total:0,noRes:0,terms:new Set()};
+    if(!progStats[p])progStats[p]={total:0,terms:new Set()};
     progStats[p].total++;
-    if(!d.has_results)progStats[p].noRes++;
+
     progStats[p].terms.add((d.query||'').toLowerCase().trim());
   });
   var progSorted=Object.entries(progStats).sort(function(a,b){return b[1].total-a[1].total;});
-  var progHtml='<table><thead><tr><th>Programme</th><th>Recherches</th><th>Termes uniques</th><th>Sans résultat</th></tr></thead><tbody>';
+  var progHtml='<table><thead><tr><th>Programme</th><th>Recherches</th><th>Termes uniques</th></tr></thead><tbody>';
   progSorted.forEach(function(e){
     var p=e[0],s=e[1];
-    var pct=Math.round(s.noRes/s.total*100)||0;
-    progHtml+='<tr><td><b>'+p+'</b></td><td>'+s.total+'</td><td>'+s.terms.size+'</td>'
-      +'<td>'+(s.noRes>0?'<span class="badge no">'+s.noRes+' ('+pct+'%)</span>':'<span class="badge ok">0</span>')+'</td></tr>';
+    progHtml+='<tr><td><b>'+p+'</b></td><td>'+s.total+'</td><td>'+s.terms.size+'</td></tr>';
   });
   progHtml+='</tbody></table>';
   document.getElementById('prog-table').innerHTML=progHtml;
