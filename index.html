@@ -126,14 +126,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #ddd;border-radius:6px
     </div>
     <div id="bw"><div id="bp2"></div></div>
     <div id="gs"></div>
-    <div style="display:flex;gap:8px;margin-bottom:8px">
-      <div id="del-by-name-bar" style="display:flex;align-items:center;gap:8px;flex:1">
-        <input id="del-name-input" type="text" placeholder="Nom de l'enseigne..." style="flex:1;padding:7px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px"/>
-        <button id="del-name-sel-btn" class="btn bo" style="font-size:12px;white-space:nowrap">&#9745; Sélectionner</button>
-        <button id="del-name-btn" class="btn" style="background:#e74c3c;color:#fff;border:none;font-size:12px;padding:5px 14px;border-radius:8px;cursor:pointer;white-space:nowrap">&#128465; Supprimer</button>
-      </div>
-    </div>
-    <div id="sel-bar" style="display:none;align-items:center;gap:10px;padding:8px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;margin-bottom:8px">
+        <div id="sel-bar" style="display:none;align-items:center;gap:10px;padding:8px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;margin-bottom:8px">
       <span id="sel-count" style="font-size:13px;font-weight:600;color:#856404">0 sélectionnée(s)</span>
       <button id="del-sel-btn" class="btn" style="background:#e74c3c;color:#fff;border:none;font-size:12px;padding:5px 14px;border-radius:8px;cursor:pointer">🗑 Supprimer la sélection</button>
       <button id="clear-sel-btn" class="btn bo" style="font-size:12px">✕ Désélectionner tout</button>
@@ -530,9 +523,28 @@ function renderTable(){
     fw.id='tw-filter-wrap';
     fw.style.cssText='display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap';
     fw.innerHTML='<input id="tw-search" type="text" placeholder="🔍 Rechercher par nom ou adresse..." style="flex:1;min-width:140px;padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none"/>'
+      +'<button id="tw-sel-all-btn" class="btn bo" style="font-size:12px;white-space:nowrap">&#9745; Sélectionner</button>'
+      +'<button id="tw-del-btn" class="btn" style="background:#e74c3c;color:#fff;border:none;font-size:12px;padding:5px 14px;border-radius:8px;cursor:pointer;white-space:nowrap">&#128465; Supprimer</button>'
       +'<label style="font-size:12px;color:#888;cursor:pointer;white-space:nowrap"><input type="checkbox" id="tw-dup-only" style="margin-right:4px"/>⚠️ Doublons</label>';
     w.parentNode.insertBefore(fw, w);
     document.getElementById('tw-search').addEventListener('input',function(){_nameSearch=this.value.toLowerCase();renderTable();});
+    document.getElementById('tw-sel-all-btn').addEventListener('click',function(){
+      var btn=this;
+      var isSelecting=btn.textContent.indexOf('Sélectionner')>=0;
+      var visible=document.querySelectorAll('.row-chk');
+      visible.forEach(function(c){var idx=parseInt(c.getAttribute('data-idx'));c.checked=isSelecting;results[idx]._sel=isSelecting;});
+      btn.innerHTML=isSelecting?'&#10005; Désélectionner':'&#9745; Sélectionner';
+      updateSelBar();
+    });
+    document.getElementById('tw-del-btn').addEventListener('click',function(){
+      var selected=results.filter(function(r){return r._sel;});
+      if(!selected.length){alert('Aucune offre sélectionnée');return;}
+      if(!confirm('Supprimer '+selected.length+' offre'+(selected.length>1?'s':'')+' ?'))return;
+      results=results.filter(function(r){return !r._sel;});
+      _nameSearch='';document.getElementById('tw-search').value='';
+      saveData();renderTable();
+      document.getElementById('gs').textContent='OK '+results.filter(function(r){return r.ok;}).length+' offres';
+    });
     document.getElementById('tw-dup-only').addEventListener('change',function(){renderTable();});
   }
 
@@ -1165,21 +1177,7 @@ document.getElementById('del-addr-btn').addEventListener('click',function(){
   document.getElementById('gs').textContent='OK '+results.filter(function(r){return r.ok;}).length+' offres';
 });
 
-// Delete by name
-document.getElementById('del-name-sel-btn').addEventListener('click',function(){
-  var q=document.getElementById('del-name-input').value.trim().toLowerCase();
-  if(!q)return;
-  var count=0;
-  results.forEach(function(r){if(r.name&&r.name.toLowerCase().includes(q)){r._sel=true;count++;}});
-  renderTable();
-  if(count)alert(count+' offre'+(count>1?'s':'')+' selectionnee'+(count>1?'s':'')+' pour "'+q+'"');
-  else alert('Aucune offre trouvee pour "'+q+'"');
-});
 
-document.getElementById('del-name-btn').addEventListener('click',function(){
-  var q=document.getElementById('del-name-input').value.trim().toLowerCase();
-  if(!q)return;
-  var toDelete=results.filter(function(r){return r.name&&r.name.toLowerCase().includes(q);});
   if(!toDelete.length){alert('Aucune offre trouvee pour "'+q+'"');return;}
   if(!confirm('Supprimer '+toDelete.length+' offre'+(toDelete.length>1?'s':'')+' avec "'+q+'" dans le nom ?'))return;
   results=results.filter(function(r){return !(r.name&&r.name.toLowerCase().includes(q));});
