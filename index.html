@@ -224,7 +224,7 @@ async function saveDataAsync(){
   try{
     await fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(currentProg),{method:'DELETE',headers:SB_H});
     if(results.length>0){
-      var rows=results.map(function(r){return {programme:currentProg,name:r.name||'',category:r.category||'',subcategory:r.subcategory||'',remise:r.remise||'',description:r.description||'',url:r.url||'',address:r.address||'',fmt:r.fmt||'',lat:r.lat||null,lng:r.lng||null,prec:r.prec||'',ok:r.ok||false,err:r.err||null,dup_ok:r.dupOk||false};});
+      var rows=results.map(function(r){return {programme:currentProg,name:r.name||'',category:r.category||'',subcategory:r.subcategory||'',remise:r.remise||'',description:r.description||'',url:r.url||'',address:r.address||'',fmt:r.fmt||'',lat:r.lat||null,lng:r.lng||null,prec:r.prec||'',place_id:r.place_id||'',ok:r.ok||false,err:r.err||null,dup_ok:r.dupOk||false};});
       for(var j=0;j<rows.length;j+=50)await fetch(SB_URL+'/rest/v1/offres',{method:'POST',headers:SB_H,body:JSON.stringify(rows.slice(j,j+50))});
     }
     await fetch(SB_URL+'/rest/v1/configs',{method:'POST',headers:Object.assign({},SB_H,{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({programme:currentProg,cfg:iconCfg})});
@@ -266,7 +266,7 @@ async function sbLoadProg(name){
   try{
     var r=await fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(name)+'&order=id',{headers:SB_H});
     var data=await r.json();
-    var mapped=(data||[]).map(function(row){return {name:row.name,category:row.category,subcategory:row.subcategory||'',remise:row.remise||'',description:row.description||'',url:row.url||'',address:row.address,fmt:row.fmt,lat:row.lat,lng:row.lng,prec:row.prec,ok:row.ok,err:row.err,dupOk:row.dup_ok};});
+    var mapped=(data||[]).map(function(row){return {name:row.name,category:row.category,subcategory:row.subcategory||'',remise:row.remise||'',description:row.description||'',url:row.url||'',address:row.address,fmt:row.fmt,lat:row.lat,lng:row.lng,prec:row.prec,place_id:row.place_id||'',ok:row.ok,err:row.err,dupOk:row.dup_ok};});
     _dc[name]=mapped;
     var rc=await fetch(SB_URL+'/rest/v1/configs?programme=eq.'+encodeURIComponent(name),{headers:SB_H});
     var cd=await rc.json();
@@ -422,7 +422,7 @@ async function geoOne(addr,key){
     var d=await r.json();
     if(d.status==='OK'&&d.results[0]){
       var loc=d.results[0].geometry.location;
-      return{lat:loc.lat,lng:loc.lng,fmt:d.results[0].formatted_address,prec:d.results[0].geometry.location_type,ok:true};
+      return{lat:loc.lat,lng:loc.lng,fmt:d.results[0].formatted_address,prec:d.results[0].geometry.location_type,place_id:d.results[0].place_id||'',ok:true};
     }
     return{ok:false,err:d.status};
   }catch(e){return{ok:false,err:e.message};}
