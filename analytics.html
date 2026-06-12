@@ -135,7 +135,7 @@ async function loadData(){
   var prog=document.getElementById('prog-filter').value;
   var days=parseInt(document.getElementById('period-filter').value);
   
-  var url=SB_URL+'/rest/v1/search_logs?select=programme,query,has_results,searched_at&order=searched_at.desc&limit=5000';
+  var url=SB_URL+'/rest/v1/search_logs?select=programme,query,has_results,searched_at,search_type&order=searched_at.desc&limit=5000';
   if(prog)url+='&programme=eq.'+encodeURIComponent(prog);
   if(days>0){
     var since=new Date(Date.now()-days*86400000).toISOString();
@@ -165,7 +165,6 @@ async function loadData(){
     if(!terms[q])terms[q]={count:0,noRes:0,progs:{},isGeo:false};
     terms[q].count++;
     var stype=d.search_type||'offre';
-    console.log('FULL ROW:',JSON.stringify(d));
     if(stype==='geo')terms[q].isGeo=true;
     if(!d.has_results&&stype!=='geo')terms[q].noRes++;
     terms[q].progs[d.programme]=(terms[q].progs[d.programme]||0)+1;
