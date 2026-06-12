@@ -505,7 +505,7 @@ document.getElementById('json-btn').addEventListener('click',function(){
 
 function pb(p){return{ROOFTOP:'🟢',RANGE_INTERPOLATED:'🟡',GEOMETRIC_CENTER:'🟠',APPROXIMATE:'🔴',NOMINATIM:'🔵',MANUAL:'🔵'}[p]||'⚪';}
 
-var _nameFilter='', _catFilter='', _precFilter='', _nameSearch='', _addrFilter='';
+var _nameFilter='', _catFilter='', _precFilter='', _nameSearch='';
 
 function updateSelBar(){
   var selected=results.filter(function(r){return r._sel;});
@@ -529,7 +529,7 @@ function renderTable(){
     var fw=document.createElement('div');
     fw.id='tw-filter-wrap';
     fw.style.cssText='display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap';
-    fw.innerHTML='<input id="tw-search" type="text" placeholder="🔍 Rechercher un nom..." style="flex:1;min-width:140px;padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none"/>'
+    fw.innerHTML='<input id="tw-search" type="text" placeholder="🔍 Rechercher par nom ou adresse..." style="flex:1;min-width:140px;padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none"/>'
       +'<label style="font-size:12px;color:#888;cursor:pointer;white-space:nowrap"><input type="checkbox" id="tw-dup-only" style="margin-right:4px"/>⚠️ Doublons</label>';
     w.parentNode.insertBefore(fw, w);
     document.getElementById('tw-search').addEventListener('input',function(){_nameSearch=this.value.toLowerCase();renderTable();});
@@ -602,7 +602,7 @@ function renderTable(){
     +'<th style="'+ths+'">#</th>'
     +'<th style="'+ths+'position:relative;cursor:pointer;user-select:none" id="th-nom">'+nLabel+mkDrop('nom-drop',nomItems,'data-val',_nameFilter,nomSearch)+'</th>'
     +'<th style="'+ths+'position:relative;cursor:pointer;user-select:none" id="th-cat">'+cLabel+mkDrop('cat-drop',catItems,'data-val',_catFilter)+'</th>'
-    +'<th style="'+ths+'">'+'<div style="display:flex;align-items:center;gap:4px">Adresse '+'<input id="addr-filter-input" type="text" placeholder="🔍" style="padding:2px 5px;border:1px solid #ddd;border-radius:5px;font-size:11px;width:70px" title="Filtrer par adresse"/></div></th>'
+    +'<th style="'+ths+'">Adresse</th>'
     +'<th style="'+ths+'">Lat</th>'
     +'<th style="'+ths+'">Lng</th>'
     +'<th style="'+ths+'position:relative;cursor:pointer;user-select:none" id="th-prec">'+pLabel+mkDrop('prec-drop',precItems,'data-val',_precFilter)+'</th>'
@@ -611,7 +611,7 @@ function renderTable(){
 
   // ── Filter & render rows ──
   var filtered=tagged.filter(function(t){
-    if(search && t.r.name.toLowerCase().indexOf(search)<0) return false;
+    if(search){var _full=(t.r.name+' '+(t.r.address||t.r.fmt||'')).toLowerCase();if(_full.indexOf(search)<0)return false;}
     if(_nameFilter && t.r.name!==_nameFilter) return false;
     if(_catFilter && t.r.category!==_catFilter) return false;
     if(dupOnly && !t.isDup) return false;
@@ -738,18 +738,7 @@ function renderTable(){
   window.addEventListener('scroll',closeAllDrops,{passive:true});
   document.addEventListener('scroll',closeAllDrops,{capture:true,passive:true});
 
-  // Address filter
-  var addrInput=document.getElementById('addr-filter-input');
-  if(addrInput){
-    addrInput.value=_addrFilter;
-    addrInput.addEventListener('input',function(){
-      _addrFilter=this.value.trim().toLowerCase();
-      renderTable();
-    });
-    addrInput.addEventListener('click',function(e){e.stopPropagation();});
-  }
-
-// Select all checkbox
+  // Select all checkbox
   var chkAll=document.getElementById('chk-all');
   if(chkAll){
     chkAll.addEventListener('change',function(){
