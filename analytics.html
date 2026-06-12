@@ -165,7 +165,7 @@ async function loadData(){
     if(!terms[q])terms[q]={count:0,noRes:0,progs:{},isGeo:false};
     terms[q].count++;
     var stype=d.search_type||'offre';
-    console.log('term:',q,'stype:',stype,'raw:',d.search_type);
+    console.log('FULL ROW:',JSON.stringify(d));
     if(stype==='geo')terms[q].isGeo=true;
     if(!d.has_results&&stype!=='geo')terms[q].noRes++;
     terms[q].progs[d.programme]=(terms[q].progs[d.programme]||0)+1;
