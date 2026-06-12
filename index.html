@@ -1176,16 +1176,6 @@ document.getElementById('del-addr-btn').addEventListener('click',function(){
   renderTable();
   document.getElementById('gs').textContent='OK '+results.filter(function(r){return r.ok;}).length+' offres';
 });
-
-
-  if(!toDelete.length){alert('Aucune offre trouvee pour "'+q+'"');return;}
-  if(!confirm('Supprimer '+toDelete.length+' offre'+(toDelete.length>1?'s':'')+' avec "'+q+'" dans le nom ?'))return;
-  results=results.filter(function(r){return !(r.name&&r.name.toLowerCase().includes(q));});
-  document.getElementById('del-name-input').value='';
-  saveData();
-  renderTable();
-  document.getElementById('gs').textContent='OK '+results.filter(function(r){return r.ok;}).length+' offres';
-});
 document.getElementById('export-all-btn').addEventListener('click', async function(){
   var st=document.getElementById('import-status');
   var btn=this;
