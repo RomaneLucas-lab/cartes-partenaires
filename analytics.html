@@ -121,9 +121,10 @@ async function loadData(){
   data.forEach(function(d){
     var q=(d.query||'').toLowerCase().trim();
     if(!q)return;
-    if(!terms[q])terms[q]={count:0,noRes:0,progs:{}};
+    if(!terms[q])terms[q]={count:0,noRes:0,progs:{},isGeo:false};
     terms[q].count++;
-    if(!d.has_results)terms[q].noRes++;
+    if(d.search_type==='geo')terms[q].isGeo=true;
+    if(!d.has_results&&d.search_type!=='geo')terms[q].noRes++;
     terms[q].progs[d.programme]=(terms[q].progs[d.programme]||0)+1;
   });
   var unique=Object.keys(terms).length;
@@ -142,17 +143,18 @@ async function loadData(){
     var q=e[0],s=e[1];
     var pct=Math.round(s.noRes/s.count*100);
     var progs=Object.keys(s.progs).join(', ');
+    var typeLabel=s.isGeo?'<span class="badge" style="background:#e3f2fd;color:#1565c0">🗺️ Géo</span>':'<span class="badge" style="background:#f3e5f5;color:#6a1b9a">🏪 Offre</span>';
     topHtml+='<tr><td style="color:#aaa">'+(i+1)+'</td>'
-      +'<td><b>'+q+'</b></td>'
+      +'<td><b>'+q+'</b> '+typeLabel+'</td>'
       +'<td><div class="row-bar"><span style="min-width:30px">'+s.count+'</span><div class="bar-wrap"><div class="bar" style="width:'+Math.round(s.count/maxCount*100)+'%"></div></div></div></td>'
-      +'<td>'+(s.noRes>0?'<span class="badge no">'+s.noRes+' ('+pct+'%)</span>':'<span class="badge ok">0</span>')+'</td>'
+      +'<td>'+(s.isGeo?'<span style="color:#aaa;font-size:12px">N/A</span>':(s.noRes>0?'<span class="badge no">'+s.noRes+' ('+pct+'%)</span>':'<span class="badge ok">0</span>'))+'</td>'
       +'<td style="color:#888;font-size:12px">'+progs+'</td></tr>';
   });
   topHtml+='</tbody></table>';
   document.getElementById('top-table').innerHTML=topHtml;
   
   // No result table
-  var noResTerms=sorted.filter(function(e){return e[1].noRes>0;}).sort(function(a,b){return b[1].noRes-a[1].noRes;});
+  var noResTerms=sorted.filter(function(e){return e[1].noRes>0&&!e[1].isGeo;}).sort(function(a,b){return b[1].noRes-a[1].noRes;});
   if(noResTerms.length){
     var noHtml='<table><thead><tr><th>Terme</th><th>Fois sans résultat</th><th>Programmes</th></tr></thead><tbody>';
     noResTerms.slice(0,15).forEach(function(e){
