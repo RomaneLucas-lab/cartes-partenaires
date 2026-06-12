@@ -199,7 +199,11 @@ si.addEventListener('input',function(){
         .then(function(geo){
           // Only consider it geo if result is a city/town/village/region
           var geoTypes=['city','town','village','suburb','municipality','county','state','region','quarter','neighbourhood','hamlet','administrative'];
-          var isRealGeo=geo&&geo.length>0&&geo[0].type&&geoTypes.indexOf(geo[0].type)>=0;
+          var geoClasses=['place','boundary','landuse'];
+          var firstRes=geo&&geo.length>0?geo[0]:null;
+          var isRealGeo=firstRes
+            &&geoTypes.indexOf(firstRes.type||'')>=0
+            &&geoClasses.indexOf(firstRes['class']||'')>=0;
           fetch(SB_URL+'/rest/v1/search_logs',{
             method:'POST',
             headers:Object.assign({'Content-Type':'application/json','Prefer':'return=minimal'},SB_HDR),
