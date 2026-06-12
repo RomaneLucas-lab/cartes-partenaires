@@ -121,7 +121,7 @@ function mkMarker(s,BT){
   var m=L.marker([s.lat,s.lng],{icon:mkI(s.icon||'📍',s.color||'#7F77DD')});
   var rem=s.remise?'<div class="pop-remise" style="color:'+s.color+'">'+s.remise+'</div>':'';
   var lnk=s.url?'<a class="pop-link" href="'+s.url+'" target="_blank" style="background:'+s.color+';color:#1a1a1a">'+BT+'</a>':'';
-  var nav='<a class="pop-nav" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.name)+'&query_place_id=&center='+s.lat+','+s.lng+'" target="_blank">S&#39;y rendre</a>';
+  var nav='<a class="pop-nav" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.name)+'+'+s.lat+','+s.lng+'" target="_blank">S&#39;y rendre</a>';
   var sub=s.sub?' — '+s.sub:'';
   function buildPopup(){
     var distHtml=_userLat?'<div class="pop-dist">📍 '+fmtDist(distKm(_userLat,_userLng,s.lat,s.lng))+' de vous</div>':'';
