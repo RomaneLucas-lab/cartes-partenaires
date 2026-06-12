@@ -121,7 +121,8 @@ function mkMarker(s,BT){
   var m=L.marker([s.lat,s.lng],{icon:mkI(s.icon||'📍',s.color||'#7F77DD')});
   var rem=s.remise?'<div class="pop-remise" style="color:'+s.color+'">'+s.remise+'</div>':'';
   var lnk=s.url?'<a class="pop-link" href="'+s.url+'" target="_blank" style="background:'+s.color+';color:#1a1a1a">'+BT+'</a>':'';
-  var nav='<a class="pop-nav" href="https://www.google.com/maps/search/'+encodeURIComponent(s.name)+',+'+encodeURIComponent(s.address||'')+'/@'+s.lat+','+s.lng+',17z" target="_blank">S&#39;y rendre</a>';
+  var mapsUrl=s.place_id?'https://www.google.com/maps/place/?q=place_id:'+s.place_id:'https://www.google.com/maps/search/'+encodeURIComponent((s.name||'')+' '+(s.address||''));
+var nav='<a class="pop-nav" href="'+mapsUrl+'" target="_blank">S&#39;y rendre</a>';
   var sub=s.sub?' — '+s.sub:'';
   function buildPopup(){
     var distHtml=_userLat?'<div class="pop-dist">📍 '+fmtDist(distKm(_userLat,_userLng,s.lat,s.lng))+' de vous</div>':'';
@@ -426,7 +427,7 @@ function fmtDist(km){
       var cd=catData[cat]||{icon:'📍',color:'#7F77DD'};
       var subcat2=row.subcategory||'';
       var sIcon=(cfg[cat]&&subcat2&&cfg[cat][subcat2])||(cfg[cat]&&cfg[cat]._)||(cd.icon)||'📍';
-      var s={name:row.name,lat:row.lat,lng:row.lng,cat:cat,sub:subcat2,desc:row.description||'',url:row.url||'',remise:row.remise||'',icon:sIcon,color:cd.color};
+      var s={name:row.name,lat:row.lat,lng:row.lng,cat:cat,sub:subcat2,desc:row.description||'',url:row.url||'',remise:row.remise||'',address:row.address||'',place_id:row.place_id||'',icon:sIcon,color:cd.color};
       S.push(s);
       mkMarker(s,BT);
     }
