@@ -351,6 +351,7 @@ document.getElementById('new-prog-input').addEventListener('keydown',function(e)
 
 function openProg(name){
   var hb=document.getElementById('header-bar');if(hb)hb.style.display='none';
+  _nameSearch='';
   currentProg=name;results=[];iconCfg={};
   document.getElementById('prog-screen').style.display='none';
   document.getElementById('main-app').style.display='block';
