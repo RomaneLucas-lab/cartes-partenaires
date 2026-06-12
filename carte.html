@@ -178,6 +178,21 @@ var si=document.getElementById('si'),sr=document.getElementById('sr'),_lst=null;
 si.addEventListener('input',function(){
   var q=si.value.trim();sr.innerHTML='';sr.style.display='none';
   if(q.length<2)return;
+  // Log search after 1.5s debounce
+  clearTimeout(window._searchLogTimer);
+  window._searchLogTimer=setTimeout(function(){
+    if(q.length>=2){
+      // Count results
+      var hasRes=AM.filter(function(a){
+        return a.s.name.toLowerCase().includes(q.toLowerCase());
+      }).length>0;
+      fetch(SB_URL+'/rest/v1/search_logs',{
+        method:'POST',
+        headers:Object.assign({'Content-Type':'application/json','Prefer':'return=minimal'},SB_HDR),
+        body:JSON.stringify({programme:PROG,query:q,has_results:hasRes})
+      }).catch(function(){});
+    }
+  },1500);
   sr.style.display='block';
   var hits=[],ql=q.toLowerCase();
   for(var i=0;i<S.length;i++){if(S[i].name.toLowerCase().indexOf(ql)>=0)hits.push(S[i]);}
