@@ -178,21 +178,40 @@ var si=document.getElementById('si'),sr=document.getElementById('sr'),_lst=null;
 si.addEventListener('input',function(){
   var q=si.value.trim();sr.innerHTML='';sr.style.display='none';
   if(q.length<2)return;
-  // Log search after 1.5s debounce
+  // Log search after 2s debounce - check both offers AND geo results
   clearTimeout(window._searchLogTimer);
   window._searchLogTimer=setTimeout(function(){
     if(q.length>=2){
-      // Count results
-      var hasRes=AM.filter(function(a){
+      var offerRes=AM.filter(function(a){
         return a.s.name.toLowerCase().includes(q.toLowerCase());
       }).length>0;
-      fetch(SB_URL+'/rest/v1/search_logs',{
-        method:'POST',
-        headers:Object.assign({'Content-Type':'application/json','Prefer':'return=minimal'},SB_HDR),
-        body:JSON.stringify({programme:PROG,query:q,has_results:hasRes})
-      }).catch(function(){});
+      if(offerRes){
+        // Has offer results - log immediately
+        fetch(SB_URL+'/rest/v1/search_logs',{
+          method:'POST',
+          headers:Object.assign({'Content-Type':'application/json','Prefer':'return=minimal'},SB_HDR),
+          body:JSON.stringify({programme:PROG,query:q,has_results:true})
+        }).catch(function(){});
+      } else {
+        // No offer results - check Nominatim before logging as "no result"
+        fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q)+'&limit=1&accept-language=fr')
+        .then(function(r){return r.json();})
+        .then(function(geo){
+          // If Nominatim found something it's a geo search - don't log as no result
+          var hasGeo=geo&&geo.length>0;
+          if(!hasGeo){
+            fetch(SB_URL+'/rest/v1/search_logs',{
+              method:'POST',
+              headers:Object.assign({'Content-Type':'application/json','Prefer':'return=minimal'},SB_HDR),
+              body:JSON.stringify({programme:PROG,query:q,has_results:false})
+            }).catch(function(){});
+          }
+        }).catch(function(){
+          // If Nominatim fails, don't log at all
+        });
+      }
     }
-  },1500);
+  },2000);
   sr.style.display='block';
   var hits=[],ql=q.toLowerCase();
   for(var i=0;i<S.length;i++){if(S[i].name.toLowerCase().indexOf(ql)>=0)hits.push(S[i]);}
