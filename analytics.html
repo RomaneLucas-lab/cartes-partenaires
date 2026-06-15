@@ -223,31 +223,9 @@ async function loadData(){
       if(!byName[name].addresses[ak])byName[name].addresses[ak]={address:addr,programme:prog,count:0};
       byName[name].addresses[ak].count++;
     });
-    var cSorted=Object.values(byName).sort(function(a,b){return b.total-a.total;});
-    var cHtml='<table><thead><tr><th>#</th><th>Offre</th><th>Programme</th><th>Clics</th><th></th></tr></thead><tbody>';
-    cSorted.slice(0,20).forEach(function(c,i){
-      var rowId='click-detail-'+i;
-      var detailRows=Object.values(c.addresses).sort(function(a,b){return b.count-a.count;}).map(function(a){
-        return '<tr style="background:#f9f9f9"><td></td><td colspan="2" style="color:#888;font-size:12px;padding-left:24px">📍 '+a.address+'</td><td style="color:#888;font-size:12px">'+a.programme+'</td><td><span class="badge ok">'+a.count+'</span></td><td></td></tr>';
-      }).join('');
-      cHtml+='<tr><td style="color:#aaa">'+(i+1)+'</td>'
-        +'<td><b>'+c.name+'</b></td>'
-        +'<td style="color:#888;font-size:12px">'+c.programme+'</td>'
-        +'<td><span class="badge ok">'+c.total+'</span></td>'
-        +'<td><button class="detail-btn" data-target="'+rowId+'" style="padding:3px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:11px;cursor:pointer">Détails</button></td></tr>'
-        +'<tr id="'+rowId+'" style="display:none">'
-        +'<td colspan="5" style="padding:0"><table style="width:100%;border-collapse:collapse">'+detailRows+'</table></td></tr>';
-    });
-    cHtml+='</tbody></table>';
-    document.getElementById('clicks-table').innerHTML=cHtml;
-    document.getElementById('clicks-table').addEventListener('click',function(e){
-      var btn=e.target.closest('.detail-btn');
-      if(!btn)return;
-      var target=document.getElementById(btn.getAttribute('data-target'));
-      if(!target)return;
-      target.style.display=target.style.display==='none'?'':'none';
-      btn.textContent=target.style.display===''?'Masquer':'Détails';
-    });
+    _clicksData=Object.values(byName).sort(function(a,b){return b.total-a.total;});
+    if(_clicksData.length)document.getElementById('kpi-top-click').textContent=_clicksData[0].name+' ('+_clicksData[0].total+')';
+    renderClicksTable(_clicksData);
   }
 }
 
