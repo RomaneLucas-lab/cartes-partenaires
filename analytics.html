@@ -165,8 +165,7 @@ async function loadData(){
   var url=SB_URL+'/rest/v1/search_logs?select=programme,query,has_results,searched_at,search_type&order=searched_at.desc&limit=5000';
   if(prog)url+='&programme=eq.'+encodeURIComponent(prog);
   if(periodVal==='custom'){
-    url+='&searched_at=gte.'+sinceDate+'T00:00:00';
-    url+='&searched_at=lte.'+untilDate+'T23:59:59';
+    url+='&searched_at=gte.'+sinceDate+'T00:00:00&and=(searched_at.lte.'+untilDate+'T23:59:59)';
   } else if(days>0){
     var since=new Date(Date.now()-days*86400000).toISOString();
     url+='&searched_at=gte.'+since;
@@ -240,8 +239,7 @@ async function loadData(){
   var clickUrl=SB_URL+'/rest/v1/offer_clicks?select=programme,offer_name,offer_address,clicked_at&order=clicked_at.desc&limit=5000';
   if(prog)clickUrl+='&programme=eq.'+encodeURIComponent(prog);
   if(periodVal==='custom'){
-    clickUrl+='&clicked_at=gte.'+sinceDate+'T00:00:00';
-    clickUrl+='&clicked_at=lte.'+untilDate+'T23:59:59';
+    clickUrl+='&clicked_at=gte.'+sinceDate+'T00:00:00&and=(clicked_at.lte.'+untilDate+'T23:59:59)';
   } else if(days>0){
     clickUrl+='&clicked_at=gte.'+new Date(Date.now()-days*86400000).toISOString();
   }
