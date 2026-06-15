@@ -303,10 +303,15 @@ function exportClicksCSV(){
   var f=getFilters();
   var prog=f.prog||'Tous';
   // One row per click
-  var rows=['sep=;','Programme;Offre;Adresse;Date'];
+  var rows=['sep=;','Programme;Offre;Adresse;Nombre de clics'];
+  var byKey={};
   clicks.forEach(function(d){
-    var date=d.clicked_at?new Date(d.clicked_at).toLocaleDateString('fr-FR'):'';
-    rows.push('"'+(d.programme||'')+'";"'+(d.offer_name||'')+'";"'+(d.offer_address||'')+'";'+date);
+    var k=(d.programme||'')+'||'+(d.offer_name||'')+'||'+(d.offer_address||'');
+    if(!byKey[k])byKey[k]={prog:d.programme||'',name:d.offer_name||'',addr:d.offer_address||'',count:0};
+    byKey[k].count++;
+  });
+  Object.values(byKey).sort(function(a,b){return b.count-a.count;}).forEach(function(c){
+    rows.push('"'+c.prog+'";"'+c.name+'";"'+c.addr+'";'+c.count);
   });
   downloadCSV(rows.join('\n'),'clics_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
 }
