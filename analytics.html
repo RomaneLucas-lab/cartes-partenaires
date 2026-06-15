@@ -66,12 +66,18 @@ tr:hover td{background:#fafafa}
 </div>
 
 <div class="section">
-  <h2>🔝 Top recherches</h2>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <h2 style="margin:0">🔝 Top recherches</h2>
+    <button onclick="exportSearchCSV()" style="padding:5px 14px;background:#7F77DD;color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer">⬇ Export CSV</button>
+  </div>
   <div class="scroll" id="t-search"><div class="empty">Chargement...</div></div>
 </div>
 
 <div class="section">
-  <h2>👆 Clics sur "Voir l'offre"</h2>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <h2 style="margin:0">👆 Clics sur "Voir l'offre"</h2>
+    <button onclick="exportClicksCSV()" style="padding:5px 14px;background:#7F77DD;color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer">⬇ Export CSV</button>
+  </div>
   <div style="margin-bottom:12px">
     <input type="text" id="f-click" placeholder="🔍 Filtrer par nom d'offre..." style="padding:7px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;width:280px" oninput="filterClicks()"/>
   </div>
@@ -247,6 +253,58 @@ document.getElementById('f-period').addEventListener('change',function(){
 });
 document.getElementById('f-from').addEventListener('change',render);
 document.getElementById('f-to').addEventListener('change',render);
+
+// ── Export CSV ───────────────────────────────────────────────
+function downloadCSV(content, filename){
+  var blob=new Blob(['\uFEFF'+content],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=filename;
+  a.click();
+}
+
+function exportSearchCSV(){
+  var searches=filterData(allSearches,'searched_at');
+  var terms={};
+  searches.forEach(function(d){
+    var q=(d.query||'').toLowerCase().trim();
+    if(!q)return;
+    if(!terms[q])terms[q]={count:0,progs:{},first:d.searched_at,last:d.searched_at};
+    terms[q].count++;
+    terms[q].progs[d.programme]=(terms[q].progs[d.programme]||0)+1;
+    if(d.searched_at<terms[q].first)terms[q].first=d.searched_at;
+    if(d.searched_at>terms[q].last)terms[q].last=d.searched_at;
+  });
+  var sorted=Object.entries(terms).sort(function(a,b){return b[1].count-a[1].count;});
+  var f=getFilters();
+  var prog=f.prog||'Tous';
+  var rows=['Programme,Terme,Recherches,Programmes,Première recherche,Dernière recherche'];
+  sorted.forEach(function(e){
+    var q=e[0],s=e[1];
+    var progs=Object.keys(s.progs).join(' | ');
+    var d1=s.first?new Date(s.first).toLocaleDateString('fr-FR'):'';
+    var d2=s.last?new Date(s.last).toLocaleDateString('fr-FR'):'';
+    rows.push('"'+prog+'","'+q+'",'+s.count+',"'+progs+'",'+d1+','+d2);
+  });
+  downloadCSV(rows.join('\n'),'recherches_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
+}
+
+function exportClicksCSV(){
+  var clicks=filterData(allClicks,'clicked_at');
+  var f=getFilters();
+  var prog=f.prog||'Tous';
+  var rows=['Programme,Offre,Adresse,Clics'];
+  var byKey={};
+  clicks.forEach(function(d){
+    var k=(d.offer_name||'')+'||'+(d.offer_address||'')+'||'+(d.programme||'');
+    if(!byKey[k])byKey[k]={name:d.offer_name||'',addr:d.offer_address||'',prog:d.programme||'',count:0};
+    byKey[k].count++;
+  });
+  Object.values(byKey).sort(function(a,b){return b.count-a.count;}).forEach(function(c){
+    rows.push('"'+c.prog+'","'+c.name+'","'+c.addr+'",'+c.count);
+  });
+  downloadCSV(rows.join('\n'),'clics_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
+}
 
 // ── Init ───────────────────────────────────────────────────────
 loadProgs().then(loadAll);
