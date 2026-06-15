@@ -199,12 +199,20 @@ async function loadData(){
         +'<td><b>'+c.name+'</b></td>'
         +'<td style="color:#888;font-size:12px">'+c.programme+'</td>'
         +'<td><span class="badge ok">'+c.total+'</span></td>'
-        +'<td><button onclick="var d=document.getElementById(\''+rowId+'\');d.style.display=d.style.display===\'none\'?\'\':'none'" style="padding:3px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:11px;cursor:pointer">Détails</button></td></tr>'
+        +'<td><button class="detail-btn" data-target="'+rowId+'" style="padding:3px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:11px;cursor:pointer">Détails</button></td></tr>'
         +'<tr id="'+rowId+'" style="display:none">'
         +'<td colspan="5" style="padding:0"><table style="width:100%;border-collapse:collapse">'+detailRows+'</table></td></tr>';
     });
     cHtml+='</tbody></table>';
     document.getElementById('clicks-table').innerHTML=cHtml;
+    document.getElementById('clicks-table').addEventListener('click',function(e){
+      var btn=e.target.closest('.detail-btn');
+      if(!btn)return;
+      var target=document.getElementById(btn.getAttribute('data-target'));
+      if(!target)return;
+      target.style.display=target.style.display==='none'?'':'none';
+      btn.textContent=target.style.display===''?'Masquer':'Détails';
+    });
   }
 }
 
