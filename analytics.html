@@ -3,23 +3,23 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Analytics — Cartes partenaires</title>
+<title>Analytics</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,sans-serif;background:#f5f5f3;color:#1a1a1a;padding:32px 24px}
+.back{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#7F77DD;text-decoration:none;margin-bottom:20px}
+.back:hover{text-decoration:underline}
 h1{font-size:20px;font-weight:700;margin-bottom:4px}
 .sub{color:#888;font-size:13px;margin-bottom:24px}
-.back{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#7F77DD;text-decoration:none;margin-bottom:20px;cursor:pointer}
-.back:hover{text-decoration:underline}
 .filters{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;align-items:center}
-select{padding:7px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;background:#fff;cursor:pointer}
+select,input[type=date]{padding:7px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;background:#fff;cursor:pointer}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:28px}
 .card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
 .card .n{font-size:28px;font-weight:700;color:#7F77DD}
 .card .l{font-size:12px;color:#888;margin-top:4px}
-.card .sub-val{font-size:13px;font-weight:600;margin-top:6px;color:#1a1a1a;word-break:break-word}
 .section{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:16px}
-.section h2{font-size:14px;font-weight:700;margin-bottom:14px;color:#1a1a1a}
+.section h2{font-size:14px;font-weight:700;margin-bottom:14px}
+.scroll{max-height:320px;overflow-y:auto}
 table{width:100%;border-collapse:collapse}
 th{font-size:11px;color:#888;font-weight:600;text-align:left;padding:6px 10px;border-bottom:2px solid #f0f0ee;position:sticky;top:0;background:#fff;z-index:1}
 td{font-size:13px;padding:8px 10px;border-bottom:1px solid #f5f5f3}
@@ -27,11 +27,11 @@ tr:last-child td{border-bottom:none}
 tr:hover td{background:#fafafa}
 .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
 .badge.ok{background:#e8f5e9;color:#2e7d32}
-.badge.no{background:#fce4ec;color:#c62828}
 .bar-wrap{background:#f0f0ee;border-radius:4px;height:8px;flex:1}
 .bar{background:#7F77DD;border-radius:4px;height:8px}
 .row-bar{display:flex;align-items:center;gap:8px}
 .empty{text-align:center;padding:32px;color:#bbb;font-size:13px}
+.detail-row{background:#f9f9f9}
 .logo{height:32px;object-fit:contain;margin-bottom:20px;display:block}
 </style>
 </head>
@@ -42,161 +42,90 @@ tr:hover td{background:#fafafa}
 <p class="sub">Termes recherchés par les clients sur les cartes partenaires</p>
 
 <div class="filters">
-  <select id="prog-filter" onchange="loadData()"><option value="">Tous les programmes</option></select>
-  <select id="period-filter" onchange="onPeriodChange()">
+  <select id="f-prog"><option value="">Tous les programmes</option></select>
+  <select id="f-period">
     <option value="7">7 derniers jours</option>
     <option value="30" selected>30 derniers jours</option>
     <option value="90">90 derniers jours</option>
     <option value="0">Tout</option>
     <option value="custom">Période personnalisée...</option>
   </select>
-  <div id="custom-dates" style="display:none;align-items:center;gap:6px">
+  <span id="custom-wrap" style="display:none;align-items:center;gap:6px">
     <span style="font-size:12px;color:#888">Du</span>
-    <input type="date" id="date-from" style="padding:6px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px" onchange="loadData()"/>
+    <input type="date" id="f-from"/>
     <span style="font-size:12px;color:#888">au</span>
-    <input type="date" id="date-to" style="padding:6px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px" onchange="loadData()"/>
-  </div>
+    <input type="date" id="f-to"/>
+  </span>
 </div>
 
-<div class="cards" id="kpi-cards">
-  <div class="card"><div class="n" id="kpi-total">—</div><div class="l">Recherches totales</div></div>
-  <div class="card"><div class="n" id="kpi-unique">—</div><div class="l">Termes uniques</div></div>
-  <div class="card"><div class="n" id="kpi-top" style="font-size:16px">—</div><div class="l">Terme le plus cherché</div></div>
-  <div class="card"><div class="n" id="kpi-top-click" style="font-size:16px">—</div><div class="l">Offre la plus cliquée</div></div>
+<div class="cards">
+  <div class="card"><div class="n" id="k-total">—</div><div class="l">Recherches totales</div></div>
+  <div class="card"><div class="n" id="k-unique">—</div><div class="l">Termes uniques</div></div>
+  <div class="card"><div class="n" id="k-top" style="font-size:16px">—</div><div class="l">Terme le plus cherché</div></div>
+  <div class="card"><div class="n" id="k-click" style="font-size:16px">—</div><div class="l">Offre la plus cliquée</div></div>
 </div>
 
 <div class="section">
   <h2>🔝 Top recherches</h2>
-  <div id="top-table" style="max-height:320px;overflow-y:auto"><div class="empty">Chargement...</div></div>
+  <div class="scroll" id="t-search"><div class="empty">Chargement...</div></div>
 </div>
 
 <div class="section">
   <h2>👆 Clics sur "Voir l'offre"</h2>
   <div style="margin-bottom:12px">
-    <input id="click-search" type="text" placeholder="🔍 Filtrer par nom d'offre..." style="padding:7px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;width:280px" oninput="filterClicks()"/>
+    <input type="text" id="f-click" placeholder="🔍 Filtrer par nom d'offre..." style="padding:7px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;width:280px" oninput="filterClicks()"/>
   </div>
-  <div id="clicks-table" style="max-height:320px;overflow-y:auto"><div class="empty">Chargement...</div></div>
+  <div class="scroll" id="t-clicks"><div class="empty">Chargement...</div></div>
 </div>
 
 <div class="section">
   <h2>📅 Recherches par programme</h2>
-  <div id="prog-table" style="max-height:320px;overflow-y:auto"><div class="empty">Chargement...</div></div>
+  <div class="scroll" id="t-prog"><div class="empty">Chargement...</div></div>
 </div>
 
 <script>
-var SB_URL='https://hfxpobmdolslwjrygaww.supabase.co';
-var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmeHBvYm1kb2xzbHdqcnlnYXd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzM0MzcsImV4cCI6MjA5NTQ0OTQzN30.4cneDKHlJQmUCsJZ_LRNLNqHMmcZAZ-ykyBQQyx4kOs';
+var SB_URL= + SB_URL + ;
+var SB_KEY= + SB_KEY + ;
 var SB_H={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
 
-async function loadProgs(){
-  var r=await fetch(SB_URL+'/rest/v1/programmes?select=name&order=name',{headers:SB_H});
-  var d=await r.json();
-  var sel=document.getElementById('prog-filter');
-  (d||[]).forEach(function(p){
-    var o=document.createElement('option');
-    o.value=p.name;o.textContent=p.name;
-    sel.appendChild(o);
-  });
+// ── State ─────────────────────────────────────────────────────
+var allSearches=[], allClicks=[], _clicksData=[];
+
+// ── Filters ───────────────────────────────────────────────────
+function getFilters(){
+  var prog=document.getElementById('f-prog').value;
+  var period=document.getElementById('f-period').value;
+  var from=period==='custom'?document.getElementById('f-from').value:null;
+  var to=period==='custom'?document.getElementById('f-to').value:null;
+  return {prog:prog,period:period,from:from,to:to};
 }
 
-function filterClicks(){
-  var q=(document.getElementById('click-search').value||'').toLowerCase().trim();
-  var filtered=q?_clicksData.filter(function(c){return c.name.toLowerCase().includes(q);}):_clicksData;
-  renderClicksTable(filtered);
-}
-
-function renderClicksTable(cSorted){
-  if(!cSorted.length){document.getElementById('clicks-table').innerHTML='<div class="empty">Aucun résultat</div>';return;}
-  var cHtml='<table><thead><tr><th>#</th><th>Offre</th><th>Programme</th><th>Clics</th><th></th></tr></thead><tbody>';
-  cSorted.slice(0,20).forEach(function(c,i){
-    var rowId='click-detail-'+i;
-    var detailRows=Object.values(c.addresses).sort(function(a,b){return b.count-a.count;}).map(function(a){
-      return '<tr style="background:#f9f9f9"><td></td><td colspan="2" style="color:#888;font-size:12px;padding-left:24px">📍 '+a.address+'</td><td style="color:#888;font-size:12px">'+a.programme+'</td><td><span class="badge ok">'+a.count+'</span></td><td></td></tr>';
-    }).join('');
-    cHtml+='<tr><td style="color:#aaa">'+(i+1)+'</td>'
-      +'<td><b>'+c.name+'</b></td>'
-      +'<td style="color:#888;font-size:12px">'+c.programme+'</td>'
-      +'<td><span class="badge ok">'+c.total+'</span></td>'
-      +'<td><button class="detail-btn" data-target="'+rowId+'" style="padding:3px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:11px;cursor:pointer">Détails</button></td></tr>'
-      +'<tr id="'+rowId+'" style="display:none">'
-      +'<td colspan="5" style="padding:0"><table style="width:100%;border-collapse:collapse">'+detailRows+'</table></td></tr>';
-  });
-  cHtml+='</tbody></table>';
-  document.getElementById('clicks-table').innerHTML=cHtml;
-  document.getElementById('clicks-table').addEventListener('click',function(e){
-    var btn=e.target.closest('.detail-btn');
-    if(!btn)return;
-    var target=document.getElementById(btn.getAttribute('data-target'));
-    if(!target)return;
-    target.style.display=target.style.display===''?'none':'';
-    btn.textContent=target.style.display===''?'Masquer':'Détails';
-  });
-}
-
-function onPeriodChange(){
-  var val=document.getElementById('period-filter').value;
-  var customDiv=document.getElementById('custom-dates');
-  if(val==='custom'){
-    customDiv.style.display='flex';
-    // Set default dates: last 30 days
-    if(!document.getElementById('date-from').value){
-      var d=new Date();
-      document.getElementById('date-to').value=d.toISOString().split('T')[0];
-      d.setDate(d.getDate()-30);
-      document.getElementById('date-from').value=d.toISOString().split('T')[0];
+function filterData(arr, dateField){
+  var f=getFilters();
+  return arr.filter(function(d){
+    if(f.prog && d.programme!==f.prog) return false;
+    if(f.period==='custom'){
+      if(f.from && new Date(d[dateField]) < new Date(f.from+'T00:00:00')) return false;
+      if(f.to && new Date(d[dateField]) > new Date(f.to+'T23:59:59')) return false;
+    } else if(parseInt(f.period)>0){
+      var since=new Date(Date.now()-parseInt(f.period)*86400000);
+      if(new Date(d[dateField]) < since) return false;
     }
-  } else {
-    customDiv.style.display='none';
-    loadData();
-  }
+    return true;
+  });
 }
 
-var _loadTimer=null;
-function loadData(){
-  clearTimeout(_loadTimer);
-  _loadTimer=setTimeout(_doLoadData,100);
+// ── Render ────────────────────────────────────────────────────
+function render(){
+  var searches=filterData(allSearches,'searched_at');
+  var clicks=filterData(allClicks,'clicked_at');
+  renderSearches(searches);
+  renderClicksData(clicks);
+  renderProgTable(searches);
 }
 
-async function _doLoadData(){
-  var prog=document.getElementById('prog-filter').value;
-  var periodVal=document.getElementById('period-filter').value;
-  var days=parseInt(periodVal);
-  var sinceDate=null, untilDate=null;
-  if(periodVal==='custom'){
-    sinceDate=document.getElementById('date-from').value;
-    untilDate=document.getElementById('date-to').value;
-    if(!sinceDate||!untilDate)return;
-  }
-
-  var url=SB_URL+'/rest/v1/search_logs?select=programme,query,has_results,searched_at,search_type&order=searched_at.desc&limit=5000';
-  if(prog)url+='&programme=eq.'+encodeURIComponent(prog);
-  if(periodVal==='custom'){
-    url+='&searched_at=gte.'+sinceDate+'T00:00:00';
-  } else if(days>0){
-    var since=new Date(Date.now()-days*86400000).toISOString();
-    url+='&searched_at=gte.'+since;
-  }
-  
-  var r=await fetch(url,{headers:SB_H});
-  var data=await r.json();
-  // Client-side filters
-  if(prog&&data&&data.length)data=data.filter(function(d){return d.programme===prog;});
-  if(periodVal==='custom'&&untilDate&&data&&data.length){
-    var until=new Date(untilDate+'T23:59:59');
-    data=data.filter(function(d){return new Date(d.searched_at)<=until;});
-  }
-  if(!data||!data.length){
-    document.getElementById('kpi-total').textContent='0';
-    document.getElementById('kpi-unique').textContent='0';
-    document.getElementById('kpi-top').textContent='—';
-    document.getElementById('top-table').innerHTML='<div class="empty">Aucune recherche pour cette période</div>';
-    document.getElementById('prog-table').innerHTML='<div class="empty">Aucune donnée</div>';
-    return;
-  }
-  
-  // KPIs
-  var total=data.length;
-  
+function renderSearches(data){
+  document.getElementById('k-total').textContent=data.length;
   var terms={};
   data.forEach(function(d){
     var q=(d.query||'').toLowerCase().trim();
@@ -205,87 +134,122 @@ async function _doLoadData(){
     terms[q].count++;
     terms[q].progs[d.programme]=(terms[q].progs[d.programme]||0)+1;
   });
-  var unique=Object.keys(terms).length;
   var sorted=Object.entries(terms).sort(function(a,b){return b[1].count-a[1].count;});
-  var topTerm=sorted.length?sorted[0][0]:'—';
-  
-  document.getElementById('kpi-total').textContent=total;
-  document.getElementById('kpi-unique').textContent=unique;
-  document.getElementById('kpi-top').textContent=topTerm;
-  
-  // Top table
-  var maxCount=sorted.length?sorted[0][1].count:1;
-  var topHtml='<table><thead><tr><th>#</th><th>Terme</th><th>Recherches</th><th>Programmes</th></tr></thead><tbody>';
-  sorted.slice(0,20).forEach(function(e,i){
+  document.getElementById('k-unique').textContent=sorted.length;
+  document.getElementById('k-top').textContent=sorted.length?sorted[0][0]:'—';
+  if(!sorted.length){document.getElementById('t-search').innerHTML='<div class="empty">Aucune recherche pour cette période</div>';return;}
+  var max=sorted[0][1].count;
+  var h='<table><thead><tr><th>#</th><th>Terme</th><th>Recherches</th><th>Programmes</th></tr></thead><tbody>';
+  sorted.slice(0,50).forEach(function(e,i){
     var q=e[0],s=e[1];
-    var progs=Object.keys(s.progs).join(', ');
-    topHtml+='<tr><td style="color:#aaa">'+(i+1)+'</td>'
+    h+='<tr><td style="color:#aaa">'+(i+1)+'</td>'
       +'<td><b>'+q+'</b></td>'
-      +'<td><div class="row-bar"><span style="min-width:30px">'+s.count+'</span><div class="bar-wrap"><div class="bar" style="width:'+Math.round(s.count/maxCount*100)+'%"></div></div></div></td>'
-      +'<td style="color:#888;font-size:12px">'+progs+'</td></tr>';
+      +'<td><div class="row-bar"><span style="min-width:30px">'+s.count+'</span><div class="bar-wrap"><div class="bar" style="width:'+Math.round(s.count/max*100)+'%"></div></div></div></td>'
+      +'<td style="color:#888;font-size:12px">'+Object.keys(s.progs).join(', ')+'</td></tr>';
   });
-  topHtml+='</tbody></table>';
-  document.getElementById('top-table').innerHTML=topHtml;
-  
-
-  
-  // Per programme table
-  var progStats={};
-  data.forEach(function(d){
-    var p=d.programme||'Inconnu';
-    if(!progStats[p])progStats[p]={total:0,terms:new Set()};
-    progStats[p].total++;
-
-    progStats[p].terms.add((d.query||'').toLowerCase().trim());
-  });
-  var progSorted=Object.entries(progStats).sort(function(a,b){return b[1].total-a[1].total;});
-  var progHtml='<table><thead><tr><th>Programme</th><th>Recherches</th><th>Termes uniques</th></tr></thead><tbody>';
-  progSorted.forEach(function(e){
-    var p=e[0],s=e[1];
-    progHtml+='<tr><td><b>'+p+'</b></td><td>'+s.total+'</td><td>'+s.terms.size+'</td></tr>';
-  });
-  progHtml+='</tbody></table>';
-  document.getElementById('prog-table').innerHTML=progHtml;
-
-  // Offer clicks
-  var clickUrl=SB_URL+'/rest/v1/offer_clicks?select=programme,offer_name,offer_address,clicked_at&order=clicked_at.desc&limit=5000';
-  if(prog)clickUrl+='&programme=eq.'+encodeURIComponent(prog);
-  if(periodVal==='custom'){
-    clickUrl+='&clicked_at=gte.'+sinceDate+'T00:00:00';
-  } else if(days>0){
-    clickUrl+='&clicked_at=gte.'+new Date(Date.now()-days*86400000).toISOString();
-  }
-  var cr=await fetch(clickUrl,{headers:SB_H});
-  var cdata=await cr.json();
-  // Client-side filters
-  if(prog&&cdata&&cdata.length)cdata=cdata.filter(function(d){return d.programme===prog;});
-  if(periodVal==='custom'&&untilDate&&cdata&&cdata.length){
-    var untilC=new Date(untilDate+'T23:59:59');
-    cdata=cdata.filter(function(d){return new Date(d.clicked_at)<=untilC;});
-  }
-  if(!cdata||!cdata.length){
-    document.getElementById('clicks-table').innerHTML='<div class="empty">Aucun clic enregistré</div>';
-    document.getElementById('kpi-top-click').textContent='—';
-  } else {
-    // Group by offer name first, then by address
-    var byName={};
-    cdata.forEach(function(c){
-      var name=c.offer_name||'?';
-      var addr=c.offer_address||'?';
-      var prog=c.programme||'?';
-      if(!byName[name])byName[name]={name:name,total:0,programme:prog,addresses:{}};
-      byName[name].total++;
-      var ak=addr+'||'+prog;
-      if(!byName[name].addresses[ak])byName[name].addresses[ak]={address:addr,programme:prog,count:0};
-      byName[name].addresses[ak].count++;
-    });
-    _clicksData=Object.values(byName).sort(function(a,b){return b.total-a.total;});
-    if(_clicksData.length)document.getElementById('kpi-top-click').textContent=_clicksData[0].name+' ('+_clicksData[0].total+')';
-    renderClicksTable(_clicksData);
-  }
+  h+='</tbody></table>';
+  document.getElementById('t-search').innerHTML=h;
 }
 
-loadProgs().then(_doLoadData);
+function renderClicksData(data){
+  var byName={};
+  data.forEach(function(d){
+    var name=d.offer_name||'?';
+    if(!byName[name])byName[name]={name:name,total:0,programme:d.programme,addresses:{}};
+    byName[name].total++;
+    var ak=(d.offer_address||'?')+'||'+d.programme;
+    if(!byName[name].addresses[ak])byName[name].addresses[ak]={address:d.offer_address||'?',programme:d.programme,count:0};
+    byName[name].addresses[ak].count++;
+  });
+  _clicksData=Object.values(byName).sort(function(a,b){return b.total-a.total;});
+  document.getElementById('k-click').textContent=_clicksData.length?_clicksData[0].name+' ('+_clicksData[0].total+')':'—';
+  filterClicks();
+}
+
+function filterClicks(){
+  var q=(document.getElementById('f-click').value||'').toLowerCase().trim();
+  var filtered=q?_clicksData.filter(function(c){return c.name.toLowerCase().includes(q);}):_clicksData;
+  if(!filtered.length){document.getElementById('t-clicks').innerHTML='<div class="empty">Aucun clic enregistré</div>';return;}
+  var h='<table><thead><tr><th>#</th><th>Offre</th><th>Programme</th><th>Clics</th><th></th></tr></thead><tbody>';
+  filtered.slice(0,50).forEach(function(c,i){
+    var rid='cd'+i;
+    var det=Object.values(c.addresses).sort(function(a,b){return b.count-a.count;}).map(function(a){
+      return '<tr class="detail-row"><td></td><td colspan="2" style="color:#888;font-size:12px;padding-left:24px">📍 '+a.address+'</td><td style="color:#888;font-size:12px">'+a.programme+'</td><td><span class="badge ok">'+a.count+'</span></td><td></td></tr>';
+    }).join('');
+    h+='<tr><td style="color:#aaa">'+(i+1)+'</td><td><b>'+c.name+'</b></td><td style="color:#888;font-size:12px">'+c.programme+'</td><td><span class="badge ok">'+c.total+'</span></td>'
+      +'<td><button class="dbtn" data-id="'+rid+'" style="padding:3px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:11px;cursor:pointer">Détails</button></td></tr>'
+      +'<tr id="'+rid+'" style="display:none"><td colspan="5" style="padding:0"><table style="width:100%;border-collapse:collapse">'+det+'</table></td></tr>';
+  });
+  h+='</tbody></table>';
+  document.getElementById('t-clicks').innerHTML=h;
+  document.getElementById('t-clicks').addEventListener('click',function(e){
+    var btn=e.target.closest('.dbtn');
+    if(!btn)return;
+    var t=document.getElementById(btn.getAttribute('data-id'));
+    if(!t)return;
+    t.style.display=t.style.display==='none'?'':'none';
+    btn.textContent=t.style.display===''?'Masquer':'Détails';
+  },{once:true});
+}
+
+function renderProgTable(data){
+  var ps={};
+  data.forEach(function(d){
+    var p=d.programme||'?';
+    if(!ps[p])ps[p]={total:0,terms:new Set()};
+    ps[p].total++;
+    ps[p].terms.add((d.query||'').toLowerCase().trim());
+  });
+  var sorted=Object.entries(ps).sort(function(a,b){return b[1].total-a[1].total;});
+  if(!sorted.length){document.getElementById('t-prog').innerHTML='<div class="empty">Aucune donnée</div>';return;}
+  var h='<table><thead><tr><th>Programme</th><th>Recherches</th><th>Termes uniques</th></tr></thead><tbody>';
+  sorted.forEach(function(e){
+    h+='<tr><td><b>'+e[0]+'</b></td><td>'+e[1].total+'</td><td>'+e[1].terms.size+'</td></tr>';
+  });
+  h+='</tbody></table>';
+  document.getElementById('t-prog').innerHTML=h;
+}
+
+// ── Load all data once ─────────────────────────────────────────
+async function loadAll(){
+  var [sr, cr] = await Promise.all([
+    fetch(SB_URL+'/rest/v1/search_logs?select=programme,query,searched_at&order=searched_at.desc&limit=10000',{headers:SB_H}),
+    fetch(SB_URL+'/rest/v1/offer_clicks?select=programme,offer_name,offer_address,clicked_at&order=clicked_at.desc&limit=10000',{headers:SB_H})
+  ]);
+  allSearches=await sr.json()||[];
+  allClicks=await cr.json()||[];
+  render();
+}
+
+// ── Load programmes ────────────────────────────────────────────
+async function loadProgs(){
+  var r=await fetch(SB_URL+'/rest/v1/programmes?select=name&order=name',{headers:SB_H});
+  var d=await r.json();
+  var sel=document.getElementById('f-prog');
+  (d||[]).forEach(function(p){
+    var o=document.createElement('option');
+    o.value=p.name;o.textContent=p.name;sel.appendChild(o);
+  });
+}
+
+// ── Event listeners ────────────────────────────────────────────
+document.getElementById('f-prog').addEventListener('change',render);
+document.getElementById('f-period').addEventListener('change',function(){
+  var v=this.value;
+  document.getElementById('custom-wrap').style.display=v==='custom'?'flex':'none';
+  if(v==='custom'){
+    var d=new Date();
+    document.getElementById('f-to').value=d.toISOString().split('T')[0];
+    d.setDate(d.getDate()-30);
+    document.getElementById('f-from').value=d.toISOString().split('T')[0];
+  }
+  render();
+});
+document.getElementById('f-from').addEventListener('change',render);
+document.getElementById('f-to').addEventListener('change',render);
+
+// ── Init ───────────────────────────────────────────────────────
+loadProgs().then(loadAll);
 </script>
 </body>
 </html>
