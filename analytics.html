@@ -151,7 +151,10 @@ function onPeriodChange(){
   }
 }
 
+var _loadId=0;
+
 async function loadData(){
+  var myId=++_loadId;
   var prog=document.getElementById('prog-filter').value;
   var periodVal=document.getElementById('period-filter').value;
   var days=parseInt(periodVal);
@@ -171,7 +174,8 @@ async function loadData(){
     url+='&searched_at=gte.'+since;
   }
   
-  var r=await fetch(url,{headers:SB_H});
+  try{
+  var r=await fetch(url,{headers:SB_H,signal:signal});
   var data=await r.json();
   // Client-side filters
   if(prog&&data&&data.length)data=data.filter(function(d){return d.programme===prog;});
@@ -179,6 +183,7 @@ async function loadData(){
     var until=new Date(untilDate+'T23:59:59');
     data=data.filter(function(d){return new Date(d.searched_at)<=until;});
   }
+  if(myId!==_loadId)return;
   if(!data||!data.length){
     document.getElementById('kpi-total').textContent='0';
     document.getElementById('kpi-unique').textContent='0';
@@ -249,9 +254,7 @@ async function loadData(){
   } else if(days>0){
     clickUrl+='&clicked_at=gte.'+new Date(Date.now()-days*86400000).toISOString();
   }
-  console.log('clickUrl:',clickUrl);
-  console.log('prog:',prog);
-  var cr=await fetch(clickUrl,{headers:SB_H});
+  var cr=await fetch(clickUrl,{headers:SB_H,signal:signal});
   var cdata=await cr.json();
   // Client-side filters
   if(prog&&cdata&&cdata.length)cdata=cdata.filter(function(d){return d.programme===prog;});
@@ -259,6 +262,7 @@ async function loadData(){
     var untilC=new Date(untilDate+'T23:59:59');
     cdata=cdata.filter(function(d){return new Date(d.clicked_at)<=untilC;});
   }
+  if(myId!==_loadId)return;
   if(!cdata||!cdata.length){
     document.getElementById('clicks-table').innerHTML='<div class="empty">Aucun clic enregistré</div>';
     document.getElementById('kpi-top-click').textContent='—';
@@ -279,6 +283,7 @@ async function loadData(){
     if(_clicksData.length)document.getElementById('kpi-top-click').textContent=_clicksData[0].name+' ('+_clicksData[0].total+')';
     renderClicksTable(_clicksData);
   }
+  }catch(e){if(e.name!=='AbortError')console.error(e);}
 }
 
 loadProgs().then(loadData);
