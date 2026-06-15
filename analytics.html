@@ -249,6 +249,8 @@ async function loadData(){
   } else if(days>0){
     clickUrl+='&clicked_at=gte.'+new Date(Date.now()-days*86400000).toISOString();
   }
+  console.log('clickUrl:',clickUrl);
+  console.log('prog:',prog);
   var cr=await fetch(clickUrl,{headers:SB_H});
   var cdata=await cr.json();
   // Client-side filters
