@@ -173,7 +173,8 @@ async function loadData(){
   
   var r=await fetch(url,{headers:SB_H});
   var data=await r.json();
-  // Client-side filter for end date on custom range
+  // Client-side filters
+  if(prog&&data&&data.length)data=data.filter(function(d){return d.programme===prog;});
   if(periodVal==='custom'&&untilDate&&data&&data.length){
     var until=new Date(untilDate+'T23:59:59');
     data=data.filter(function(d){return new Date(d.searched_at)<=until;});
@@ -250,7 +251,8 @@ async function loadData(){
   }
   var cr=await fetch(clickUrl,{headers:SB_H});
   var cdata=await cr.json();
-  // Client-side filter for end date on custom range
+  // Client-side filters
+  if(prog&&cdata&&cdata.length)cdata=cdata.filter(function(d){return d.programme===prog;});
   if(periodVal==='custom'&&untilDate&&cdata&&cdata.length){
     var untilC=new Date(untilDate+'T23:59:59');
     cdata=cdata.filter(function(d){return new Date(d.clicked_at)<=untilC;});
