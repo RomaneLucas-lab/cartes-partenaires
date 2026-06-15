@@ -268,12 +268,12 @@ function exportSearchCSV(){
   var f=getFilters();
   var prog=f.prog||'Tous';
   // One row per search entry
-  var rows=['Programme,Terme,Date'];
+  var rows=['sep=;','Programme;Terme;Date'];
   searches.forEach(function(d){
     var q=(d.query||'').toLowerCase().trim();
     if(!q)return;
     var date=d.searched_at?new Date(d.searched_at).toLocaleDateString('fr-FR'):'';
-    rows.push('"'+(d.programme||'')+'","'+q+'",'+date);
+    rows.push('"'+(d.programme||'')+'";"'+q+'";'+date);
   });
   downloadCSV(rows.join('\n'),'recherches_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
 }
@@ -283,10 +283,10 @@ function exportClicksCSV(){
   var f=getFilters();
   var prog=f.prog||'Tous';
   // One row per click
-  var rows=['Programme,Offre,Adresse,Date'];
+  var rows=['sep=;','Programme;Offre;Adresse;Date'];
   clicks.forEach(function(d){
     var date=d.clicked_at?new Date(d.clicked_at).toLocaleDateString('fr-FR'):'';
-    rows.push('"'+(d.programme||'')+'","'+(d.offer_name||'')+'","'+(d.offer_address||'')+'",'+date);
+    rows.push('"'+(d.programme||'')+'";"'+(d.offer_name||'')+'";"'+(d.offer_address||'')+'";'+date);
   });
   downloadCSV(rows.join('\n'),'clics_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
 }
