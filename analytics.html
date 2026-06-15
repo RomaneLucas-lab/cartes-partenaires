@@ -265,26 +265,15 @@ function downloadCSV(content, filename){
 
 function exportSearchCSV(){
   var searches=filterData(allSearches,'searched_at');
-  var terms={};
+  var f=getFilters();
+  var prog=f.prog||'Tous';
+  // One row per search entry
+  var rows=['Programme,Terme,Date'];
   searches.forEach(function(d){
     var q=(d.query||'').toLowerCase().trim();
     if(!q)return;
-    if(!terms[q])terms[q]={count:0,progs:{},first:d.searched_at,last:d.searched_at};
-    terms[q].count++;
-    terms[q].progs[d.programme]=(terms[q].progs[d.programme]||0)+1;
-    if(d.searched_at<terms[q].first)terms[q].first=d.searched_at;
-    if(d.searched_at>terms[q].last)terms[q].last=d.searched_at;
-  });
-  var sorted=Object.entries(terms).sort(function(a,b){return b[1].count-a[1].count;});
-  var f=getFilters();
-  var prog=f.prog||'Tous';
-  var rows=['Programme,Terme,Recherches,Programmes,Première recherche,Dernière recherche'];
-  sorted.forEach(function(e){
-    var q=e[0],s=e[1];
-    var progs=Object.keys(s.progs).join(' | ');
-    var d1=s.first?new Date(s.first).toLocaleDateString('fr-FR'):'';
-    var d2=s.last?new Date(s.last).toLocaleDateString('fr-FR'):'';
-    rows.push('"'+prog+'","'+q+'",'+s.count+',"'+progs+'",'+d1+','+d2);
+    var date=d.searched_at?new Date(d.searched_at).toLocaleDateString('fr-FR'):'';
+    rows.push('"'+(d.programme||'')+'","'+q+'",'+date);
   });
   downloadCSV(rows.join('\n'),'recherches_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
 }
@@ -293,15 +282,11 @@ function exportClicksCSV(){
   var clicks=filterData(allClicks,'clicked_at');
   var f=getFilters();
   var prog=f.prog||'Tous';
-  var rows=['Programme,Offre,Adresse,Clics'];
-  var byKey={};
+  // One row per click
+  var rows=['Programme,Offre,Adresse,Date'];
   clicks.forEach(function(d){
-    var k=(d.offer_name||'')+'||'+(d.offer_address||'')+'||'+(d.programme||'');
-    if(!byKey[k])byKey[k]={name:d.offer_name||'',addr:d.offer_address||'',prog:d.programme||'',count:0};
-    byKey[k].count++;
-  });
-  Object.values(byKey).sort(function(a,b){return b.count-a.count;}).forEach(function(c){
-    rows.push('"'+c.prog+'","'+c.name+'","'+c.addr+'",'+c.count);
+    var date=d.clicked_at?new Date(d.clicked_at).toLocaleDateString('fr-FR'):'';
+    rows.push('"'+(d.programme||'')+'","'+(d.offer_name||'')+'","'+(d.offer_address||'')+'",'+date);
   });
   downloadCSV(rows.join('\n'),'clics_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
 }
