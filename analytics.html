@@ -288,12 +288,17 @@ function exportSearchCSV(){
   var f=getFilters();
   var prog=f.prog||'Tous';
   // One row per search entry
-  var rows=['sep=;','Programme;Terme;Date'];
+  var rows=['sep=;','Programme;Terme;Nombre de recherches'];
+  var byKey={};
   searches.forEach(function(d){
     var q=(d.query||'').toLowerCase().trim();
     if(!q)return;
-    var date=d.searched_at?new Date(d.searched_at).toLocaleDateString('fr-FR'):'';
-    rows.push('"'+(d.programme||'')+'";"'+q+'";'+date);
+    var k=(d.programme||'')+'||'+q;
+    if(!byKey[k])byKey[k]={prog:d.programme||'',term:q,count:0};
+    byKey[k].count++;
+  });
+  Object.values(byKey).sort(function(a,b){return b.count-a.count;}).forEach(function(c){
+    rows.push('"'+c.prog+'";"'+c.term+'";'+c.count);
   });
   downloadCSV(rows.join('\n'),'recherches_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
 }
