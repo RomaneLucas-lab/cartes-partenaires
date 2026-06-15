@@ -256,8 +256,27 @@ document.getElementById('f-to').addEventListener('change',render);
 
 // ── Export CSV ───────────────────────────────────────────────
 function downloadCSV(content, filename){
-  var encoded=new TextEncoder().encode('\uFEFF'+content);
-  var blob=new Blob([encoded],{type:'text/csv;charset=utf-8;'});
+  // Convert to Windows-1252 for Excel France compatibility
+  var bytes=[];
+  for(var i=0;i<content.length;i++){
+    var c=content.charCodeAt(i);
+    if(c<128)bytes.push(c);
+    else if(c===8217||c===39)bytes.push(39);
+    else if(c===233)bytes.push(233);
+    else if(c===232)bytes.push(232);
+    else if(c===234)bytes.push(234);
+    else if(c===224)bytes.push(224);
+    else if(c===226)bytes.push(226);
+    else if(c===249)bytes.push(249);
+    else if(c===251)bytes.push(251);
+    else if(c===238)bytes.push(238);
+    else if(c===239)bytes.push(239);
+    else if(c===244)bytes.push(244);
+    else if(c===231)bytes.push(231);
+    else if(c===8364)bytes.push(128);
+    else bytes.push(c&0xFF);
+  }
+  var blob=new Blob([new Uint8Array(bytes)],{type:'text/csv;charset=windows-1252;'});
   var a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   a.download=filename;
