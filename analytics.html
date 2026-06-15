@@ -151,10 +151,13 @@ function onPeriodChange(){
   }
 }
 
-var _loadId=0;
+var _loadTimer=null;
+function loadData(){
+  clearTimeout(_loadTimer);
+  _loadTimer=setTimeout(_doLoadData,100);
+}
 
-async function loadData(){
-  var myId=++_loadId;
+async function _doLoadData(){
   var prog=document.getElementById('prog-filter').value;
   var periodVal=document.getElementById('period-filter').value;
   var days=parseInt(periodVal);
@@ -182,7 +185,6 @@ async function loadData(){
     var until=new Date(untilDate+'T23:59:59');
     data=data.filter(function(d){return new Date(d.searched_at)<=until;});
   }
-  if(myId!==_loadId)return;
   if(!data||!data.length){
     document.getElementById('kpi-total').textContent='0';
     document.getElementById('kpi-unique').textContent='0';
@@ -261,7 +263,6 @@ async function loadData(){
     var untilC=new Date(untilDate+'T23:59:59');
     cdata=cdata.filter(function(d){return new Date(d.clicked_at)<=untilC;});
   }
-  if(myId!==_loadId)return;
   if(!cdata||!cdata.length){
     document.getElementById('clicks-table').innerHTML='<div class="empty">Aucun clic enregistré</div>';
     document.getElementById('kpi-top-click').textContent='—';
@@ -284,7 +285,7 @@ async function loadData(){
   }
 }
 
-loadProgs().then(loadData);
+loadProgs().then(_doLoadData);
 </script>
 </body>
 </html>
