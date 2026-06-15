@@ -54,8 +54,8 @@ tr:hover td{background:#fafafa}
 <div class="cards" id="kpi-cards">
   <div class="card"><div class="n" id="kpi-total">—</div><div class="l">Recherches totales</div></div>
   <div class="card"><div class="n" id="kpi-unique">—</div><div class="l">Termes uniques</div></div>
-  <div class="card"><div class="n" id="kpi-noresult">—</div><div class="l">Sans résultat</div></div>
   <div class="card"><div class="n" id="kpi-top" style="font-size:16px">—</div><div class="l">Terme le plus cherché</div></div>
+  <div class="card"><div class="n" id="kpi-top-click" style="font-size:16px">—</div><div class="l">Offre la plus cliquée</div></div>
 </div>
 
 <div class="section">
@@ -142,10 +142,8 @@ async function loadData(){
   if(!data||!data.length){
     document.getElementById('kpi-total').textContent='0';
     document.getElementById('kpi-unique').textContent='0';
-    document.getElementById('kpi-noresult').textContent='0';
     document.getElementById('kpi-top').textContent='—';
     document.getElementById('top-table').innerHTML='<div class="empty">Aucune recherche pour cette période</div>';
-    document.getElementById('noresult-table').innerHTML='<div class="empty">Aucune recherche sans résultat</div>';
     document.getElementById('prog-table').innerHTML='<div class="empty">Aucune donnée</div>';
     return;
   }
@@ -167,7 +165,6 @@ async function loadData(){
   
   document.getElementById('kpi-total').textContent=total;
   document.getElementById('kpi-unique').textContent=unique;
-  document.getElementById('kpi-noresult').textContent='N/A';
   document.getElementById('kpi-top').textContent=topTerm;
   
   // Top table
@@ -212,6 +209,7 @@ async function loadData(){
   var cdata=await cr.json();
   if(!cdata||!cdata.length){
     document.getElementById('clicks-table').innerHTML='<div class="empty">Aucun clic enregistré</div>';
+    document.getElementById('kpi-top-click').textContent='—';
   } else {
     // Group by offer name first, then by address
     var byName={};
