@@ -65,6 +65,9 @@ tr:hover td{background:#fafafa}
 
 <div class="section">
   <h2>👆 Clics sur "Voir l'offre"</h2>
+  <div style="margin-bottom:12px">
+    <input id="click-search" type="text" placeholder="🔍 Filtrer par nom d'offre..." style="padding:7px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;width:280px" oninput="filterClicks()"/>
+  </div>
   <div id="clicks-table"><div class="empty">Chargement...</div></div>
 </div>
 
@@ -86,6 +89,40 @@ async function loadProgs(){
     var o=document.createElement('option');
     o.value=p.name;o.textContent=p.name;
     sel.appendChild(o);
+  });
+}
+
+function filterClicks(){
+  var q=(document.getElementById('click-search').value||'').toLowerCase().trim();
+  var filtered=q?_clicksData.filter(function(c){return c.name.toLowerCase().includes(q);}):_clicksData;
+  renderClicksTable(filtered);
+}
+
+function renderClicksTable(cSorted){
+  if(!cSorted.length){document.getElementById('clicks-table').innerHTML='<div class="empty">Aucun résultat</div>';return;}
+  var cHtml='<table><thead><tr><th>#</th><th>Offre</th><th>Programme</th><th>Clics</th><th></th></tr></thead><tbody>';
+  cSorted.slice(0,20).forEach(function(c,i){
+    var rowId='click-detail-'+i;
+    var detailRows=Object.values(c.addresses).sort(function(a,b){return b.count-a.count;}).map(function(a){
+      return '<tr style="background:#f9f9f9"><td></td><td colspan="2" style="color:#888;font-size:12px;padding-left:24px">📍 '+a.address+'</td><td style="color:#888;font-size:12px">'+a.programme+'</td><td><span class="badge ok">'+a.count+'</span></td><td></td></tr>';
+    }).join('');
+    cHtml+='<tr><td style="color:#aaa">'+(i+1)+'</td>'
+      +'<td><b>'+c.name+'</b></td>'
+      +'<td style="color:#888;font-size:12px">'+c.programme+'</td>'
+      +'<td><span class="badge ok">'+c.total+'</span></td>'
+      +'<td><button class="detail-btn" data-target="'+rowId+'" style="padding:3px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:11px;cursor:pointer">Détails</button></td></tr>'
+      +'<tr id="'+rowId+'" style="display:none">'
+      +'<td colspan="5" style="padding:0"><table style="width:100%;border-collapse:collapse">'+detailRows+'</table></td></tr>';
+  });
+  cHtml+='</tbody></table>';
+  document.getElementById('clicks-table').innerHTML=cHtml;
+  document.getElementById('clicks-table').addEventListener('click',function(e){
+    var btn=e.target.closest('.detail-btn');
+    if(!btn)return;
+    var target=document.getElementById(btn.getAttribute('data-target'));
+    if(!target)return;
+    target.style.display=target.style.display===''?'none':'';
+    btn.textContent=target.style.display===''?'Masquer':'Détails';
   });
 }
 
