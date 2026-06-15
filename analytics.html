@@ -43,12 +43,19 @@ tr:hover td{background:#fafafa}
 
 <div class="filters">
   <select id="prog-filter" onchange="loadData()"><option value="">Tous les programmes</option></select>
-  <select id="period-filter" onchange="loadData()">
+  <select id="period-filter" onchange="onPeriodChange()">
     <option value="7">7 derniers jours</option>
     <option value="30" selected>30 derniers jours</option>
     <option value="90">90 derniers jours</option>
     <option value="0">Tout</option>
+    <option value="custom">Période personnalisée...</option>
   </select>
+  <div id="custom-dates" style="display:none;align-items:center;gap:6px">
+    <span style="font-size:12px;color:#888">Du</span>
+    <input type="date" id="date-from" style="padding:6px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px" onchange="loadData()"/>
+    <span style="font-size:12px;color:#888">au</span>
+    <input type="date" id="date-to" style="padding:6px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px" onchange="loadData()"/>
+  </div>
 </div>
 
 <div class="cards" id="kpi-cards">
@@ -126,13 +133,41 @@ function renderClicksTable(cSorted){
   });
 }
 
+function onPeriodChange(){
+  var val=document.getElementById('period-filter').value;
+  var customDiv=document.getElementById('custom-dates');
+  if(val==='custom'){
+    customDiv.style.display='flex';
+    // Set default dates: last 30 days
+    if(!document.getElementById('date-from').value){
+      var d=new Date();
+      document.getElementById('date-to').value=d.toISOString().split('T')[0];
+      d.setDate(d.getDate()-30);
+      document.getElementById('date-from').value=d.toISOString().split('T')[0];
+    }
+  } else {
+    customDiv.style.display='none';
+    loadData();
+  }
+}
+
 async function loadData(){
   var prog=document.getElementById('prog-filter').value;
-  var days=parseInt(document.getElementById('period-filter').value);
-  
+  var periodVal=document.getElementById('period-filter').value;
+  var days=parseInt(periodVal);
+  var sinceDate=null, untilDate=null;
+  if(periodVal==='custom'){
+    sinceDate=document.getElementById('date-from').value;
+    untilDate=document.getElementById('date-to').value;
+    if(!sinceDate||!untilDate)return;
+  }
+
   var url=SB_URL+'/rest/v1/search_logs?select=programme,query,has_results,searched_at,search_type&order=searched_at.desc&limit=5000';
   if(prog)url+='&programme=eq.'+encodeURIComponent(prog);
-  if(days>0){
+  if(periodVal==='custom'){
+    url+='&searched_at=gte.'+sinceDate+'T00:00:00';
+    url+='&searched_at=lte.'+untilDate+'T23:59:59';
+  } else if(days>0){
     var since=new Date(Date.now()-days*86400000).toISOString();
     url+='&searched_at=gte.'+since;
   }
@@ -204,7 +239,12 @@ async function loadData(){
   // Offer clicks
   var clickUrl=SB_URL+'/rest/v1/offer_clicks?select=programme,offer_name,offer_address,clicked_at&order=clicked_at.desc&limit=5000';
   if(prog)clickUrl+='&programme=eq.'+encodeURIComponent(prog);
-  if(days>0)clickUrl+='&clicked_at=gte.'+new Date(Date.now()-days*86400000).toISOString();
+  if(periodVal==='custom'){
+    clickUrl+='&clicked_at=gte.'+sinceDate+'T00:00:00';
+    clickUrl+='&clicked_at=lte.'+untilDate+'T23:59:59';
+  } else if(days>0){
+    clickUrl+='&clicked_at=gte.'+new Date(Date.now()-days*86400000).toISOString();
+  }
   var cr=await fetch(clickUrl,{headers:SB_H});
   var cdata=await cr.json();
   if(!cdata||!cdata.length){
