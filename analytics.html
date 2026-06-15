@@ -256,7 +256,8 @@ document.getElementById('f-to').addEventListener('change',render);
 
 // ── Export CSV ───────────────────────────────────────────────
 function downloadCSV(content, filename){
-  var blob=new Blob(['\uFEFF'+content],{type:'text/csv;charset=utf-8;'});
+  var encoded=new TextEncoder().encode('\uFEFF'+content);
+  var blob=new Blob([encoded],{type:'text/csv;charset=utf-8;'});
   var a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   a.download=filename;
