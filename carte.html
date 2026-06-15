@@ -120,7 +120,7 @@ function mkI(ic,col){
 function mkMarker(s,BT){
   var m=L.marker([s.lat,s.lng],{icon:mkI(s.icon||'📍',s.color||'#7F77DD')});
   var rem=s.remise?'<div class="pop-remise" style="color:'+s.color+'">'+s.remise+'</div>':'';
-  var lnk=s.url?'<a class="pop-link" href="'+s.url+'" target="_blank" style="background:'+s.color+';color:#1a1a1a">'+BT+'</a>':'';
+  var lnk=s.url?'<a class="pop-link pop-offer-link" href="'+s.url+'" target="_blank" style="background:'+s.color+';color:#1a1a1a" data-prog="'+encodeURIComponent(PROG)+'" data-name="'+encodeURIComponent(s.name||'')+'" data-addr="'+encodeURIComponent(s.address||'')+'" data-ourl="'+encodeURIComponent(s.url||'')+'">'+BT+'</a>':'';
   var mapsUrl=s.place_id?'https://www.google.com/maps/place/?q=place_id:'+s.place_id:'https://www.google.com/maps/search/'+encodeURIComponent((s.name||'')+' '+(s.address||''));
 var nav='<a class="pop-nav" href="'+mapsUrl+'" target="_blank">S&#39;y rendre</a>';
   var sub=s.sub?' — '+s.sub:'';
@@ -388,6 +388,22 @@ function applyRadiusFilter(){
     else CG.removeLayer(AM[i].m);
   }
 }
+
+// Log offer click
+document.addEventListener('click',function(e){
+  var el=e.target.closest('.pop-offer-link');
+  if(!el)return;
+  fetch(SB_URL+'/rest/v1/offer_clicks',{
+    method:'POST',
+    headers:Object.assign({'Content-Type':'application/json','Prefer':'return=minimal'},SB_HDR),
+    body:JSON.stringify({
+      programme:decodeURIComponent(el.getAttribute('data-prog')||''),
+      offer_name:decodeURIComponent(el.getAttribute('data-name')||''),
+      offer_address:decodeURIComponent(el.getAttribute('data-addr')||''),
+      offer_url:decodeURIComponent(el.getAttribute('data-ourl')||'')
+    })
+  }).catch(function(){});
+});
 
 // Distance between two lat/lng in km
 function distKm(lat1,lng1,lat2,lng2){
