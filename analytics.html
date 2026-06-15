@@ -174,8 +174,7 @@ async function loadData(){
     url+='&searched_at=gte.'+since;
   }
   
-  try{
-  var r=await fetch(url,{headers:SB_H,signal:signal});
+  var r=await fetch(url,{headers:SB_H});
   var data=await r.json();
   // Client-side filters
   if(prog&&data&&data.length)data=data.filter(function(d){return d.programme===prog;});
@@ -254,7 +253,7 @@ async function loadData(){
   } else if(days>0){
     clickUrl+='&clicked_at=gte.'+new Date(Date.now()-days*86400000).toISOString();
   }
-  var cr=await fetch(clickUrl,{headers:SB_H,signal:signal});
+  var cr=await fetch(clickUrl,{headers:SB_H});
   var cdata=await cr.json();
   // Client-side filters
   if(prog&&cdata&&cdata.length)cdata=cdata.filter(function(d){return d.programme===prog;});
@@ -283,7 +282,6 @@ async function loadData(){
     if(_clicksData.length)document.getElementById('kpi-top-click').textContent=_clicksData[0].name+' ('+_clicksData[0].total+')';
     renderClicksTable(_clicksData);
   }
-  }catch(e){if(e.name!=='AbortError')console.error(e);}
 }
 
 loadProgs().then(loadData);
