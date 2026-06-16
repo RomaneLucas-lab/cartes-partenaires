@@ -151,47 +151,69 @@ function renderMarkers(data){
   var grouped={};
   data.forEach(function(d){
     var cat=d.offer_category||'?';
-    var sub=d.offer_subcategory?(' <span style="color:#aaa;font-size:11px">'+d.offer_subcategory+'</span>'):''
+    var sub=d.offer_subcategory||'';
     var city=d.offer_city||'?';
     var name=d.offer_name||'?';
     var key=_markerView==='enseigne'?name:_markerView==='ville'?city:cat;
     if(!grouped[key])grouped[key]={label:key,total:0,details:{}};
     grouped[key].total++;
-    // Details: for each view show the other two dimensions
-    var nameWithSub=name+(d.offer_subcategory?' ('+d.offer_subcategory+')':'');
+    // Detail key depends on view
     var dk;
-    if(_markerView==='enseigne')dk=city+' | '+cat;
-    else if(_markerView==='ville')dk=nameWithSub+' | '+cat;
-    else dk=nameWithSub+' | '+city;
-    if(!grouped[key].details[dk])grouped[key].details[dk]=0;
-    grouped[key].details[dk]++;
+    if(_markerView==='enseigne')dk=city+'|||'+cat+(sub?' ('+sub+')');
+    else if(_markerView==='ville')dk=name+'|||'+cat+(sub?' ('+sub+')');
+    else{
+      // By category: group by offer name, show city as sub-detail
+      var nameKey=name+(sub?' ('+sub+')');
+      if(!grouped[key].offers)grouped[key].offers={};
+      if(!grouped[key].offers[nameKey])grouped[key].offers[nameKey]={total:0,cities:{}};
+      grouped[key].offers[nameKey].total++;
+      grouped[key].offers[nameKey].cities[city]=(grouped[key].offers[nameKey].cities[city]||0)+1;
+    }
+    if(_markerView!=='cat'){
+      if(!grouped[key].details[dk])grouped[key].details[dk]=0;
+      grouped[key].details[dk]++;
+    }
   });
   var sorted=Object.values(grouped).sort(function(a,b){return b.total-a.total;});
   var col1=_markerView==='enseigne'?'Enseigne':_markerView==='ville'?'Ville':'Catégorie';
-  var detCol=_markerView==='enseigne'?'Ville | Catégorie':_markerView==='ville'?'Enseigne | Catégorie':'Enseigne | Ville';
   var h='<table><thead><tr><th>#</th><th>'+col1+'</th><th>Clics</th><th></th></tr></thead><tbody>';
   sorted.slice(0,50).forEach(function(g,i){
     var rid='mr'+i;
-    var det='<tr style="background:#f5f5f3"><td></td><td colspan="2" style="font-size:11px;color:#aaa;font-weight:600;padding:4px 10px 4px 24px">'+detCol+'</td><td></td></tr>';
-    det+=Object.entries(g.details).sort(function(a,b){return b[1]-a[1];}).map(function(e){
-      return '<tr class="detail-row"><td></td><td style="color:#888;font-size:12px;padding-left:24px">'+e[0]+'</td><td><span class="badge ok">'+e[1]+'</span></td><td></td></tr>';
-    }).join('');
-    var labelHtml=_markerView==='cat'?'<b>'+g.label+'</b>':'<b>'+g.label+'</b>';
-    h+='<tr><td style="color:#aaa">'+(i+1)+'</td><td>'+labelHtml+'</td><td><span class="badge ok">'+g.total+'</span></td>'
+    var det='';
+    if(_markerView==='cat'&&g.offers){
+      // By category: one row per offer, with city details
+      Object.entries(g.offers).sort(function(a,b){return b[1].total-a[1].total;}).forEach(function(e,j){
+        var oid='mro'+i+'_'+j;
+        var cityRows=Object.entries(e[1].cities).sort(function(a,b){return b[1]-a[1];}).map(function(c){
+          return '<tr style="background:#efefef"><td></td><td style="color:#aaa;font-size:11px;padding-left:48px">📍 '+c[0]+'</td><td><span class="badge ok">'+c[1]+'</span></td><td></td></tr>';
+        }).join('');
+        det+='<tr class="detail-row"><td></td>'
+          +'<td style="color:#555;font-size:12px;padding-left:24px"><b>'+e[0]+'</b></td>'
+          +'<td><span class="badge ok">'+e[1].total+'</span></td>'
+          +'<td><button class="dbtn3" data-id="'+oid+'" style="padding:2px 8px;border:1px solid #ddd;border-radius:5px;background:#fff;font-size:10px;cursor:pointer">Villes</button></td></tr>'
+          +'<tr id="'+oid+'" style="display:none"><td colspan="4" style="padding:0"><table style="width:100%;border-collapse:collapse">'+cityRows+'</table></td></tr>';
+      });
+    } else {
+      det=Object.entries(g.details).sort(function(a,b){return b[1]-a[1];}).map(function(e){
+        var parts=e[0].split('|||');
+        return '<tr class="detail-row"><td></td><td style="color:#888;font-size:12px;padding-left:24px">'+parts[0]+(parts[1]?' <span style="color:#aaa;font-size:11px">'+parts[1]+'</span>':'')+'</td><td><span class="badge ok">'+e[1]+'</span></td><td></td></tr>';
+      }).join('');
+    }
+    h+='<tr><td style="color:#aaa">'+(i+1)+'</td><td><b>'+g.label+'</b></td><td><span class="badge ok">'+g.total+'</span></td>'
       +'<td><button class="dbtn2" data-id="'+rid+'" style="padding:3px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:11px;cursor:pointer">Détails</button></td></tr>'
       +'<tr id="'+rid+'" style="display:none"><td colspan="4" style="padding:0"><table style="width:100%;border-collapse:collapse">'+det+'</table></td></tr>';
   });
   h+='</tbody></table>';
   document.getElementById('t-markers').innerHTML=h;
-  // Fix toggle - use event delegation without {once:true}
   document.getElementById('t-markers').addEventListener('click',function(e){
-    var btn=e.target.closest('.dbtn2');
+    var btn=e.target.closest('.dbtn2,.dbtn3');
     if(!btn)return;
     var t=document.getElementById(btn.getAttribute('data-id'));
     if(!t)return;
-    var isOpen=t.style.display!=='none';
-    t.style.display=isOpen?'none':'';
-    btn.textContent=isOpen?'Détails':'Masquer';
+    var isOpen=t.style.display!==''&&t.style.display!=='none'?true:t.style.display===''&&t.offsetHeight>0;
+    t.style.display=t.style.display==='none'||t.style.display===''&&t.offsetHeight===0?'':'none';
+    if(btn.classList.contains('dbtn2'))btn.textContent=t.style.display!=='none'&&t.style.display!==''?'Masquer':'Détails';
+    else btn.textContent=t.style.display!=='none'&&t.style.display!==''?'Masquer':'Villes';
   });
 }
 
