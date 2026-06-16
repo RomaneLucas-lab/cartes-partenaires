@@ -85,6 +85,18 @@ tr:hover td{background:#fafafa}
 </div>
 
 <div class="section">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <h2 style="margin:0">📍 Clics sur les marqueurs</h2>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    <button id="mv-enseigne" onclick="setMarkerView('enseigne')" style="padding:5px 14px;background:#7F77DD;color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer">Par enseigne</button>
+    <button id="mv-ville" onclick="setMarkerView('ville')" style="padding:5px 14px;background:#fff;color:#7F77DD;border:1px solid #7F77DD;border-radius:8px;font-size:12px;cursor:pointer">Par ville</button>
+    <button id="mv-cat" onclick="setMarkerView('cat')" style="padding:5px 14px;background:#fff;color:#7F77DD;border:1px solid #7F77DD;border-radius:8px;font-size:12px;cursor:pointer">Par catégorie</button>
+  </div>
+  <div class="scroll" id="t-markers"><div class="empty">Chargement...</div></div>
+</div>
+
+<div class="section">
   <h2>📅 Recherches par programme</h2>
   <div class="scroll" id="t-prog"><div class="empty">Chargement...</div></div>
 </div>
@@ -95,7 +107,7 @@ var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI
 var SB_H={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
 
 // ── State ─────────────────────────────────────────────────────
-var allSearches=[], allClicks=[], _clicksData=[];
+var allSearches=[], allClicks=[], allMarkers=[], _clicksData=[];
 
 // ── Filters ───────────────────────────────────────────────────
 function getFilters(){
@@ -122,11 +134,64 @@ function filterData(arr, dateField){
 }
 
 // ── Render ────────────────────────────────────────────────────
+var _markerView='enseigne';
+
+function setMarkerView(v){
+  _markerView=v;
+  ['enseigne','ville','cat'].forEach(function(t){
+    var btn=document.getElementById('mv-'+t);
+    if(btn){btn.style.background=t===v?'#7F77DD':'#fff';btn.style.color=t===v?'#fff':'#7F77DD';}
+  });
+  renderMarkers(filterData(allMarkers,'clicked_at'));
+}
+
+function renderMarkers(data){
+  if(!data.length){document.getElementById('t-markers').innerHTML='<div class="empty">Aucun clic enregistré</div>';return;}
+  var grouped={};
+  data.forEach(function(d){
+    var key=_markerView==='enseigne'?(d.offer_name||'?'):
+           _markerView==='ville'?(d.offer_city||d.offer_address||'?'):
+           (d.offer_category||'?')+(d.offer_subcategory?' — '+d.offer_subcategory:'');
+    if(!grouped[key])grouped[key]={label:key,total:0,details:{}};
+    grouped[key].total++;
+    var dk=_markerView==='enseigne'?(d.offer_city||'?'):
+           _markerView==='ville'?(d.offer_name||'?'):
+           (d.offer_name||'?');
+    if(!grouped[key].details[dk])grouped[key].details[dk]=0;
+    grouped[key].details[dk]++;
+  });
+  var sorted=Object.values(grouped).sort(function(a,b){return b.total-a.total;});
+  var col1=_markerView==='enseigne'?'Enseigne':_markerView==='ville'?'Ville':'Catégorie';
+  var col2=_markerView==='enseigne'?'Villes':_markerView==='ville'?'Enseignes':'Enseignes';
+  var h='<table><thead><tr><th>#</th><th>'+col1+'</th><th>Clics</th><th></th></tr></thead><tbody>';
+  sorted.slice(0,50).forEach(function(g,i){
+    var rid='mr'+i;
+    var det=Object.entries(g.details).sort(function(a,b){return b[1]-a[1];}).map(function(e){
+      return '<tr class="detail-row"><td></td><td style="color:#888;font-size:12px;padding-left:24px">'+e[0]+'</td><td><span class="badge ok">'+e[1]+'</span></td><td></td></tr>';
+    }).join('');
+    h+='<tr><td style="color:#aaa">'+(i+1)+'</td><td><b>'+g.label+'</b></td><td><span class="badge ok">'+g.total+'</span></td>'
+      +'<td><button class="dbtn2" data-id="'+rid+'" style="padding:3px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:11px;cursor:pointer">Détails</button></td></tr>'
+      +'<tr id="'+rid+'" style="display:none"><td colspan="4" style="padding:0"><table style="width:100%;border-collapse:collapse">'+det+'</table></td></tr>';
+  });
+  h+='</tbody></table>';
+  document.getElementById('t-markers').innerHTML=h;
+  document.getElementById('t-markers').addEventListener('click',function(e){
+    var btn=e.target.closest('.dbtn2');
+    if(!btn)return;
+    var t=document.getElementById(btn.getAttribute('data-id'));
+    if(!t)return;
+    t.style.display=t.style.display===''?'none':'';
+    btn.textContent=t.style.display===''?'Masquer':'Détails';
+  },{once:true});
+}
+
 function render(){
   var searches=filterData(allSearches,'searched_at');
   var clicks=filterData(allClicks,'clicked_at');
+  var markers=filterData(allMarkers,'clicked_at');
   renderSearches(searches);
   renderClicksData(clicks);
+  renderMarkers(markers);
   renderProgTable(searches);
 }
 
@@ -218,12 +283,14 @@ function renderProgTable(data){
 
 // ── Load all data once ─────────────────────────────────────────
 async function loadAll(){
-  var [sr, cr] = await Promise.all([
+  var [sr, cr, mr] = await Promise.all([
     fetch(SB_URL+'/rest/v1/search_logs?select=programme,query,searched_at&order=searched_at.desc&limit=10000',{headers:SB_H}),
-    fetch(SB_URL+'/rest/v1/offer_clicks?select=programme,offer_name,offer_address,clicked_at&order=clicked_at.desc&limit=10000',{headers:SB_H})
+    fetch(SB_URL+'/rest/v1/offer_clicks?select=programme,offer_name,offer_address,clicked_at&order=clicked_at.desc&limit=10000',{headers:SB_H}),
+    fetch(SB_URL+'/rest/v1/marker_clicks?select=programme,offer_name,offer_category,offer_subcategory,offer_address,offer_city,clicked_at&order=clicked_at.desc&limit=10000',{headers:SB_H})
   ]);
   allSearches=await sr.json()||[];
   allClicks=await cr.json()||[];
+  allMarkers=await mr.json()||[];
   render();
 }
 
