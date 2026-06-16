@@ -63,7 +63,7 @@ tr:hover td{background:#fafafa}
 
 <div class="cards">
   <div class="card"><div class="n" id="k-total">-</div><div class="l">Recherches totales</div></div>
-  <div class="card"><div class="n" id="k-unique">-</div><div class="l">Termes uniques</div></div>
+  <div class="card"><div class="n" id="k-top-city" style="font-size:16px">-</div><div class="l">Ville la plus cliquee</div></div>
   <div class="card"><div class="n" id="k-top" style="font-size:16px">-</div><div class="l">Terme le plus cherche</div></div>
   <div class="card"><div class="n" id="k-click" style="font-size:16px">-</div><div class="l">Offre la plus cliquee</div></div>
 </div>
@@ -148,7 +148,6 @@ function renderSearches(data){
     terms[q].progs[d.programme]=(terms[q].progs[d.programme]||0)+1;
   });
   var sorted=Object.entries(terms).sort(function(a,b){return b[1].count-a[1].count;});
-  document.getElementById('k-unique').textContent=sorted.length;
   document.getElementById('k-top').textContent=sorted.length?sorted[0][0]:'---';
   if(!sorted.length){document.getElementById('t-search').innerHTML='<div class="empty">Aucune recherche</div>';return;}
   var max=sorted[0][1].count;
@@ -206,6 +205,11 @@ function setMarkerView(v){
 }
 
 function renderMarkers(data){
+  // Update top city KPI
+  var cityCount={};
+  data.forEach(function(d){var c=d.offer_city||'?';cityCount[c]=(cityCount[c]||0)+1;});
+  var topCity=Object.entries(cityCount).sort(function(a,b){return b[1]-a[1];});
+  document.getElementById('k-top-city').textContent=topCity.length?topCity[0][0]+' ('+topCity[0][1]+')':'---';
   if(!data.length){document.getElementById('t-markers').innerHTML='<div class="empty">Aucun clic</div>';return;}
   var grouped={};
   data.forEach(function(d){
