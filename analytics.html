@@ -83,10 +83,11 @@ tr:hover td{background:#fafafa}
 
 <div class="section">
   <div class="sh"><h2>📍 Clics sur les marqueurs</h2><button class="expbtn" onclick="exportMarkersCSV()">⬇ Export CSV</button></div>
-  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
     <button id="mv-enseigne" onclick="setMarkerView('enseigne')" style="padding:5px 14px;background:#7F77DD;color:#fff;border:1px solid #7F77DD;border-radius:8px;font-size:12px;cursor:pointer">Par enseigne</button>
     <button id="mv-ville" onclick="setMarkerView('ville')" style="padding:5px 14px;background:#fff;color:#7F77DD;border:1px solid #7F77DD;border-radius:8px;font-size:12px;cursor:pointer">Par ville</button>
     <button id="mv-cat" onclick="setMarkerView('cat')" style="padding:5px 14px;background:#fff;color:#7F77DD;border:1px solid #7F77DD;border-radius:8px;font-size:12px;cursor:pointer">Par categorie</button>
+    <input type="text" id="f-marker" placeholder="🔍 Filtrer..." style="padding:7px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;width:200px;margin-left:8px" oninput="filterMarkers()"/>
   </div>
   <div class="scroll" id="t-markers"><div class="empty">Chargement...</div></div>
 </div>
@@ -195,6 +196,10 @@ function filterClicks(){
   document.getElementById('t-clicks').innerHTML=h;
 }
 
+function filterMarkers(){
+  renderMarkers(filterData(allMarkers,'clicked_at'));
+}
+
 function setMarkerView(v){
   _markerView=v;
   ['enseigne','ville','cat'].forEach(function(t){
@@ -211,6 +216,12 @@ function renderMarkers(data){
   var topCity=Object.entries(cityCount).sort(function(a,b){return b[1]-a[1];});
   document.getElementById('k-top-city').textContent=topCity.length?topCity[0][0]+' ('+topCity[0][1]+')':'---';
   if(!data.length){document.getElementById('t-markers').innerHTML='<div class="empty">Aucun clic</div>';return;}
+  var q=(document.getElementById('f-marker').value||'').toLowerCase().trim();
+  if(q)data=data.filter(function(d){
+    return (_markerView==='enseigne'?(d.offer_name||''):
+           _markerView==='ville'?(d.offer_city||''):
+           (d.offer_category||'')).toLowerCase().includes(q);
+  });
   var grouped={};
   data.forEach(function(d){
     var cat=d.offer_category||'?';
