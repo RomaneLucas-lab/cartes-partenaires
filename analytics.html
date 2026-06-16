@@ -194,15 +194,6 @@ function filterClicks(){
   });
   h+='</tbody></table>';
   document.getElementById('t-clicks').innerHTML=h;
-  document.getElementById('t-clicks').addEventListener('click',function(e){
-    var btn=e.target.closest('.dbtn');
-    if(!btn)return;
-    var t=document.getElementById(btn.getAttribute('data-id'));
-    if(!t)return;
-    var open=t.style.display!=='none';
-    t.style.display=open?'none':'';
-    btn.textContent=open?'Details':'Masquer';
-  });
 }
 
 function setMarkerView(v){
@@ -264,15 +255,6 @@ function renderMarkers(data){
   });
   h+='</tbody></table>';
   document.getElementById('t-markers').innerHTML=h;
-  document.getElementById('t-markers').addEventListener('click',function(e){
-    var btn=e.target.closest('.dbtn,.dbtn2');
-    if(!btn)return;
-    var t=document.getElementById(btn.getAttribute('data-id'));
-    if(!t)return;
-    var open=t.style.display!=='none';
-    t.style.display=open?'none':'';
-    btn.textContent=open?(btn.classList.contains('dbtn2')?'Villes':'Details'):'Masquer';
-  });
 }
 
 function renderProgTable(data){
@@ -376,6 +358,18 @@ function exportMarkersCSV(){
   });
   downloadCSV(rows.join('\n'),'marqueurs_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
 }
+
+// Global toggle listener
+document.addEventListener('click',function(e){
+  var btn=e.target.closest('.dbtn,.dbtn2');
+  if(!btn)return;
+  var t=document.getElementById(btn.getAttribute('data-id'));
+  if(!t)return;
+  var open=t.style.display!=='none';
+  t.style.display=open?'none':'';
+  if(btn.classList.contains('dbtn2'))btn.textContent=open?'Villes':'Masquer';
+  else btn.textContent=open?'Details':'Masquer';
+});
 
 document.getElementById('f-prog').addEventListener('change',render);
 document.getElementById('f-period').addEventListener('change',function(){
