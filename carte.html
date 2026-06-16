@@ -130,7 +130,27 @@ var nav='<a class="pop-nav" href="'+mapsUrl+'" target="_blank">S&#39;y rendre</a
   }
   var pop=L.popup({maxWidth:270,minWidth:250}).setContent(buildPopup());
   m.bindPopup(pop);
-  m.on('click',function(){pop.setContent(buildPopup());});
+  m.on('click',function(){
+    pop.setContent(buildPopup());
+    // Extract city from address
+    var addr=s.address||'';
+    var cityMatch=addr.match(/,\s*\d{5}\s+([^,]+)/);
+    var city=cityMatch?cityMatch[1].trim():'';
+    if(!city){var parts=addr.split(',');city=parts.length>1?parts[parts.length-2].trim():'';
+    }
+    fetch(SB_URL+'/rest/v1/marker_clicks',{
+      method:'POST',
+      headers:Object.assign({'Content-Type':'application/json','Prefer':'return=minimal'},SB_HDR),
+      body:JSON.stringify({
+        programme:PROG,
+        offer_name:s.name||'',
+        offer_category:s.cat||'',
+        offer_subcategory:s.sub||'',
+        offer_address:s.address||'',
+        offer_city:city
+      })
+    }).catch(function(){});
+  });
   CG.addLayer(m);AM.push({m:m,s:s});
 }
 
