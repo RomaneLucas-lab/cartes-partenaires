@@ -19,6 +19,8 @@ select,input[type=date]{padding:7px 12px;border:1px solid #e0e0e0;border-radius:
 .card .l{font-size:12px;color:#888;margin-top:4px}
 .section{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:16px}
 .section h2{font-size:14px;font-weight:700;margin-bottom:14px}
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sh h2{margin:0}
 .scroll{max-height:320px;overflow-y:auto}
 table{width:100%;border-collapse:collapse}
 th{font-size:11px;color:#888;font-weight:600;text-align:left;padding:6px 10px;border-bottom:2px solid #f0f0ee;position:sticky;top:0;background:#fff;z-index:1}
@@ -33,6 +35,7 @@ tr:hover td{background:#fafafa}
 .empty{text-align:center;padding:32px;color:#bbb;font-size:13px}
 .detail-row{background:#f9f9f9}
 .logo{height:32px;object-fit:contain;margin-bottom:20px;display:block}
+.expbtn{padding:5px 14px;background:#7F77DD;color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -59,40 +62,31 @@ tr:hover td{background:#fafafa}
 </div>
 
 <div class="cards">
-  <div class="card"><div class="n" id="k-total">—</div><div class="l">Recherches totales</div></div>
-  <div class="card"><div class="n" id="k-unique">—</div><div class="l">Termes uniques</div></div>
-  <div class="card"><div class="n" id="k-top" style="font-size:16px">—</div><div class="l">Terme le plus cherché</div></div>
-  <div class="card"><div class="n" id="k-click" style="font-size:16px">—</div><div class="l">Offre la plus cliquée</div></div>
+  <div class="card"><div class="n" id="k-total">-</div><div class="l">Recherches totales</div></div>
+  <div class="card"><div class="n" id="k-unique">-</div><div class="l">Termes uniques</div></div>
+  <div class="card"><div class="n" id="k-top" style="font-size:16px">-</div><div class="l">Terme le plus cherche</div></div>
+  <div class="card"><div class="n" id="k-click" style="font-size:16px">-</div><div class="l">Offre la plus cliquee</div></div>
 </div>
 
 <div class="section">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-    <h2 style="margin:0">🔝 Top recherches</h2>
-    <button onclick="exportSearchCSV()" style="padding:5px 14px;background:#7F77DD;color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer">⬇ Export CSV</button>
-  </div>
+  <div class="sh"><h2>🔝 Top recherches</h2><button class="expbtn" onclick="exportSearchCSV()">⬇ Export CSV</button></div>
   <div class="scroll" id="t-search"><div class="empty">Chargement...</div></div>
 </div>
 
 <div class="section">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-    <h2 style="margin:0">👆 Clics sur "Voir l'offre"</h2>
-    <button onclick="exportClicksCSV()" style="padding:5px 14px;background:#7F77DD;color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer">⬇ Export CSV</button>
-  </div>
+  <div class="sh"><h2>👆 Clics sur "Voir l'offre"</h2><button class="expbtn" onclick="exportClicksCSV()">⬇ Export CSV</button></div>
   <div style="margin-bottom:12px">
-    <input type="text" id="f-click" placeholder="🔍 Filtrer par nom d'offre..." style="padding:7px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;width:280px" oninput="filterClicks()"/>
+    <input type="text" id="f-click" placeholder="Filtrer par nom d'offre..." style="padding:7px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;width:280px" oninput="filterClicks()"/>
   </div>
   <div class="scroll" id="t-clicks"><div class="empty">Chargement...</div></div>
 </div>
 
 <div class="section">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-    <h2 style="margin:0">📍 Clics sur les marqueurs</h2>
-    <button onclick="exportMarkersCSV()" style="padding:5px 14px;background:#7F77DD;color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer">⬇ Export CSV</button>
-  </div>
+  <div class="sh"><h2>📍 Clics sur les marqueurs</h2><button class="expbtn" onclick="exportMarkersCSV()">⬇ Export CSV</button></div>
   <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
     <button id="mv-enseigne" onclick="setMarkerView('enseigne')" style="padding:5px 14px;background:#7F77DD;color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer">Par enseigne</button>
     <button id="mv-ville" onclick="setMarkerView('ville')" style="padding:5px 14px;background:#fff;color:#7F77DD;border:1px solid #7F77DD;border-radius:8px;font-size:12px;cursor:pointer">Par ville</button>
-    <button id="mv-cat" onclick="setMarkerView('cat')" style="padding:5px 14px;background:#fff;color:#7F77DD;border:1px solid #7F77DD;border-radius:8px;font-size:12px;cursor:pointer">Par catégorie</button>
+    <button id="mv-cat" onclick="setMarkerView('cat')" style="padding:5px 14px;background:#fff;color:#7F77DD;border:1px solid #7F77DD;border-radius:8px;font-size:12px;cursor:pointer">Par categorie</button>
   </div>
   <div class="scroll" id="t-markers"><div class="empty">Chargement...</div></div>
 </div>
@@ -103,14 +97,14 @@ tr:hover td{background:#fafafa}
 </div>
 
 <script>
+
 var SB_URL='https://hfxpobmdolslwjrygaww.supabase.co';
 var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmeHBvYm1kb2xzbHdqcnlnYXd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzM0MzcsImV4cCI6MjA5NTQ0OTQzN30.4cneDKHlJQmUCsJZ_LRNLNqHMmcZAZ-ykyBQQyx4kOs';
 var SB_H={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
 
-// ── State ─────────────────────────────────────────────────────
 var allSearches=[], allClicks=[], allMarkers=[], _clicksData=[];
+var _markerView='enseigne';
 
-// ── Filters ───────────────────────────────────────────────────
 function getFilters(){
   var prog=document.getElementById('f-prog').value;
   var period=document.getElementById('f-period').value;
@@ -119,101 +113,17 @@ function getFilters(){
   return {prog:prog,period:period,from:from,to:to};
 }
 
-function filterData(arr, dateField){
+function filterData(arr,dateField){
   var f=getFilters();
   return arr.filter(function(d){
-    if(f.prog && d.programme!==f.prog) return false;
+    if(f.prog&&d.programme!==f.prog)return false;
     if(f.period==='custom'){
-      if(f.from && new Date(d[dateField]) < new Date(f.from+'T00:00:00')) return false;
-      if(f.to && new Date(d[dateField]) > new Date(f.to+'T23:59:59')) return false;
-    } else if(parseInt(f.period)>0){
-      var since=new Date(Date.now()-parseInt(f.period)*86400000);
-      if(new Date(d[dateField]) < since) return false;
+      if(f.from&&new Date(d[dateField])<new Date(f.from+'T00:00:00'))return false;
+      if(f.to&&new Date(d[dateField])>new Date(f.to+'T23:59:59'))return false;
+    }else if(parseInt(f.period)>0){
+      if(new Date(d[dateField])<new Date(Date.now()-parseInt(f.period)*86400000))return false;
     }
     return true;
-  });
-}
-
-// ── Render ────────────────────────────────────────────────────
-var _markerView='enseigne';
-
-function setMarkerView(v){
-  _markerView=v;
-  ['enseigne','ville','cat'].forEach(function(t){
-    var btn=document.getElementById('mv-'+t);
-    if(btn){btn.style.background=t===v?'#7F77DD':'#fff';btn.style.color=t===v?'#fff':'#7F77DD';}
-  });
-  renderMarkers(filterData(allMarkers,'clicked_at'));
-}
-
-function renderMarkers(data){
-  if(!data.length){document.getElementById('t-markers').innerHTML='<div class="empty">Aucun clic enregistré</div>';return;}
-  var grouped={};
-  data.forEach(function(d){
-    var cat=d.offer_category||'?';
-    var sub=d.offer_subcategory||'';
-    var city=d.offer_city||'?';
-    var name=d.offer_name||'?';
-    var key=_markerView==='enseigne'?name:_markerView==='ville'?city:cat;
-    if(!grouped[key])grouped[key]={label:key,total:0,details:{}};
-    grouped[key].total++;
-    // Detail key depends on view
-    var dk;
-    if(_markerView==='enseigne')dk=city+'|||'+cat+(sub?' ('+sub+')');
-    else if(_markerView==='ville')dk=name+'|||'+cat+(sub?' ('+sub+')');
-    else{
-      // By category: group by offer name, show city as sub-detail
-      var nameKey=name+(sub?' ('+sub+')');
-      if(!grouped[key].offers)grouped[key].offers={};
-      if(!grouped[key].offers[nameKey])grouped[key].offers[nameKey]={total:0,cities:{}};
-      grouped[key].offers[nameKey].total++;
-      grouped[key].offers[nameKey].cities[city]=(grouped[key].offers[nameKey].cities[city]||0)+1;
-    }
-    if(_markerView!=='cat'){
-      if(!grouped[key].details[dk])grouped[key].details[dk]=0;
-      grouped[key].details[dk]++;
-    }
-  });
-  var sorted=Object.values(grouped).sort(function(a,b){return b.total-a.total;});
-  var col1=_markerView==='enseigne'?'Enseigne':_markerView==='ville'?'Ville':'Catégorie';
-  var h='<table><thead><tr><th>#</th><th>'+col1+'</th><th>Clics</th><th></th></tr></thead><tbody>';
-  sorted.slice(0,50).forEach(function(g,i){
-    var rid='mr'+i;
-    var det='';
-    if(_markerView==='cat'&&g.offers){
-      // By category: one row per offer, with city details
-      Object.entries(g.offers).sort(function(a,b){return b[1].total-a[1].total;}).forEach(function(e,j){
-        var oid='mro'+i+'_'+j;
-        var cityRows=Object.entries(e[1].cities).sort(function(a,b){return b[1]-a[1];}).map(function(c){
-          return '<tr style="background:#efefef"><td></td><td style="color:#aaa;font-size:11px;padding-left:48px">📍 '+c[0]+'</td><td><span class="badge ok">'+c[1]+'</span></td><td></td></tr>';
-        }).join('');
-        det+='<tr class="detail-row"><td></td>'
-          +'<td style="color:#555;font-size:12px;padding-left:24px"><b>'+e[0]+'</b></td>'
-          +'<td><span class="badge ok">'+e[1].total+'</span></td>'
-          +'<td><button class="dbtn3" data-id="'+oid+'" style="padding:2px 8px;border:1px solid #ddd;border-radius:5px;background:#fff;font-size:10px;cursor:pointer">Villes</button></td></tr>'
-          +'<tr id="'+oid+'" style="display:none"><td colspan="4" style="padding:0"><table style="width:100%;border-collapse:collapse">'+cityRows+'</table></td></tr>';
-      });
-    } else {
-      det=Object.entries(g.details).sort(function(a,b){return b[1]-a[1];}).map(function(e){
-        var parts=e[0].split('|||');
-        return '<tr class="detail-row"><td></td><td style="color:#888;font-size:12px;padding-left:24px">'+parts[0]+(parts[1]?' <span style="color:#aaa;font-size:11px">'+parts[1]+'</span>':'')+'</td><td><span class="badge ok">'+e[1]+'</span></td><td></td></tr>';
-      }).join('');
-    }
-    h+='<tr><td style="color:#aaa">'+(i+1)+'</td><td><b>'+g.label+'</b></td><td><span class="badge ok">'+g.total+'</span></td>'
-      +'<td><button class="dbtn2" data-id="'+rid+'" style="padding:3px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:11px;cursor:pointer">Détails</button></td></tr>'
-      +'<tr id="'+rid+'" style="display:none"><td colspan="4" style="padding:0"><table style="width:100%;border-collapse:collapse">'+det+'</table></td></tr>';
-  });
-  h+='</tbody></table>';
-  document.getElementById('t-markers').innerHTML=h;
-  document.getElementById('t-markers').addEventListener('click',function(e){
-    var btn=e.target.closest('.dbtn2,.dbtn3');
-    if(!btn)return;
-    var t=document.getElementById(btn.getAttribute('data-id'));
-    if(!t)return;
-    var isOpen=t.style.display!==''&&t.style.display!=='none'?true:t.style.display===''&&t.offsetHeight>0;
-    t.style.display=t.style.display==='none'||t.style.display===''&&t.offsetHeight===0?'':'none';
-    if(btn.classList.contains('dbtn2'))btn.textContent=t.style.display!=='none'&&t.style.display!==''?'Masquer':'Détails';
-    else btn.textContent=t.style.display!=='none'&&t.style.display!==''?'Masquer':'Villes';
   });
 }
 
@@ -239,14 +149,13 @@ function renderSearches(data){
   });
   var sorted=Object.entries(terms).sort(function(a,b){return b[1].count-a[1].count;});
   document.getElementById('k-unique').textContent=sorted.length;
-  document.getElementById('k-top').textContent=sorted.length?sorted[0][0]:'—';
-  if(!sorted.length){document.getElementById('t-search').innerHTML='<div class="empty">Aucune recherche pour cette période</div>';return;}
+  document.getElementById('k-top').textContent=sorted.length?sorted[0][0]:'---';
+  if(!sorted.length){document.getElementById('t-search').innerHTML='<div class="empty">Aucune recherche</div>';return;}
   var max=sorted[0][1].count;
   var h='<table><thead><tr><th>#</th><th>Terme</th><th>Recherches</th><th>Programmes</th></tr></thead><tbody>';
   sorted.slice(0,50).forEach(function(e,i){
     var q=e[0],s=e[1];
-    h+='<tr><td style="color:#aaa">'+(i+1)+'</td>'
-      +'<td><b>'+q+'</b></td>'
+    h+='<tr><td style="color:#aaa">'+(i+1)+'</td><td><b>'+q+'</b></td>'
       +'<td><div class="row-bar"><span style="min-width:30px">'+s.count+'</span><div class="bar-wrap"><div class="bar" style="width:'+Math.round(s.count/max*100)+'%"></div></div></div></td>'
       +'<td style="color:#888;font-size:12px">'+Object.keys(s.progs).join(', ')+'</td></tr>';
   });
@@ -265,22 +174,22 @@ function renderClicksData(data){
     byName[name].addresses[ak].count++;
   });
   _clicksData=Object.values(byName).sort(function(a,b){return b.total-a.total;});
-  document.getElementById('k-click').textContent=_clicksData.length?_clicksData[0].name+' ('+_clicksData[0].total+')':'—';
+  document.getElementById('k-click').textContent=_clicksData.length?_clicksData[0].name+' ('+_clicksData[0].total+')':'---';
   filterClicks();
 }
 
 function filterClicks(){
   var q=(document.getElementById('f-click').value||'').toLowerCase().trim();
   var filtered=q?_clicksData.filter(function(c){return c.name.toLowerCase().includes(q);}):_clicksData;
-  if(!filtered.length){document.getElementById('t-clicks').innerHTML='<div class="empty">Aucun clic enregistré</div>';return;}
+  if(!filtered.length){document.getElementById('t-clicks').innerHTML='<div class="empty">Aucun clic</div>';return;}
   var h='<table><thead><tr><th>#</th><th>Offre</th><th>Programme</th><th>Clics</th><th></th></tr></thead><tbody>';
   filtered.slice(0,50).forEach(function(c,i){
     var rid='cd'+i;
     var det=Object.values(c.addresses).sort(function(a,b){return b.count-a.count;}).map(function(a){
-      return '<tr class="detail-row"><td></td><td colspan="2" style="color:#888;font-size:12px;padding-left:24px">📍 '+a.address+'</td><td style="color:#888;font-size:12px">'+a.programme+'</td><td><span class="badge ok">'+a.count+'</span></td><td></td></tr>';
+      return '<tr class="detail-row"><td></td><td colspan="2" style="color:#888;font-size:12px;padding-left:24px">'+a.address+'</td><td style="color:#888;font-size:12px">'+a.programme+'</td><td><span class="badge ok">'+a.count+'</span></td><td></td></tr>';
     }).join('');
     h+='<tr><td style="color:#aaa">'+(i+1)+'</td><td><b>'+c.name+'</b></td><td style="color:#888;font-size:12px">'+c.programme+'</td><td><span class="badge ok">'+c.total+'</span></td>'
-      +'<td><button class="dbtn" data-id="'+rid+'" style="padding:3px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:11px;cursor:pointer">Détails</button></td></tr>'
+      +'<td><button class="dbtn" data-id="'+rid+'" style="padding:3px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:11px;cursor:pointer">Details</button></td></tr>'
       +'<tr id="'+rid+'" style="display:none"><td colspan="5" style="padding:0"><table style="width:100%;border-collapse:collapse">'+det+'</table></td></tr>';
   });
   h+='</tbody></table>';
@@ -290,8 +199,79 @@ function filterClicks(){
     if(!btn)return;
     var t=document.getElementById(btn.getAttribute('data-id'));
     if(!t)return;
-    t.style.display=t.style.display==='none'?'':'none';
-    btn.textContent=t.style.display===''?'Masquer':'Détails';
+    var open=t.style.display!=='none';
+    t.style.display=open?'none':'';
+    btn.textContent=open?'Details':'Masquer';
+  });
+}
+
+function setMarkerView(v){
+  _markerView=v;
+  ['enseigne','ville','cat'].forEach(function(t){
+    var b=document.getElementById('mv-'+t);
+    if(b){b.style.background=t===v?'#7F77DD':'#fff';b.style.color=t===v?'#fff':'#7F77DD';}
+  });
+  renderMarkers(filterData(allMarkers,'clicked_at'));
+}
+
+function renderMarkers(data){
+  if(!data.length){document.getElementById('t-markers').innerHTML='<div class="empty">Aucun clic</div>';return;}
+  var grouped={};
+  data.forEach(function(d){
+    var cat=d.offer_category||'?';
+    var sub=d.offer_subcategory||'';
+    var city=d.offer_city||'?';
+    var name=d.offer_name||'?';
+    var key=_markerView==='enseigne'?name:_markerView==='ville'?city:cat;
+    if(!grouped[key])grouped[key]={label:key,total:0,details:{},offers:{}};
+    grouped[key].total++;
+    var subLabel=sub?' ('+sub+')':'';
+    if(_markerView==='cat'){
+      var nk=name+subLabel;
+      if(!grouped[key].offers[nk])grouped[key].offers[nk]={total:0,cities:{}};
+      grouped[key].offers[nk].total++;
+      grouped[key].offers[nk].cities[city]=(grouped[key].offers[nk].cities[city]||0)+1;
+    } else {
+      var dk=_markerView==='enseigne'?city+' | '+cat+subLabel:name+subLabel+' | '+cat;
+      if(!grouped[key].details[dk])grouped[key].details[dk]=0;
+      grouped[key].details[dk]++;
+    }
+  });
+  var sorted=Object.values(grouped).sort(function(a,b){return b.total-a.total;});
+  var col1=_markerView==='enseigne'?'Enseigne':_markerView==='ville'?'Ville':'Categorie';
+  var h='<table><thead><tr><th>#</th><th>'+col1+'</th><th>Clics</th><th></th></tr></thead><tbody>';
+  sorted.slice(0,50).forEach(function(g,i){
+    var rid='mr'+i;
+    var det='';
+    if(_markerView==='cat'){
+      Object.entries(g.offers).sort(function(a,b){return b[1].total-a[1].total;}).forEach(function(e,j){
+        var oid='mro'+i+'x'+j;
+        var cityRows=Object.entries(e[1].cities).sort(function(a,b){return b[1]-a[1];}).map(function(c){
+          return '<tr style="background:#efefef"><td></td><td style="color:#aaa;font-size:11px;padding-left:48px">'+c[0]+'</td><td><span class="badge ok">'+c[1]+'</span></td><td></td></tr>';
+        }).join('');
+        det+='<tr class="detail-row"><td></td><td style="color:#555;font-size:12px;padding-left:24px"><b>'+e[0]+'</b></td><td><span class="badge ok">'+e[1].total+'</span></td>'
+          +'<td><button class="dbtn2" data-id="'+oid+'" style="padding:2px 8px;border:1px solid #ddd;border-radius:5px;background:#fff;font-size:10px;cursor:pointer">Villes</button></td></tr>'
+          +'<tr id="'+oid+'" style="display:none"><td colspan="4" style="padding:0"><table style="width:100%;border-collapse:collapse">'+cityRows+'</table></td></tr>';
+      });
+    } else {
+      det=Object.entries(g.details).sort(function(a,b){return b[1]-a[1];}).map(function(e){
+        return '<tr class="detail-row"><td></td><td style="color:#888;font-size:12px;padding-left:24px">'+e[0]+'</td><td><span class="badge ok">'+e[1]+'</span></td><td></td></tr>';
+      }).join('');
+    }
+    h+='<tr><td style="color:#aaa">'+(i+1)+'</td><td><b>'+g.label+'</b></td><td><span class="badge ok">'+g.total+'</span></td>'
+      +'<td><button class="dbtn" data-id="'+rid+'" style="padding:3px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:11px;cursor:pointer">Details</button></td></tr>'
+      +'<tr id="'+rid+'" style="display:none"><td colspan="4" style="padding:0"><table style="width:100%;border-collapse:collapse">'+det+'</table></td></tr>';
+  });
+  h+='</tbody></table>';
+  document.getElementById('t-markers').innerHTML=h;
+  document.getElementById('t-markers').addEventListener('click',function(e){
+    var btn=e.target.closest('.dbtn,.dbtn2');
+    if(!btn)return;
+    var t=document.getElementById(btn.getAttribute('data-id'));
+    if(!t)return;
+    var open=t.style.display!=='none';
+    t.style.display=open?'none':'';
+    btn.textContent=open?(btn.classList.contains('dbtn2')?'Villes':'Details'):'Masquer';
   });
 }
 
@@ -304,40 +284,99 @@ function renderProgTable(data){
     ps[p].terms.add((d.query||'').toLowerCase().trim());
   });
   var sorted=Object.entries(ps).sort(function(a,b){return b[1].total-a[1].total;});
-  if(!sorted.length){document.getElementById('t-prog').innerHTML='<div class="empty">Aucune donnée</div>';return;}
+  if(!sorted.length){document.getElementById('t-prog').innerHTML='<div class="empty">Aucune donnee</div>';return;}
   var h='<table><thead><tr><th>Programme</th><th>Recherches</th><th>Termes uniques</th></tr></thead><tbody>';
-  sorted.forEach(function(e){
-    h+='<tr><td><b>'+e[0]+'</b></td><td>'+e[1].total+'</td><td>'+e[1].terms.size+'</td></tr>';
-  });
+  sorted.forEach(function(e){h+='<tr><td><b>'+e[0]+'</b></td><td>'+e[1].total+'</td><td>'+e[1].terms.size+'</td></tr>';});
   h+='</tbody></table>';
   document.getElementById('t-prog').innerHTML=h;
 }
 
-// ── Load all data once ─────────────────────────────────────────
 async function loadAll(){
-  var [sr, cr, mr] = await Promise.all([
+  var r=await Promise.all([
     fetch(SB_URL+'/rest/v1/search_logs?select=programme,query,searched_at&order=searched_at.desc&limit=10000',{headers:SB_H}),
     fetch(SB_URL+'/rest/v1/offer_clicks?select=programme,offer_name,offer_address,clicked_at&order=clicked_at.desc&limit=10000',{headers:SB_H}),
     fetch(SB_URL+'/rest/v1/marker_clicks?select=programme,offer_name,offer_category,offer_subcategory,offer_address,offer_city,clicked_at&order=clicked_at.desc&limit=10000',{headers:SB_H})
   ]);
-  allSearches=await sr.json()||[];
-  allClicks=await cr.json()||[];
-  allMarkers=await mr.json()||[];
+  allSearches=await r[0].json()||[];
+  allClicks=await r[1].json()||[];
+  allMarkers=await r[2].json()||[];
   render();
 }
 
-// ── Load programmes ────────────────────────────────────────────
 async function loadProgs(){
   var r=await fetch(SB_URL+'/rest/v1/programmes?select=name&order=name',{headers:SB_H});
   var d=await r.json();
   var sel=document.getElementById('f-prog');
-  (d||[]).forEach(function(p){
-    var o=document.createElement('option');
-    o.value=p.name;o.textContent=p.name;sel.appendChild(o);
-  });
+  (d||[]).forEach(function(p){var o=document.createElement('option');o.value=p.name;o.textContent=p.name;sel.appendChild(o);});
 }
 
-// ── Event listeners ────────────────────────────────────────────
+function downloadCSV(content,filename){
+  var bytes=[];
+  for(var i=0;i<content.length;i++){
+    var c=content.charCodeAt(i);
+    bytes.push(c<256?c:63);
+  }
+  var blob=new Blob([new Uint8Array([0xFF,0xFE])],{type:'text/csv'});
+  var blob2=new Blob([new Uint8Array(bytes)],{type:'text/csv;charset=windows-1252;'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob2);
+  a.download=filename;
+  a.click();
+}
+
+function exportSearchCSV(){
+  var searches=filterData(allSearches,'searched_at');
+  var f=getFilters();
+  var prog=f.prog||'Tous';
+  var byKey={};
+  searches.forEach(function(d){
+    var q=(d.query||'').toLowerCase().trim();
+    if(!q)return;
+    var k=(d.programme||'')+'||'+q;
+    if(!byKey[k])byKey[k]={prog:d.programme||'',term:q,count:0};
+    byKey[k].count++;
+  });
+  var rows=['sep=;','Programme;Terme;Nombre de recherches'];
+  Object.values(byKey).sort(function(a,b){return b.count-a.count;}).forEach(function(c){
+    rows.push('"'+c.prog+'";"'+c.term+'";'+c.count);
+  });
+  downloadCSV(rows.join('\n'),'recherches_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
+}
+
+function exportClicksCSV(){
+  var clicks=filterData(allClicks,'clicked_at');
+  var f=getFilters();
+  var prog=f.prog||'Tous';
+  var byKey={};
+  clicks.forEach(function(d){
+    var k=(d.programme||'')+'||'+(d.offer_name||'')+'||'+(d.offer_address||'');
+    if(!byKey[k])byKey[k]={prog:d.programme||'',name:d.offer_name||'',addr:d.offer_address||'',count:0};
+    byKey[k].count++;
+  });
+  var rows=['sep=;','Programme;Offre;Adresse;Nombre de clics'];
+  Object.values(byKey).sort(function(a,b){return b.count-a.count;}).forEach(function(c){
+    rows.push('"'+c.prog+'";"'+c.name+'";"'+c.addr+'";'+c.count);
+  });
+  downloadCSV(rows.join('\n'),'clics_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
+}
+
+function exportMarkersCSV(){
+  var data=filterData(allMarkers,'clicked_at');
+  var f=getFilters();
+  var prog=f.prog||'Tous';
+  var byKey={};
+  data.forEach(function(d){
+    var k=[d.programme,d.offer_name,d.offer_category,d.offer_subcategory,d.offer_city,d.offer_address].join('||');
+    if(!byKey[k])byKey[k]={prog:d.programme||'',name:d.offer_name||'',cat:d.offer_category||'',sub:d.offer_subcategory||'',city:d.offer_city||'',addr:d.offer_address||'',count:0};
+    byKey[k].count++;
+  });
+  var rows=['sep=;','Programme;Enseigne;Categorie;Sous-categorie;Ville;Adresse;Clics'];
+  Object.values(byKey).sort(function(a,b){return b.count-a.count;}).forEach(function(c){
+    rows.push('"'+c.prog+'";"'+c.name+'";"'+c.cat+'";"'+c.sub+'";"'+c.city+'";"'+c.addr+'";'+c.count);
+  });
+  downloadCSV(rows.join('\n'),'marqueurs_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
+}
+
 document.getElementById('f-prog').addEventListener('change',render);
 document.getElementById('f-period').addEventListener('change',function(){
   var v=this.value;
@@ -353,92 +392,8 @@ document.getElementById('f-period').addEventListener('change',function(){
 document.getElementById('f-from').addEventListener('change',render);
 document.getElementById('f-to').addEventListener('change',render);
 
-// ── Export CSV ───────────────────────────────────────────────
-function downloadCSV(content, filename){
-  // Convert to Windows-1252 for Excel France compatibility
-  var bytes=[];
-  for(var i=0;i<content.length;i++){
-    var c=content.charCodeAt(i);
-    if(c<128)bytes.push(c);
-    else if(c===8217||c===39)bytes.push(39);
-    else if(c===233)bytes.push(233);
-    else if(c===232)bytes.push(232);
-    else if(c===234)bytes.push(234);
-    else if(c===224)bytes.push(224);
-    else if(c===226)bytes.push(226);
-    else if(c===249)bytes.push(249);
-    else if(c===251)bytes.push(251);
-    else if(c===238)bytes.push(238);
-    else if(c===239)bytes.push(239);
-    else if(c===244)bytes.push(244);
-    else if(c===231)bytes.push(231);
-    else if(c===8364)bytes.push(128);
-    else bytes.push(c&0xFF);
-  }
-  var blob=new Blob([new Uint8Array(bytes)],{type:'text/csv;charset=windows-1252;'});
-  var a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=filename;
-  a.click();
-}
-
-function exportSearchCSV(){
-  var searches=filterData(allSearches,'searched_at');
-  var f=getFilters();
-  var prog=f.prog||'Tous';
-  // One row per search entry
-  var rows=['sep=;','Programme;Terme;Nombre de recherches'];
-  var byKey={};
-  searches.forEach(function(d){
-    var q=(d.query||'').toLowerCase().trim();
-    if(!q)return;
-    var k=(d.programme||'')+'||'+q;
-    if(!byKey[k])byKey[k]={prog:d.programme||'',term:q,count:0};
-    byKey[k].count++;
-  });
-  Object.values(byKey).sort(function(a,b){return b.count-a.count;}).forEach(function(c){
-    rows.push('"'+c.prog+'";"'+c.term+'";'+c.count);
-  });
-  downloadCSV(rows.join('\n'),'recherches_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
-}
-
-function exportClicksCSV(){
-  var clicks=filterData(allClicks,'clicked_at');
-  var f=getFilters();
-  var prog=f.prog||'Tous';
-  // One row per click
-  var rows=['sep=;','Programme;Offre;Adresse;Nombre de clics'];
-  var byKey={};
-  clicks.forEach(function(d){
-    var k=(d.programme||'')+'||'+(d.offer_name||'')+'||'+(d.offer_address||'');
-    if(!byKey[k])byKey[k]={prog:d.programme||'',name:d.offer_name||'',addr:d.offer_address||'',count:0};
-    byKey[k].count++;
-  });
-  Object.values(byKey).sort(function(a,b){return b.count-a.count;}).forEach(function(c){
-    rows.push('"'+c.prog+'";"'+c.name+'";"'+c.addr+'";'+c.count);
-  });
-  downloadCSV(rows.join('\n'),'clics_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
-}
-
-function exportMarkersCSV(){
-  var data=filterData(allMarkers,'clicked_at');
-  var f=getFilters();
-  var prog=f.prog||'Tous';
-  var rows=['sep=;','Programme;Enseigne;Catégorie;Sous-catégorie;Ville;Adresse;Clics'];
-  var byKey={};
-  data.forEach(function(d){
-    var k=[d.programme,d.offer_name,d.offer_category,d.offer_subcategory,d.offer_city,d.offer_address].join('||');
-    if(!byKey[k])byKey[k]={prog:d.programme||'',name:d.offer_name||'',cat:d.offer_category||'',sub:d.offer_subcategory||'',city:d.offer_city||'',addr:d.offer_address||'',count:0};
-    byKey[k].count++;
-  });
-  Object.values(byKey).sort(function(a,b){return b.count-a.count;}).forEach(function(c){
-    rows.push('"'+c.prog+'";"'+c.name+'";"'+c.cat+'";"'+c.sub+'";"'+c.city+'";"'+c.addr+'";'+c.count);
-  });
-  downloadCSV(rows.join('\n'),'marqueurs_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
-}
-
-// ── Init ───────────────────────────────────────────────────────
 loadProgs().then(loadAll);
+
 </script>
 </body>
 </html>
