@@ -87,6 +87,7 @@ tr:hover td{background:#fafafa}
 <div class="section">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
     <h2 style="margin:0">📍 Clics sur les marqueurs</h2>
+    <button onclick="exportMarkersCSV()" style="padding:5px 14px;background:#7F77DD;color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer">⬇ Export CSV</button>
   </div>
   <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
     <button id="mv-enseigne" onclick="setMarkerView('enseigne')" style="padding:5px 14px;background:#7F77DD;color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer">Par enseigne</button>
@@ -149,40 +150,49 @@ function renderMarkers(data){
   if(!data.length){document.getElementById('t-markers').innerHTML='<div class="empty">Aucun clic enregistré</div>';return;}
   var grouped={};
   data.forEach(function(d){
-    var key=_markerView==='enseigne'?(d.offer_name||'?'):
-           _markerView==='ville'?(d.offer_city||d.offer_address||'?'):
-           (d.offer_category||'?')+(d.offer_subcategory?' — '+d.offer_subcategory:'');
+    var cat=d.offer_category||'?';
+    var sub=d.offer_subcategory?(' <span style="color:#aaa;font-size:11px">'+d.offer_subcategory+'</span>'):''
+    var city=d.offer_city||'?';
+    var name=d.offer_name||'?';
+    var key=_markerView==='enseigne'?name:_markerView==='ville'?city:cat;
     if(!grouped[key])grouped[key]={label:key,total:0,details:{}};
     grouped[key].total++;
-    var dk=_markerView==='enseigne'?(d.offer_city||'?'):
-           _markerView==='ville'?(d.offer_name||'?'):
-           (d.offer_name||'?');
+    // Details: for each view show the other two dimensions
+    var nameWithSub=name+(d.offer_subcategory?' ('+d.offer_subcategory+')':'');
+    var dk;
+    if(_markerView==='enseigne')dk=city+' | '+cat;
+    else if(_markerView==='ville')dk=nameWithSub+' | '+cat;
+    else dk=nameWithSub+' | '+city;
     if(!grouped[key].details[dk])grouped[key].details[dk]=0;
     grouped[key].details[dk]++;
   });
   var sorted=Object.values(grouped).sort(function(a,b){return b.total-a.total;});
   var col1=_markerView==='enseigne'?'Enseigne':_markerView==='ville'?'Ville':'Catégorie';
-  var col2=_markerView==='enseigne'?'Villes':_markerView==='ville'?'Enseignes':'Enseignes';
+  var detCol=_markerView==='enseigne'?'Ville | Catégorie':_markerView==='ville'?'Enseigne | Catégorie':'Enseigne | Ville';
   var h='<table><thead><tr><th>#</th><th>'+col1+'</th><th>Clics</th><th></th></tr></thead><tbody>';
   sorted.slice(0,50).forEach(function(g,i){
     var rid='mr'+i;
-    var det=Object.entries(g.details).sort(function(a,b){return b[1]-a[1];}).map(function(e){
+    var det='<tr style="background:#f5f5f3"><td></td><td colspan="2" style="font-size:11px;color:#aaa;font-weight:600;padding:4px 10px 4px 24px">'+detCol+'</td><td></td></tr>';
+    det+=Object.entries(g.details).sort(function(a,b){return b[1]-a[1];}).map(function(e){
       return '<tr class="detail-row"><td></td><td style="color:#888;font-size:12px;padding-left:24px">'+e[0]+'</td><td><span class="badge ok">'+e[1]+'</span></td><td></td></tr>';
     }).join('');
-    h+='<tr><td style="color:#aaa">'+(i+1)+'</td><td><b>'+g.label+'</b></td><td><span class="badge ok">'+g.total+'</span></td>'
+    var labelHtml=_markerView==='cat'?'<b>'+g.label+'</b>':'<b>'+g.label+'</b>';
+    h+='<tr><td style="color:#aaa">'+(i+1)+'</td><td>'+labelHtml+'</td><td><span class="badge ok">'+g.total+'</span></td>'
       +'<td><button class="dbtn2" data-id="'+rid+'" style="padding:3px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:11px;cursor:pointer">Détails</button></td></tr>'
       +'<tr id="'+rid+'" style="display:none"><td colspan="4" style="padding:0"><table style="width:100%;border-collapse:collapse">'+det+'</table></td></tr>';
   });
   h+='</tbody></table>';
   document.getElementById('t-markers').innerHTML=h;
+  // Fix toggle - use event delegation without {once:true}
   document.getElementById('t-markers').addEventListener('click',function(e){
     var btn=e.target.closest('.dbtn2');
     if(!btn)return;
     var t=document.getElementById(btn.getAttribute('data-id'));
     if(!t)return;
-    t.style.display=t.style.display===''?'none':'';
-    btn.textContent=t.style.display===''?'Masquer':'Détails';
-  },{once:true});
+    var isOpen=t.style.display!=='none';
+    t.style.display=isOpen?'none':'';
+    btn.textContent=isOpen?'Détails':'Masquer';
+  });
 }
 
 function render(){
@@ -260,7 +270,7 @@ function filterClicks(){
     if(!t)return;
     t.style.display=t.style.display==='none'?'':'none';
     btn.textContent=t.style.display===''?'Masquer':'Détails';
-  },{once:true});
+  });
 }
 
 function renderProgTable(data){
@@ -386,6 +396,23 @@ function exportClicksCSV(){
     rows.push('"'+c.prog+'";"'+c.name+'";"'+c.addr+'";'+c.count);
   });
   downloadCSV(rows.join('\n'),'clics_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
+}
+
+function exportMarkersCSV(){
+  var data=filterData(allMarkers,'clicked_at');
+  var f=getFilters();
+  var prog=f.prog||'Tous';
+  var rows=['sep=;','Programme;Enseigne;Catégorie;Sous-catégorie;Ville;Adresse;Clics'];
+  var byKey={};
+  data.forEach(function(d){
+    var k=[d.programme,d.offer_name,d.offer_category,d.offer_subcategory,d.offer_city,d.offer_address].join('||');
+    if(!byKey[k])byKey[k]={prog:d.programme||'',name:d.offer_name||'',cat:d.offer_category||'',sub:d.offer_subcategory||'',city:d.offer_city||'',addr:d.offer_address||'',count:0};
+    byKey[k].count++;
+  });
+  Object.values(byKey).sort(function(a,b){return b.count-a.count;}).forEach(function(c){
+    rows.push('"'+c.prog+'";"'+c.name+'";"'+c.cat+'";"'+c.sub+'";"'+c.city+'";"'+c.addr+'";'+c.count);
+  });
+  downloadCSV(rows.join('\n'),'marqueurs_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
 }
 
 // ── Init ───────────────────────────────────────────────────────
