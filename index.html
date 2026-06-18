@@ -1034,7 +1034,7 @@ function genHTML(){
   var stores=[];
   for(var i=0;i<ok.length;i++){
     var s=ok[i];
-    stores.push({name:s.name,lat:s.lat,lng:s.lng,cat:s.category||'Loisirs',sub:s.subcategory||'',desc:s.description||'',url:s.url||'',remise:s.remise||'',icon:getIcon(s),color:getColor(s.category||'Loisirs'),city:extractCity(s.fmt||s.address||'')});
+    stores.push({name:s.name,lat:s.lat,lng:s.lng,cat:s.category||'Loisirs',sub:s.subcategory||'',desc:s.description||'',url:s.url||'',remise:s.remise||'',icon:getIcon(s),color:getColor(s.category||'Loisirs'),city:extractCity(s.fmt||s.address||''),logo:logoCfg[s.name]||globalLogos[s.name]||''});
   }
   var cats=[];for(var i=0;i<stores.length;i++){if(cats.indexOf(stores[i].cat)<0)cats.push(stores[i].cat);}
   var catData={};for(var i=0;i<cats.length;i++)catData[cats[i]]={icon:(iconCfg[cats[i]]&&iconCfg[cats[i]]._)||'📍',color:getColor(cats[i])};
