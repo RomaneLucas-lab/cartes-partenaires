@@ -153,16 +153,11 @@ function renderSearches(data){
   document.getElementById('k-top').textContent=sorted.length?sorted[0][0]:'---';
   if(!sorted.length){document.getElementById('t-search').innerHTML='<div class="empty">Aucune recherche</div>';return;}
   var max=sorted[0][1].count;
-  var h='<table><thead><tr><th>#</th><th>Terme</th><th>Recherches</th><th>Détail par programme</th></tr></thead><tbody>';
+  var h='<table><thead><tr><th>#</th><th>Terme</th><th>Recherches</th></tr></thead><tbody>';
   sorted.slice(0,50).forEach(function(e,i){
     var q=e[0],s=e[1];
-    // Détail par programme trié par count
-    var progDetail=Object.entries(s.progs).sort(function(a,b){return b[1]-a[1];}).map(function(p){
-      return '<span style="display:inline-block;background:#f0f0ff;border-radius:4px;padding:1px 7px;font-size:11px;margin:1px">'+p[0]+' <b>'+p[1]+'</b></span>';
-    }).join(' ');
     h+='<tr><td style="color:#aaa">'+(i+1)+'</td><td><b>'+q+'</b></td>'
-      +'<td><div class="row-bar"><span style="min-width:30px">'+s.count+'</span><div class="bar-wrap"><div class="bar" style="width:'+Math.round(s.count/max*100)+'%"></div></div></div></td>'
-      +'<td>'+progDetail+'</td></tr>';
+      +'<td><div class="row-bar"><span style="min-width:30px">'+s.count+'</span><div class="bar-wrap"><div class="bar" style="width:'+Math.round(s.count/max*100)+'%"></div></div></div></td></tr>';
   });
   h+='</tbody></table>';
   document.getElementById('t-search').innerHTML=h;
