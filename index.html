@@ -1095,7 +1095,7 @@ function genHTML(){
     +'L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap contributors"}).addTo(map);\n'
     +'var CG=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,disableClusteringAtZoom:16});map.addLayer(CG);\n'
     +'L.control.attribution({prefix:"© CartoDB © OpenStreetMap"}).addTo(map);\n'
-    +'function mkI(ic,col){return L.divIcon({className:"",iconSize:[30,30],iconAnchor:[15,15],popupAnchor:[0,-16],html:"<div style=\'width:30px;height:30px;border-radius:50%;background:"+col+";border:2.5px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:15px\'>"+ic+"</div>"});}\n'
+    +'function mkI(ic,col,logo){var inner=logo?'<img src="'+logo+'" style="width:26px;height:26px;object-fit:contain"/>':ic;var bg=logo?'#fff':col;var bd=logo?'2.5px solid '+col:'2.5px solid #fff';return L.divIcon({className:"",iconSize:[30,30],iconAnchor:[15,15],popupAnchor:[0,-16],html:"<div style=\\\'width:30px;height:30px;border-radius:50%;background:"+bg+";border:"+bd+";box-shadow:0 1px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:15px;overflow:hidden\\\'>"+inner+"</div>"});}\n'
     +'var AM=[],AF=[];\n'
     +'function inAF(c){for(var i=0;i<AF.length;i++)if(AF[i]===c)return true;return false;}\n'
     +'function addAF(c){if(!inAF(c))AF.push(c);}\n'
@@ -1210,9 +1210,15 @@ document.getElementById('dl-btn').addEventListener('click',async function(){
 });
 
 document.getElementById('preview-btn').addEventListener('click',function(){
-  var base=window.location.origin+window.location.pathname.replace(/[^/]*$/,'');
-  var url=base+'carte.html?prog='+encodeURIComponent(currentProg)+'&title='+encodeURIComponent(document.getElementById('mtitle').value||currentProg);
-  window.open(url,'_blank');
+  try{
+    var h=genHTML();
+    var wrap=document.getElementById('pvwrap');
+    var frame=document.getElementById('pvframe');
+    wrap.style.display='block';
+    var b=new Blob([h],{type:'text/html;charset=utf-8'});
+    frame.src=URL.createObjectURL(b);
+    setTimeout(function(){wrap.scrollIntoView({behavior:'smooth'});},300);
+  }catch(e){alert('Erreur: '+e.message);}
 });
 
 (async function(){await renderProgs();})();
