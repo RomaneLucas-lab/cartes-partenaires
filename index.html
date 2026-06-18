@@ -300,17 +300,24 @@ async function sbLoadProg(name){
     return all;
   }
   try{
-    var [data, rc, corr] = await Promise.all([
-      fetchAllOffres(name),
-      fetch(SB_URL+'/rest/v1/configs?programme=eq.'+encodeURIComponent(name),{headers:SB_H}),
-      fetch(SB_URL+'/rest/v1/corrections?select=name,address_original,lat,lng,fmt,prec',{headers:SB_H})
-    ]);
+    // Lancer configs + corrections en parallèle SANS les attendre
+    var cfgPromise=fetch(SB_URL+'/rest/v1/configs?programme=eq.'+encodeURIComponent(name),{headers:SB_H}).then(function(r){return r.json();}).catch(function(){return [];});
+    var corrPromise=(_corrections&&_corrections.length)
+      ? Promise.resolve(_corrections)
+      : fetch(SB_URL+'/rest/v1/corrections?select=name,address_original,lat,lng,fmt,prec',{headers:SB_H}).then(function(r){return r.json();}).catch(function(){return [];});
+    // Attendre seulement les offres → affichage immédiat
+    var data=await fetchAllOffres(name);
     var mapped=(data||[]).map(function(row){return {name:row.name,category:row.category,subcategory:row.subcategory||'',remise:row.remise||'',description:row.description||'',url:row.url||'',address:row.address,fmt:row.fmt,lat:row.lat,lng:row.lng,prec:row.prec,ok:row.ok,err:row.err,dupOk:row.dup_ok};});
     _dc[name]=mapped;
-    var cd=await rc.json();
-    var corrections=await corr.json();
-    _corrections=corrections||[];
-    return {results:mapped,cfg:(cd&&cd[0])?cd[0].cfg:{}};
+    // Appliquer cfg+corrections quand elles arrivent (sans bloquer)
+    Promise.all([cfgPromise,corrPromise]).then(function(vals){
+      var cd=vals[0], cors=vals[1];
+      var lc=(cd&&cd[0])?cd[0].cfg:{};
+      iconCfg=lc.iconCfg||iconCfg;
+      logoCfg=lc.logoCfg||logoCfg;
+      if(cors&&cors.length){_corrections=cors;applyCorrectionsSync(results);renderTable();}
+    });
+    return {results:mapped,cfg:{}};
   }catch(e){return {results:[],cfg:{}};}
 }
 
@@ -409,7 +416,7 @@ function openProg(name){
   document.getElementById('pvwrap').style.display='none';
   setStep(1);
   sbLoadProg(name).then(function(loaded){
-    results=loaded.results; var lc=loaded.cfg||{}; iconCfg=lc.iconCfg||lc; logoCfg=lc.logoCfg||{};
+    results=loaded.results; // cfg applied in background by sbLoadProg Promise.all
     var ok=results.filter(function(r){return r.ok;}).length;
     document.getElementById('gs').textContent='✅ '+ok+' offres chargées';
     if(results.length>0){renderTable();document.getElementById('p1act').style.display='flex';}
