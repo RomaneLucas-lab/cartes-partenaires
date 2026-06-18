@@ -223,7 +223,7 @@ async function saveDataAsync(){
       var rows=results.map(function(r){return {programme:currentProg,name:r.name||'',category:r.category||'',subcategory:r.subcategory||'',remise:r.remise||'',description:r.description||'',url:r.url||'',address:r.address||'',fmt:r.fmt||'',lat:r.lat||null,lng:r.lng||null,prec:r.prec||'',place_id:r.place_id||'',ok:r.ok||false,err:r.err||null,dup_ok:r.dupOk||false};});
       for(var j=0;j<rows.length;j+=50)await fetch(SB_URL+'/rest/v1/offres',{method:'POST',headers:SB_H,body:JSON.stringify(rows.slice(j,j+50))});
     }
-    await fetch(SB_URL+'/rest/v1/configs',{method:'POST',headers:Object.assign({},SB_H,{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({programme:currentProg,cfg:iconCfg})});
+    await fetch(SB_URL+'/rest/v1/configs',{method:'POST',headers:Object.assign({},SB_H,{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({programme:currentProg,cfg:{iconCfg:iconCfg,logoCfg:logoCfg}})});
   }catch(e){console.error('saveData',e);}
 }
 
@@ -354,7 +354,7 @@ function openProg(name){
   var hb=document.getElementById('header-bar');if(hb)hb.style.display='none';
   _nameSearch='';
   var twSearch=document.getElementById('tw-search');if(twSearch)twSearch.value='';
-  currentProg=name;results=[];iconCfg={};
+  currentProg=name;results=[];iconCfg={};logoCfg={};logoCfg={};
   document.getElementById('prog-screen').style.display='none';
   document.getElementById('main-app').style.display='block';
   document.getElementById('prog-label').textContent=name;
@@ -366,7 +366,7 @@ function openProg(name){
   document.getElementById('pvwrap').style.display='none';
   setStep(1);
   sbLoadProg(name).then(async function(loaded){
-    results=loaded.results; iconCfg=loaded.cfg||{};
+    results=loaded.results; var lc=loaded.cfg||{}; iconCfg=lc.iconCfg||lc; logoCfg=lc.logoCfg||{};
     // Apply known corrections
     results=await applyCorrections(results);
     document.getElementById('gs').textContent='✅ '+results.filter(function(r){return r.ok;}).length+' offres chargées';
@@ -465,7 +465,7 @@ document.getElementById('geo-btn').addEventListener('click',async function(){
 document.getElementById('load-btn').addEventListener('click',function(){
   document.getElementById('gs').textContent='⏳ Chargement...';
   sbLoadProg(currentProg).then(function(loaded){
-    results=loaded.results;iconCfg=loaded.cfg||{};
+    results=loaded.results; var lc2=loaded.cfg||{}; iconCfg=lc2.iconCfg||lc2; logoCfg=lc2.logoCfg||{};
     if(results.length>0){renderTable();document.getElementById('p1act').style.display='flex';document.getElementById('gs').textContent='✅ '+results.filter(function(r){return r.ok;}).length+' offres chargées';}
     else{document.getElementById('gs').textContent='Aucune donnée pour ce programme.';}
   });
@@ -473,7 +473,7 @@ document.getElementById('load-btn').addEventListener('click',function(){
 
 document.getElementById('clear-btn').addEventListener('click',async function(){
   if(!window.confirm('Effacer les données de "'+currentProg+'" ?'))return;
-  results=[];iconCfg={};
+  results=[];iconCfg={};logoCfg={};
   await fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(currentProg),{method:'DELETE',headers:SB_H});
   await fetch(SB_URL+'/rest/v1/configs?programme=eq.'+encodeURIComponent(currentProg),{method:'DELETE',headers:SB_H});
   document.getElementById('tw').style.display='none';
@@ -901,6 +901,66 @@ function buildCatCfg(){
       div.appendChild(blk);
     })(cats[i],i);
   }
+
+  // ── Section logos par enseigne ──────────────────────
+  var logoSection=document.createElement('div');
+  logoSection.style.cssText='margin-top:20px;padding-top:16px;border-top:1px solid #e8e8e4';
+  var logoTitle=document.createElement('p');
+  logoTitle.style.cssText='font-size:13px;font-weight:600;margin-bottom:4px';
+  logoTitle.textContent='Logos par enseigne';
+  var logoSub=document.createElement('p');
+  logoSub.style.cssText='font-size:12px;color:#888;margin-bottom:12px';
+  logoSub.textContent='Si un logo est uploadé, il remplace l\'icône sur la carte.';
+  logoSection.appendChild(logoTitle);
+  logoSection.appendChild(logoSub);
+  var ok2=results.filter(function(r){return r.ok;});
+  var names=[];
+  ok2.forEach(function(r){if(r.name&&names.indexOf(r.name)<0)names.push(r.name);});
+  names.sort();
+  names.forEach(function(name){
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:10px;padding:6px 10px;background:#f9f9f7;border-radius:8px;border:1px solid #e8e8e4;margin-bottom:6px';
+    var img=document.createElement('img');
+    img.style.cssText='width:28px;height:28px;object-fit:contain;border-radius:4px;border:1px solid #e0e0e0;background:#fff;padding:2px;display:'+(logoCfg[name]?'block':'none');
+    if(logoCfg[name])img.src=logoCfg[name];
+    var ph=document.createElement('div');
+    ph.style.cssText='width:28px;height:28px;border-radius:4px;border:1px dashed #ddd;background:#f5f5f3;display:'+(logoCfg[name]?'none':'flex')+';align-items:center;justify-content:center;font-size:16px;color:#ccc';
+    ph.textContent='🏪';
+    var nameEl=document.createElement('span');
+    nameEl.style.cssText='flex:1;font-size:13px';
+    nameEl.textContent=name;
+    var lbl=document.createElement('label');
+    lbl.style.cssText='cursor:pointer;padding:4px 10px;border:1px solid #7F77DD;color:#7F77DD;border-radius:6px;font-size:11px;white-space:nowrap';
+    var bt=document.createTextNode(logoCfg[name]?'✓ Modifier':'+ Logo');
+    var inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.style.display='none';
+    (function(n,im,p,l,b){
+      inp.addEventListener('change',function(e){
+        var f=e.target.files[0];if(!f)return;
+        var reader=new FileReader();
+        reader.onload=function(ev){
+          logoCfg[n]=ev.target.result;
+          im.src=ev.target.result;im.style.display='block';
+          p.style.display='none';
+          l.replaceChild(document.createTextNode('✓ Modifier'),b);
+          saveData();
+        };
+        reader.readAsDataURL(f);
+      });
+    })(name,img,ph,lbl,bt);
+    var del=document.createElement('button');
+    del.textContent='✕';del.style.cssText='border:none;background:none;color:#ccc;cursor:pointer;font-size:13px;padding:0';
+    (function(n,im,p,l){
+      del.addEventListener('click',function(){
+        delete logoCfg[n];im.style.display='none';p.style.display='flex';
+        l.replaceChild(document.createTextNode('+ Logo'),l.firstChild);
+        saveData();
+      });
+    })(name,img,ph,lbl);
+    lbl.appendChild(bt);lbl.appendChild(inp);
+    row.appendChild(ph);row.appendChild(img);row.appendChild(nameEl);row.appendChild(lbl);row.appendChild(del);
+    logoSection.appendChild(row);
+  });
+  div.appendChild(logoSection);
 }
 
 function toggleCat(i){var b=document.getElementById('cb'+i),t=document.getElementById('tg'+i);if(!b)return;b.classList.toggle('on');if(t)t.textContent=b.classList.contains('on')?'▲':'▼';}
@@ -1119,7 +1179,7 @@ document.getElementById('dl-btn').addEventListener('click',async function(){
     // Save config to Supabase before opening map
     await fetch(SB_URL+'/rest/v1/configs',{method:'POST',
       headers:Object.assign({},SB_H,{'Prefer':'resolution=merge-duplicates,return=minimal'}),
-      body:JSON.stringify({programme:currentProg,cfg:iconCfg})});
+      body:JSON.stringify({programme:currentProg,cfg:{iconCfg:iconCfg,logoCfg:logoCfg}})});
     var base=window.location.origin+window.location.pathname.replace(/[^/]*$/,'');
     var url=base+'carte.html?prog='+encodeURIComponent(currentProg)+'&title='+encodeURIComponent(document.getElementById('mtitle').value||currentProg);
     window.open(url,'_blank');
