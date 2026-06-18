@@ -153,7 +153,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #ddd;border-radius:6px
       <div class="sc"><div class="n" id="sprog" style="font-size:14px;padding-top:6px">—</div><div class="l">Programme</div></div>
     </div>
     <div class="row">
-      <button class="btn bg" id="dl-btn">⬇ Télécharger HTML</button>
+      <button class="btn bg" id="dl-btn">🗺️ Ouvrir la carte</button>
       <button class="btn bp" id="qr-btn">⬛ QR Code</button>
       <button class="btn bp" id="preview-btn">👁 Prévisualiser</button>
       <button class="btn bo" id="to-step2b-btn">← Modifier</button>
@@ -1140,16 +1140,14 @@ function genHTML(){
     +'<\/script>\n</body>\n</html>';
 }
 
-document.getElementById('dl-btn').addEventListener('click',async function(){
-  try{
-    // Save config to Supabase before opening map
-    await fetch(SB_URL+'/rest/v1/configs',{method:'POST',
-      headers:Object.assign({},SB_H,{'Prefer':'resolution=merge-duplicates,return=minimal'}),
-      body:JSON.stringify({programme:currentProg,cfg:{iconCfg:iconCfg,logoCfg:logoCfg}})});
-    var base=window.location.origin+window.location.pathname.replace(/[^/]*$/,'');
-    var url=base+'carte.html?prog='+encodeURIComponent(currentProg)+'&title='+encodeURIComponent(document.getElementById('mtitle').value||currentProg);
-    window.open(url,'_blank');
-  }catch(e){alert('Erreur: '+e.message);}
+document.getElementById('dl-btn').addEventListener('click',function(){
+  // Config already saved on each change — open immediately
+  fetch(SB_URL+'/rest/v1/configs',{method:'POST',
+    headers:Object.assign({},SB_H,{'Prefer':'resolution=merge-duplicates,return=minimal'}),
+    body:JSON.stringify({programme:currentProg,cfg:{iconCfg:iconCfg,logoCfg:logoCfg}})});
+  var base=window.location.origin+window.location.pathname.replace(/[^/]*$/,'');
+  var url=base+'carte.html?prog='+encodeURIComponent(currentProg)+'&title='+encodeURIComponent(document.getElementById('mtitle').value||currentProg);
+  window.open(url,'_blank');
 });
 
 document.getElementById('preview-btn').addEventListener('click',function(){
