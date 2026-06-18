@@ -456,7 +456,14 @@ function fmtDist(km){
     var cfgData=await rc.json();
     var rawCfg=(cfgData&&cfgData[0])?cfgData[0].cfg:{};
     var cfg=rawCfg.iconCfg||rawCfg;
-    var logoCfg=rawCfg.logoCfg||{};
+    // Load global logos from dedicated table
+    var logoRes=await fetch(SB_URL+'/rest/v1/logos?select=offer_name,logo_data',{headers:SB_HDR});
+    var logoRows=await logoRes.json();
+    var logoCfg={};
+    (logoRows||[]).forEach(function(r){if(r.offer_name&&r.logo_data)logoCfg[r.offer_name]=r.logo_data;});
+    // Merge with per-programme logos (override global)
+    var progLogos=rawCfg.logoCfg||{};
+    Object.assign(logoCfg,progLogos);
 
     // Build catData
     var catData={};
