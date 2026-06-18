@@ -219,28 +219,32 @@ async function saveDataAsync(){
 }
 
 // Apply known corrections to a results array
-async function applyCorrections(res){
+function applyCorrectionsSync(res){
+  // Uses _corrections already loaded by sbLoadProg — no extra fetch
   try{
-    if(!res||!res.length)return res;
-    var cors=_corrections;
-    if(!cors||!cors.length){
-      var r=await fetch(SB_URL+'/rest/v1/corrections?select=name,address_original,lat,lng,fmt,prec',{headers:SB_H});
-      cors=await r.json();
-      _corrections=cors||[];
-    }
-    if(!cors||!cors.length)return res;
+    if(!res||!res.length||!_corrections||!_corrections.length)return res;
     var corMap={};
-    cors.forEach(function(c){corMap[(c.name+'|'+c.address_original).toLowerCase()]=c;});
+    _corrections.forEach(function(c){corMap[(c.name+'|'+c.address_original).toLowerCase()]=c;});
     var applied=0;
     for(var i=0;i<res.length;i++){
       if(!res[i].ok)continue;
       var key=(res[i].name+'|'+(res[i].address||'')).toLowerCase();
-      var c=corMap[key];
-      if(c){res[i].lat=c.lat;res[i].lng=c.lng;res[i].fmt=c.fmt||res[i].fmt;res[i].prec=c.prec;applied++;}
+      var cor=corMap[key];
+      if(cor){res[i].lat=cor.lat;res[i].lng=cor.lng;res[i].fmt=cor.fmt||res[i].fmt;res[i].prec=cor.prec;applied++;}
     }
     if(applied)console.log('Applied',applied,'correction(s)');
-  }catch(e){console.error('applyCorrections',e);}
+  }catch(e){console.error('applyCorrectionsSync',e);}
   return res;
+}
+// Keep async version for geo-btn (called after geocoding, corrections may not be loaded yet)
+async function applyCorrections(res){
+  if(_corrections&&_corrections.length)return applyCorrectionsSync(res);
+  try{
+    if(!res||!res.length)return res;
+    var r=await fetch(SB_URL+'/rest/v1/corrections?select=name,address_original,lat,lng,fmt,prec',{headers:SB_H});
+    _corrections=await r.json()||[];
+  }catch(e){console.error('applyCorrections',e);}
+  return applyCorrectionsSync(res);
 }
 
 // Save manual/nominatim corrections globally
@@ -404,12 +408,13 @@ function openProg(name){
   document.getElementById('ctxt').value='';
   document.getElementById('pvwrap').style.display='none';
   setStep(1);
-  sbLoadProg(name).then(async function(loaded){
+  sbLoadProg(name).then(function(loaded){
     results=loaded.results; var lc=loaded.cfg||{}; iconCfg=lc.iconCfg||lc; logoCfg=lc.logoCfg||{};
-    // Apply known corrections
-    results=await applyCorrections(results);
-    document.getElementById('gs').textContent='✅ '+results.filter(function(r){return r.ok;}).length+' offres chargées';
+    var ok=results.filter(function(r){return r.ok;}).length;
+    document.getElementById('gs').textContent='✅ '+ok+' offres chargées';
     if(results.length>0){renderTable();document.getElementById('p1act').style.display='flex';}
+    // Apply corrections in background without blocking display
+    if(_corrections&&_corrections.length){applyCorrectionsSync(results);renderTable();}
   }).catch(function(e){document.getElementById('gs').textContent='❌ '+e.message;});
 }
 
