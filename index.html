@@ -258,6 +258,38 @@ async function saveCorrections(){
   }catch(e){console.error('saveCorrections',e);}
 }
 
+// ── GLOBAL LOGOS ──────────────────────────────────────
+var globalLogos={};
+
+async function loadGlobalLogos(){
+  try{
+    var r=await fetch(SB_URL+'/rest/v1/logos?select=offer_name,logo_data',{headers:SB_H});
+    var d=await r.json();
+    globalLogos={};
+    (d||[]).forEach(function(row){if(row.offer_name&&row.logo_data)globalLogos[row.offer_name]=row.logo_data;});
+  }catch(e){console.error('loadGlobalLogos',e);}
+}
+
+async function saveLogoGlobal(name,data){
+  try{
+    await fetch(SB_URL+'/rest/v1/logos',{
+      method:'POST',
+      headers:Object.assign({},SB_H,{'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'}),
+      body:JSON.stringify({offer_name:name,logo_data:data})
+    });
+    globalLogos[name]=data;
+  }catch(e){console.error('saveLogoGlobal',e);}
+}
+
+async function deleteLogoGlobal(name){
+  try{
+    await fetch(SB_URL+'/rest/v1/logos?offer_name=eq.'+encodeURIComponent(name),{
+      method:'DELETE',headers:SB_H
+    });
+    delete globalLogos[name];
+  }catch(e){console.error('deleteLogoGlobal',e);}
+}
+
 async function sbLoadProg(name){
   try{
     var r=await fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(name)+'&order=id',{headers:SB_H});
@@ -352,6 +384,7 @@ document.getElementById('new-prog-input').addEventListener('keydown',function(e)
 
 function openProg(name){
   var hb=document.getElementById('header-bar');if(hb)hb.style.display='none';
+  loadGlobalLogos();
   _nameSearch='';
   var twSearch=document.getElementById('tw-search');if(twSearch)twSearch.value='';
   currentProg=name;results=[];iconCfg={};logoCfg={};logoCfg={};
@@ -881,23 +914,9 @@ function buildCatCfg(){
       var pickBtn=document.createElement('button');pickBtn.className='pb';pickBtn.textContent='Icône';
       pickBtn.addEventListener('click',function(){openModal(cat,null,ci,null);});
       ctrlDiv.appendChild(colInput);ctrlDiv.appendChild(pickBtn);
-      if(subs.length){var tgl=document.createElement('span');tgl.id='tg'+ci;tgl.style.cssText='font-size:12px;color:#aaa;cursor:pointer';tgl.textContent='▼';ctrlDiv.appendChild(tgl);hdr.style.cursor='pointer';hdr.addEventListener('click',function(e){if(e.target===colInput||e.target===pickBtn)return;toggleCat(ci);});}
+
       hdr.appendChild(titleDiv);hdr.appendChild(ctrlDiv);blk.appendChild(hdr);
-      if(subs.length){
-        var body=document.createElement('div');body.className='cbody';body.id='cb'+ci;
-        for(var j=0;j<subs.length;j++){
-          (function(sub,si){
-            var row=document.createElement('div');row.className='sr2';
-            var left=document.createElement('div');left.style.cssText='font-size:13px;color:#555;display:flex;align-items:center;gap:6px';
-            var sp=document.createElement('span');sp.id='ps'+ci+'_'+si;sp.style.cssText='font-size:18px;min-width:26px;text-align:center';sp.textContent=iconCfg[cat][sub];
-            left.appendChild(sp);left.appendChild(document.createTextNode(sub));
-            var pbtn=document.createElement('button');pbtn.className='pb';pbtn.textContent='Icône';
-            pbtn.addEventListener('click',function(){openModal(cat,sub,ci,si);});
-            row.appendChild(left);row.appendChild(pbtn);body.appendChild(row);
-          })(subs[j],j);
-        }
-        blk.appendChild(body);
-      }
+
       div.appendChild(blk);
     })(cats[i],i);
   }
@@ -917,6 +936,8 @@ function buildCatCfg(){
   var names=[];
   ok2.forEach(function(r){if(r.name&&names.indexOf(r.name)<0)names.push(r.name);});
   names.sort();
+  // Pre-fill from global logos
+  names.forEach(function(n){if(globalLogos[n]&&!logoCfg[n])logoCfg[n]=globalLogos[n];});
   names.forEach(function(name){
     var row=document.createElement('div');
     row.style.cssText='display:flex;align-items:center;gap:10px;padding:6px 10px;background:#f9f9f7;border-radius:8px;border:1px solid #e8e8e4;margin-bottom:6px';
@@ -943,6 +964,7 @@ function buildCatCfg(){
           p.style.display='none';
           l.replaceChild(document.createTextNode('✓ Modifier'),b);
           saveData();
+          saveLogoGlobal(n,ev.target.result);
         };
         reader.readAsDataURL(f);
       });
@@ -954,6 +976,7 @@ function buildCatCfg(){
         delete logoCfg[n];im.style.display='none';p.style.display='flex';
         l.replaceChild(document.createTextNode('+ Logo'),l.firstChild);
         saveData();
+        deleteLogoGlobal(n);
       });
     })(name,img,ph,lbl);
     lbl.appendChild(bt);lbl.appendChild(inp);
