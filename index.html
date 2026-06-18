@@ -310,11 +310,13 @@ async function sbLoadProg(name){
     var mapped=(data||[]).map(function(row){return {name:row.name,category:row.category,subcategory:row.subcategory||'',remise:row.remise||'',description:row.description||'',url:row.url||'',address:row.address,fmt:row.fmt,lat:row.lat,lng:row.lng,prec:row.prec,ok:row.ok,err:row.err,dupOk:row.dup_ok};});
     _dc[name]=mapped;
     // Appliquer cfg+corrections quand elles arrivent (sans bloquer)
-    Promise.all([cfgPromise,corrPromise]).then(function(vals){
+    Promise.all([cfgPromise,corrPromise,loadGlobalLogos()]).then(function(vals){
       var cd=vals[0], cors=vals[1];
       var lc=(cd&&cd[0])?cd[0].cfg:{};
       iconCfg=lc.iconCfg||iconCfg;
-      logoCfg=lc.logoCfg||logoCfg;
+      // Logos : priorité cfg sauvegardé, sinon table logos globale
+      logoCfg=lc.logoCfg||{};
+      Object.keys(globalLogos).forEach(function(n){if(!logoCfg[n])logoCfg[n]=globalLogos[n];});
       if(cors&&cors.length){_corrections=cors;applyCorrectionsSync(results);renderTable();}
     });
     return {results:mapped,cfg:{}};
