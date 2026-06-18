@@ -1210,15 +1210,9 @@ document.getElementById('dl-btn').addEventListener('click',async function(){
 });
 
 document.getElementById('preview-btn').addEventListener('click',function(){
-  try{
-    var h=genHTML();
-    var wrap=document.getElementById('pvwrap');
-    var frame=document.getElementById('pvframe');
-    wrap.style.display='block';
-    var b=new Blob([h],{type:'text/html;charset=utf-8'});
-    frame.src=URL.createObjectURL(b);
-    setTimeout(function(){wrap.scrollIntoView({behavior:'smooth'});},300);
-  }catch(e){alert('Erreur: '+e.message);}
+  var base=window.location.origin+window.location.pathname.replace(/[^/]*$/,'');
+  var url=base+'carte.html?prog='+encodeURIComponent(currentProg)+'&title='+encodeURIComponent(document.getElementById('mtitle').value||currentProg);
+  window.open(url,'_blank');
 });
 
 (async function(){await renderProgs();})();
