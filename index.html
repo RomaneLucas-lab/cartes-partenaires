@@ -283,13 +283,24 @@ async function deleteLogoGlobal(name){
 }
 
 async function sbLoadProg(name){
+  async function fetchAllOffres(name){
+    var all=[], offset=0, limit=500;
+    while(true){
+      var r=await fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(name)+'&order=id&limit='+limit+'&offset='+offset,{headers:Object.assign({},SB_H,{'Range-Unit':'items','Range':'0-*','Prefer':'count=none'})});
+      var chunk=await r.json();
+      if(!chunk||!chunk.length) break;
+      all=all.concat(chunk);
+      if(chunk.length<limit) break;
+      offset+=limit;
+    }
+    return all;
+  }
   try{
-    var [r, rc, corr] = await Promise.all([
-      fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(name)+'&order=id',{headers:SB_H}),
+    var [data, rc, corr] = await Promise.all([
+      fetchAllOffres(name),
       fetch(SB_URL+'/rest/v1/configs?programme=eq.'+encodeURIComponent(name),{headers:SB_H}),
       fetch(SB_URL+'/rest/v1/corrections?select=name,address_original,lat,lng,fmt,prec',{headers:SB_H})
     ]);
-    var data=await r.json();
     var mapped=(data||[]).map(function(row){return {name:row.name,category:row.category,subcategory:row.subcategory||'',remise:row.remise||'',description:row.description||'',url:row.url||'',address:row.address,fmt:row.fmt,lat:row.lat,lng:row.lng,prec:row.prec,ok:row.ok,err:row.err,dupOk:row.dup_ok};});
     _dc[name]=mapped;
     var cd=await rc.json();
@@ -550,7 +561,12 @@ function renderTable(){
     fw.innerHTML='<input id="tw-search" type="text" placeholder="🔍 Rechercher un nom..." style="flex:1;min-width:140px;padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none"/>'
       +'<label style="font-size:12px;color:#888;cursor:pointer;white-space:nowrap"><input type="checkbox" id="tw-dup-only" style="margin-right:4px"/>⚠️ Doublons</label>';
     w.parentNode.insertBefore(fw, w);
-    document.getElementById('tw-search').addEventListener('input',function(){_nameSearch=this.value.toLowerCase();renderTable();});
+    var _searchTimer=null;
+    document.getElementById('tw-search').addEventListener('input',function(){
+      var val=this.value.toLowerCase();
+      clearTimeout(_searchTimer);
+      _searchTimer=setTimeout(function(){_nameSearch=val;renderTable();},300);
+    });
     document.getElementById('tw-dup-only').addEventListener('change',function(){renderTable();});
   }
 
