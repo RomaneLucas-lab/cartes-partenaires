@@ -375,6 +375,7 @@ document.getElementById('new-prog-input').addEventListener('keydown',function(e)
 function openProg(name){
   loadGlobalLogos();
   var hl=document.getElementById('home-logo');if(hl)hl.style.display='none';
+  var hb=document.getElementById('header-bar');if(hb)hb.style.display='none';
   currentProg=name;results=[];iconCfg={};logoCfg={};logoCfg={};
   document.getElementById('prog-screen').style.display='none';
   document.getElementById('main-app').style.display='block';
@@ -397,6 +398,7 @@ function openProg(name){
 
 document.getElementById('back-btn').addEventListener('click',function(){
   var hl=document.getElementById('home-logo');if(hl)hl.style.display='block';
+  var hb=document.getElementById('header-bar');if(hb)hb.style.display='flex';
   document.getElementById('main-app').style.display='none';
   document.getElementById('prog-screen').style.display='block';
   renderProgs();
