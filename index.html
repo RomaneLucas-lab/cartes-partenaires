@@ -298,7 +298,6 @@ async function sbLoadProg(name){
     _corrections=corrections||[];
     return {results:mapped,cfg:(cd&&cd[0])?cd[0].cfg:{}};
   }catch(e){return {results:[],cfg:{}};}
-  }catch(e){return {results:[],cfg:{}};}
 }
 
 async function renderProgs(){
