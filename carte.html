@@ -112,13 +112,16 @@ map.addLayer(CG);
 
 var AM=[],AF=[],S=[],_userLat=null,_userLng=null;
 
-function mkI(ic,col){
+function mkI(ic,col,logo){
+  var inner=logo?'<img src="'+logo+'" style="width:22px;height:22px;object-fit:contain" onerror="this.style.display=\'none\'"/>':ic;
+  var bg=logo?'#fff':col;
+  var border=logo?'2.5px solid '+col:'2.5px solid #fff';
   return L.divIcon({className:'',iconSize:[30,30],iconAnchor:[15,15],popupAnchor:[0,-16],
-    html:'<div style="width:30px;height:30px;border-radius:50%;background:'+col+';border:2.5px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:15px">'+ic+'</div>'});
+    html:'<div style="width:30px;height:30px;border-radius:50%;background:'+bg+';border:'+border+';box-shadow:0 1px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:15px">'+inner+'</div>'});
 }
 
 function mkMarker(s,BT){
-  var m=L.marker([s.lat,s.lng],{icon:mkI(s.icon||'📍',s.color||'#7F77DD')});
+  var m=L.marker([s.lat,s.lng],{icon:mkI(s.icon||'📍',s.color||'#7F77DD',s.logo||'')});
   var rem=s.remise?'<div class="pop-remise" style="color:'+s.color+'">'+s.remise+'</div>':'';
   var lnk=s.url?'<a class="pop-link pop-offer-link" href="'+s.url+'" target="_blank" style="background:'+s.color+';color:#1a1a1a" data-prog="'+encodeURIComponent(PROG)+'" data-name="'+encodeURIComponent(s.name||'')+'" data-addr="'+encodeURIComponent(s.address||'')+'" data-ourl="'+encodeURIComponent(s.url||'')+'">'+BT+'</a>':'';
   var mapsUrl=s.place_id?'https://www.google.com/maps/place/?q=place_id:'+s.place_id:'https://www.google.com/maps/search/'+encodeURIComponent((s.name||'')+' '+(s.address||''));
@@ -451,7 +454,9 @@ function fmtDist(km){
     // Load config (icons/colors)
     var rc=await fetch(SB_URL+'/rest/v1/configs?programme=eq.'+encodeURIComponent(PROG),{headers:SB_HDR});
     var cfgData=await rc.json();
-    var cfg=(cfgData&&cfgData[0])?cfgData[0].cfg:{};
+    var rawCfg=(cfgData&&cfgData[0])?cfgData[0].cfg:{};
+    var cfg=rawCfg.iconCfg||rawCfg;
+    var logoCfg=rawCfg.logoCfg||{};
 
     // Build catData
     var catData={};
@@ -479,7 +484,7 @@ function fmtDist(km){
       var cd=catData[cat]||{icon:'📍',color:'#7F77DD'};
       var subcat2=row.subcategory||'';
       var sIcon=(cfg[cat]&&subcat2&&cfg[cat][subcat2])||(cfg[cat]&&cfg[cat]._)||(cd.icon)||'📍';
-      var s={name:row.name,lat:row.lat,lng:row.lng,cat:cat,sub:subcat2,desc:row.description||'',url:row.url||'',remise:row.remise||'',address:row.address||'',place_id:row.place_id||'',icon:sIcon,color:cd.color};
+      var s={name:row.name,lat:row.lat,lng:row.lng,cat:cat,sub:subcat2,desc:row.description||'',url:row.url||'',remise:row.remise||'',address:row.address||'',place_id:row.place_id||'',icon:sIcon,color:cd.color,logo:logoCfg[row.name]||''};
       S.push(s);
       mkMarker(s,BT);
     }
