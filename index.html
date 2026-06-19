@@ -223,13 +223,21 @@ function applyCorrectionsSync(res){
   // Uses _corrections already loaded by sbLoadProg — no extra fetch
   try{
     if(!res||!res.length||!_corrections||!_corrections.length)return res;
-    var corMap={};
-    _corrections.forEach(function(c){corMap[(c.name+'|'+c.address_original).toLowerCase()]=c;});
+    var corByNameAddr={}, corByName={};
+    _corrections.forEach(function(c){
+      var k=(c.name+'|'+(c.address_original||'')).toLowerCase();
+      corByNameAddr[k]=c;
+      // Clé par nom seul (address_original vide = correction globale)
+      if(!c.address_original){corByName[c.name.toLowerCase()]=c;}
+    });
     var applied=0;
     for(var i=0;i<res.length;i++){
       if(!res[i].ok)continue;
+      // Priorité 1 : match exact name+adresse
       var key=(res[i].name+'|'+(res[i].address||'')).toLowerCase();
-      var cor=corMap[key];
+      var cor=corByNameAddr[key];
+      // Priorité 2 : match par nom seul (correction globale)
+      if(!cor)cor=corByName[res[i].name.toLowerCase()];
       if(cor){res[i].lat=cor.lat;res[i].lng=cor.lng;res[i].fmt=cor.fmt||res[i].fmt;res[i].prec=cor.prec;applied++;}
     }
     if(applied)console.log('Applied',applied,'correction(s)');
@@ -252,8 +260,24 @@ async function saveCorrections(){
   try{
     var corrected=results.filter(function(r){return r.ok&&(r.prec==='MANUAL'||r.prec==='NOMINATIM')&&r.address;});
     if(!corrected.length)return;
-    var rows=corrected.map(function(r){return {name:r.name,address_original:r.address,lat:r.lat,lng:r.lng,fmt:r.fmt||'',prec:r.prec,updated_at:new Date().toISOString()};});
+    // Sauvegarder avec l'adresse originale ET avec une clé vide pour matcher par nom seul
+    var rows=[];
+    corrected.forEach(function(r){
+      rows.push({name:r.name,address_original:r.address,lat:r.lat,lng:r.lng,fmt:r.fmt||'',prec:r.prec,updated_at:new Date().toISOString()});
+      // Entrée par nom seul (address_original='') pour matcher toutes les variantes d'adresse
+      rows.push({name:r.name,address_original:'',lat:r.lat,lng:r.lng,fmt:r.fmt||'',prec:r.prec,updated_at:new Date().toISOString()});
+    });
     await fetch(SB_URL+'/rest/v1/corrections',{method:'POST',headers:Object.assign({},SB_H,{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(rows)});
+    // Mettre à jour le cache local
+    rows.forEach(function(row){
+      var existing=false;
+      for(var i=0;i<_corrections.length;i++){
+        if(_corrections[i].name===row.name&&_corrections[i].address_original===row.address_original){
+          _corrections[i]=row;existing=true;break;
+        }
+      }
+      if(!existing)_corrections.push(row);
+    });
   }catch(e){console.error('saveCorrections',e);}
 }
 
