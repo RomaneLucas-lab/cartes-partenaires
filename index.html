@@ -497,13 +497,36 @@ function parseCSV(txt){
   return{rows:rows.slice(1).filter(function(r){return r.length>1&&r[idx.name]&&r[idx.addr];}),idx:idx};
 }
 
+function cleanAddrForGeo(addr){
+  // Extraire CP + ville + France si l'adresse est trop complexe
+  var m=addr.match(/(\d{5})\s*,?\s*([A-Z][^,]+),?\s*France/i);
+  if(m){return m[1]+' '+m[2].trim()+', France';}
+  return addr;
+}
 async function geoOne(addr,key){
   try{
+    // Essai 1 : adresse complète
     var r=await fetch('https://maps.googleapis.com/maps/api/geocode/json?address='+encodeURIComponent(addr)+'&key='+key+'&language=fr&region=fr');
     var d=await r.json();
+    if(d.status==='OK'&&d.results[0]&&d.results[0].geometry.location_type!=='APPROXIMATE'){
+      var loc=d.results[0].geometry.location;
+      // Garder l'adresse originale comme fmt si Google renvoie quelque chose de moins précis
+      return{lat:loc.lat,lng:loc.lng,fmt:addr,prec:d.results[0].geometry.location_type,ok:true};
+    }
+    // Essai 2 : adresse simplifiée CP+ville si résultat trop approximatif
+    var clean=cleanAddrForGeo(addr);
+    if(clean!==addr){
+      var r2=await fetch('https://maps.googleapis.com/maps/api/geocode/json?address='+encodeURIComponent(clean)+'&key='+key+'&language=fr&region=fr');
+      var d2=await r2.json();
+      if(d2.status==='OK'&&d2.results[0]){
+        var loc2=d2.results[0].geometry.location;
+        // fmt = adresse originale pour garder le détail
+        return{lat:loc2.lat,lng:loc2.lng,fmt:addr,prec:d2.results[0].geometry.location_type,ok:true};
+      }
+    }
     if(d.status==='OK'&&d.results[0]){
       var loc=d.results[0].geometry.location;
-      return{lat:loc.lat,lng:loc.lng,fmt:d.results[0].formatted_address,prec:d.results[0].geometry.location_type,ok:true};
+      return{lat:loc.lat,lng:loc.lng,fmt:addr,prec:d.results[0].geometry.location_type,ok:true};
     }
     return{ok:false,err:d.status};
   }catch(e){return{ok:false,err:e.message};}
