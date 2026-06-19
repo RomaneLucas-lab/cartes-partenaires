@@ -138,27 +138,64 @@ function render(){
   renderProgTable(searches);
 }
 
+function normalizeQ(s){
+  // Supprime accents, ponctuation, espaces multiples -> clé de regroupement
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ').trim();
+}
+function levenshtein(a,b){
+  var m=a.length,n=b.length,dp=[];
+  for(var i=0;i<=m;i++){dp[i]=[i];for(var j=1;j<=n;j++)dp[i][j]=i===0?j:0;}
+  for(var j=1;j<=n;j++)dp[0][j]=j;
+  for(var i=1;i<=m;i++)for(var j=1;j<=n;j++)
+    dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j-1],dp[i-1][j],dp[i][j-1]);
+  return dp[m][n];
+}
 function renderSearches(data){
   document.getElementById('k-total').textContent=data.length;
-  var terms={};
+  // Étape 1 : compter par terme brut
+  var raw={};
   data.forEach(function(d){
     var q=(d.query||'').toLowerCase().trim();
     var p=d.programme||'(non renseigné)';
     if(!q)return;
-    if(!terms[q])terms[q]={count:0,progs:{}};
-    terms[q].count++;
-    terms[q].progs[p]=(terms[q].progs[p]||0)+1;
+    if(!raw[q])raw[q]={count:0,progs:{}};
+    raw[q].count++;
+    raw[q].progs[p]=(raw[q].progs[p]||0)+1;
   });
-  var sorted=Object.entries(terms).sort(function(a,b){return b[1].count-a[1].count;});
-  document.getElementById('k-top').textContent=sorted.length?sorted[0][0]:'---';
+  // Étape 2 : regrouper les variantes (même clé normalisée OU distance <= 1 si longueur >= 5)
+  var groups={};   // clé normalisée -> {label, count, progs, variants}
+  Object.entries(raw).forEach(function(e){
+    var q=e[0],v=e[1];
+    var nq=normalizeQ(q);
+    // Chercher un groupe existant similaire
+    var matched=null;
+    Object.keys(groups).forEach(function(gk){
+      if(matched)return;
+      if(gk===nq){matched=gk;return;}
+      // Distance de Levenshtein sur clés normalisées si longueur >= 5
+      var minLen=Math.min(nq.length,gk.length);
+      var maxDist=minLen>=10?3:minLen>=7?2:1;if(minLen>=5&&levenshtein(nq,gk)<=maxDist)matched=gk;
+    });
+    if(matched){
+      groups[matched].count+=v.count;
+      Object.keys(v.progs).forEach(function(p){groups[matched].progs[p]=(groups[matched].progs[p]||0)+v.progs[p];});
+      groups[matched].variants.push(q);
+      // Garder le label le plus fréquent
+      if(v.count>groups[matched].topCount){groups[matched].label=q;groups[matched].topCount=v.count;}
+    }else{
+      groups[nq]={label:q,count:v.count,progs:Object.assign({},v.progs),variants:[q],topCount:v.count};
+    }
+  });
+  var sorted=Object.values(groups).sort(function(a,b){return b.count-a.count;});
+  document.getElementById('k-top').textContent=sorted.length?sorted[0].label:'---';
   if(!sorted.length){document.getElementById('t-search').innerHTML='<div class="empty">Aucune recherche</div>';return;}
   var total=data.length;
   var h='<table><thead><tr><th>#</th><th>Terme</th><th>Recherches</th><th style="color:#888;font-weight:500">% du total</th></tr></thead><tbody>';
   sorted.slice(0,50).forEach(function(e,i){
-    var q=e[0],s=e[1];
-    var pct=total>0?Math.round(s.count/total*1000)/10:0;
-    h+='<tr><td style="color:#aaa">'+(i+1)+'</td><td><b>'+q+'</b></td>'
-      +'<td style="font-weight:600">'+s.count+'</td>'
+    var variants=e.variants.length>1?' <span style="font-size:10px;color:#aaa;font-weight:400">('+e.variants.join(', ')+')</span>':'';
+    var pct=total>0?Math.round(e.count/total*1000)/10:0;
+    h+='<tr><td style="color:#aaa">'+(i+1)+'</td><td><b>'+e.label+'</b>'+variants+'</td>'
+      +'<td style="font-weight:600">'+e.count+'</td>'
       +'<td style="color:#7F77DD;font-weight:600">'+pct+'%</td></tr>';
   });
   h+='</tbody></table>';
