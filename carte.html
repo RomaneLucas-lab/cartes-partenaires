@@ -253,14 +253,14 @@ si.addEventListener('input',function(){
             var grp=[];
             for(var j=0;j<AM.length;j++){if(AM[j].s.name===s.name){CG.addLayer(AM[j].m);grp.push(AM[j].m.getLatLng());}else{CG.removeLayer(AM[j].m);}}
             if(grp.length)map.fitBounds(L.latLngBounds(grp),{padding:[60,60],maxZoom:15,animate:true});
-            sr.style.display='none';si.value='';
+            sr.style.display='none';
           });
         }else{
           d.innerHTML='<strong>'+s.name+'</strong> <span style="color:#aaa;font-size:11px">'+s.cat+'</span>';
           d.addEventListener('click',function(){
             map.flyTo([s.lat,s.lng],16,{animate:true,duration:1});
             for(var j=0;j<AM.length;j++){if(AM[j].s.name===s.name&&AM[j].s.lat===s.lat){if(!CG.hasLayer(AM[j].m))CG.addLayer(AM[j].m);setTimeout(function(){AM[j].m.openPopup();},900);break;}}
-            sr.style.display='none';si.value='';
+            sr.style.display='none';
           });
         }
         sr.appendChild(d);
@@ -288,7 +288,7 @@ si.addEventListener('input',function(){
           var z=tp==='house'||cl==='building'?18:tp==='road'?17:tp==='suburb'?15:tp==='village'?14:tp==='city'||tp==='town'?15:cl==='boundary'?12:a.house_number?18:a.road?17:14;
           map.flyTo([lat,lng],z,{animate:true,duration:1.2});
           clearTimeout(window._searchLogTimer);
-          sr.style.display='none';si.value='';
+          sr.style.display='none';
         });
         sr.appendChild(d);
       })(res[i]);}
