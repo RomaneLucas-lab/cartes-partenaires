@@ -417,6 +417,7 @@ document.getElementById('new-prog-input').addEventListener('keydown',function(e)
 function openProg(name){
   var hb=document.getElementById('header-bar');if(hb)hb.style.display='none';
   currentProg=name;results=[];iconCfg={};logoCfg={};
+  _nameSearch='';_nameFilter='';_catFilter='';_precFilter='';
   loadGlobalLogos(); // fire and forget
   document.getElementById('prog-screen').style.display='none';
   document.getElementById('main-app').style.display='block';
