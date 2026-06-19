@@ -205,7 +205,7 @@ function getProgs(){return _pc||[{'name':'Banque Populaire'},{'name':"Caisse d'√
 function saveProgs(p){_pc=p;}
 function countProg(n){var d=_dc[n];return d?d.filter(function(r){return r.ok;}).length:0;}
 
-function saveData(){saveDataAsync();saveCorrections();}
+function saveData(){saveDataAsync();}
 async function saveDataAsync(){
   try{
     await fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(currentProg),{method:'DELETE',headers:SB_H});
@@ -271,6 +271,7 @@ async function saveCorrections(){
 var globalLogos={};
 
 async function loadGlobalLogos(){
+  if(Object.keys(globalLogos).length>0)return;
   try{
     var r=await fetch(SB_URL+'/rest/v1/logos?select=offer_name,logo_data',{headers:SB_H});
     var d=await r.json();
@@ -330,10 +331,11 @@ async function sbLoadProg(name){
 async function renderProgs(){
   var list=document.getElementById('prog-list');
   list.innerHTML='<div style="text-align:center;padding:20px;color:#aaa;font-size:13px">‚è≥ Chargement...</div>';
-  var progs=await sbGetProgs();
+  var [progs, all]=await Promise.all([
+    sbGetProgs(),
+    fetch(SB_URL+'/rest/v1/offres?select=programme,ok&ok=eq.true',{headers:SB_H}).then(function(r){return r.json();}).catch(function(){return [];})
+  ]);
   try{
-    var r=await fetch(SB_URL+'/rest/v1/offres?select=programme,ok&ok=eq.true',{headers:SB_H});
-    var all=await r.json();
     _dc={};
     (all||[]).forEach(function(row){if(!_dc[row.programme])_dc[row.programme]=[];_dc[row.programme].push({ok:true});});
   }catch(e){}
