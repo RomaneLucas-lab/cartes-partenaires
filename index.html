@@ -211,7 +211,7 @@ async function saveDataAsync(){
   try{
     await fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(currentProg),{method:'DELETE',headers:SB_H});
     if(results.length>0){
-      var rows=results.map(function(r){return {programme:currentProg,name:r.name||'',category:r.category||'',subcategory:r.subcategory||'',remise:r.remise||'',description:r.description||'',url:r.url||'',address:r.address||'',fmt:r.fmt||'',lat:r.lat||null,lng:r.lng||null,prec:r.prec||'',ok:r.ok||false,err:r.err||null,dup_ok:r.dupOk||false};});
+      var rows=results.map(function(r){return {programme:currentProg,name:r.name||'',category:r.category||'',subcategory:r.subcategory||'',remise:r.remise||'',description:r.description||'',url:r.url||'',address:r.address||'',fmt:r.fmt||'',lat:r.lat||null,lng:r.lng||null,prec:r.prec||'',ok:r.ok||false,err:r.err||null,dup_ok:r.warnOk||r.dupOk||false};});
       for(var j=0;j<rows.length;j+=50)await fetch(SB_URL+'/rest/v1/offres',{method:'POST',headers:SB_H,body:JSON.stringify(rows.slice(j,j+50))});
     }
     await fetch(SB_URL+'/rest/v1/configs',{method:'POST',headers:Object.assign({},SB_H,{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({programme:currentProg,cfg:{iconCfg:iconCfg,logoCfg:logoCfg}})});
@@ -307,7 +307,7 @@ async function sbLoadProg(name){
       : fetch(SB_URL+'/rest/v1/corrections?select=name,address_original,lat,lng,fmt,prec',{headers:SB_H}).then(function(r){return r.json();}).catch(function(){return [];});
     // Attendre seulement les offres → affichage immédiat
     var data=await fetchAllOffres(name);
-    var mapped=(data||[]).map(function(row){return {name:row.name,category:row.category,subcategory:row.subcategory||'',remise:row.remise||'',description:row.description||'',url:row.url||'',address:row.address,fmt:row.fmt,lat:row.lat,lng:row.lng,prec:row.prec,ok:row.ok,err:row.err,dupOk:row.dup_ok};});
+    var mapped=(data||[]).map(function(row){return {name:row.name,category:row.category,subcategory:row.subcategory||'',remise:row.remise||'',description:row.description||'',url:row.url||'',address:row.address,fmt:row.fmt,lat:row.lat,lng:row.lng,prec:row.prec,ok:row.ok,err:row.err,dupOk:row.dup_ok,warnOk:row.dup_ok};});
     _dc[name]=mapped;
     // Appliquer cfg+corrections quand elles arrivent (sans bloquer)
     Promise.all([cfgPromise,corrPromise]).then(function(vals){
@@ -571,8 +571,7 @@ function renderTable(){
     fw.id='tw-filter-wrap';
     fw.style.cssText='display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap';
     fw.innerHTML='<input id="tw-search" type="text" placeholder="🔍 Rechercher un nom..." style="flex:1;min-width:140px;padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none"/>'
-      +'<label style="font-size:12px;color:#888;cursor:pointer;white-space:nowrap"><input type="checkbox" id="tw-dup-only" style="margin-right:4px"/>⚠️ Doublons</label>'
-      +'<label style="font-size:12px;color:#e67e22;cursor:pointer;white-space:nowrap"><input type="checkbox" id="tw-qual-only" style="margin-right:4px"/>🔍 À vérifier</label>';
+      +'<label style="font-size:12px;color:#e67e22;cursor:pointer;white-space:nowrap;background:#fff8f0;border:1px solid #f0c080;border-radius:6px;padding:4px 10px"><input type="checkbox" id="tw-warn-only" style="margin-right:4px"/>⚠️ À vérifier</label>';
     w.parentNode.insertBefore(fw, w);
     var _searchTimer=null;
     document.getElementById('tw-search').addEventListener('input',function(){
@@ -580,12 +579,10 @@ function renderTable(){
       clearTimeout(_searchTimer);
       _searchTimer=setTimeout(function(){_nameSearch=val;renderTable();},300);
     });
-    document.getElementById('tw-dup-only').addEventListener('change',function(){renderTable();});
-    document.getElementById('tw-qual-only').addEventListener('change',function(){renderTable();});
+    document.getElementById('tw-warn-only').addEventListener('change',function(){renderTable();});
   }
 
-  var dupOnly = document.getElementById('tw-dup-only') && document.getElementById('tw-dup-only').checked;
-  var qualOnly = document.getElementById('tw-qual-only') && document.getElementById('tw-qual-only').checked;
+  var warnOnly = document.getElementById('tw-warn-only') && document.getElementById('tw-warn-only').checked;
 
   // ── Détecter les adresses trop proches (même point arrondi à 3 décimales) ──
   var posCount={};
@@ -611,22 +608,22 @@ function renderTable(){
   // ── Tag & sort ──
   var tagged=[];
   for(var i=0;i<results.length;i++){
-    var r=results[i], isDup=false, isQual=false;
+    var r=results[i];
+    var isDup=false, isQual=false;
     if(r.ok){
       var k1=r.name.toLowerCase()+'|'+(r.fmt||'').toLowerCase();
       var k2=r.name.toLowerCase()+'|'+(r.lat||0).toFixed(4)+'|'+(r.lng||0).toFixed(4);
       isDup=(seen[k1]>1||seen[k2]>1)&&!r.dupOk;
-      // Adresse à vérifier : précision faible OU adresse trop proche d'une autre
       var pk=(r.lat||0).toFixed(3)+'|'+(r.lng||0).toFixed(3);
       isQual=QUAL_BAD.indexOf(r.prec)>=0||(posCount[pk]>1&&!r.dupOk);
     }else{
-      isQual=true; // échec geocodage = à vérifier
+      isQual=true;
     }
-    tagged.push({r:r,idx:i,isDup:isDup,isQual:isQual});
+    var isWarn=(isDup||isQual)&&!r.warnOk;
+    tagged.push({r:r,idx:i,isDup:isDup,isQual:isQual,isWarn:isWarn});
   }
   tagged.sort(function(a,b){
-    var sa=a.isDup?0:(a.isQual&&!a.r.ok?1:a.isQual?2:(!a.r.ok?3:4));
-    var sb=b.isDup?0:(b.isQual&&!b.r.ok?1:b.isQual?2:(!b.r.ok?3:4));
+    var sa=a.isWarn?0:(!a.r.ok?1:2), sb=b.isWarn?0:(!b.r.ok?1:2);
     return sa-sb;
   });
 
@@ -678,8 +675,7 @@ function renderTable(){
     if(search && t.r.name.toLowerCase().indexOf(search)<0) return false;
     if(_nameFilter && t.r.name!==_nameFilter) return false;
     if(_catFilter && t.r.category!==_catFilter) return false;
-    if(dupOnly && !t.isDup) return false;
-    if(qualOnly && !t.isQual) return false;
+    if(warnOnly && !t.isWarn) return false;
     if(_precFilter && t.r.ok){
       if(_precFilter.indexOf('|')>=0){if(_precFilter.split('|').indexOf(t.r.prec)<0)return false;}
       else if(t.r.prec!==_precFilter) return false;
@@ -691,18 +687,18 @@ function renderTable(){
 
   filtered.forEach(function(t){
     var r=t.r, i=t.idx;
-    var bg=t.isDup?'background:#fffbe6':(!r.ok?'background:#fff8f8':(t.isQual?'background:#fff8f0':''));
+    var bg=t.isWarn?'background:#fff8f0':(!r.ok&&!t.isWarn?'background:#fff8f8':'');
     var baseStyle=bg;
     var td='padding:6px;font-size:12px;border-bottom:1px solid #f5f5f3;vertical-align:middle';
     if(r.ok){
       h+='<tr data-idx="'+i+'" style="'+baseStyle+'">'
         +'<td style="'+td+';color:#aaa;width:28px">'+(i+1)+'</td>'
-        +'<td style="'+td+'"><b>'+r.name+'</b>'+(t.isDup?' <span title="Doublon" style="color:#f0a500">⚠️</span> <input type="checkbox" class="dup-ok-chk" data-idx="'+i+'" '+(r.dupOk?'checked':'')+' style="cursor:pointer"/>':'')+'</td>'
+        +'<td style="'+td+'"><b>'+r.name+'</b>'+(t.isWarn||r.warnOk?' <label style="font-size:11px;color:#888;cursor:pointer;white-space:nowrap"><input type="checkbox" class="warn-ok-chk" data-idx="'+i+'" '+(r.warnOk?'checked':'')+' style="margin-right:2px;cursor:pointer"/>✓ OK</label>':'')+'</td>'
         +'<td style="'+td+'">'+r.category+'</td>'
         +'<td style="'+td+'"><input class="editcell addr-edit" data-idx="'+i+'" value="'+(r.fmt||'').replace(/"/g,'&quot;')+'" style="border:none;background:transparent;font-size:11px;color:#555;width:100%;font-family:inherit;padding:0;outline:none"/></td>'
         +'<td style="'+td+'"><input class="editcell lat-edit" data-idx="'+i+'" value="'+(r.lat||0).toFixed(6)+'" style="border:none;background:transparent;font-size:11px;color:#555;width:75px;font-family:inherit;padding:0;outline:none"/></td>'
         +'<td style="'+td+'"><input class="editcell lng-edit" data-idx="'+i+'" value="'+(r.lng||0).toFixed(6)+'" style="border:none;background:transparent;font-size:11px;color:#555;width:75px;font-family:inherit;padding:0;outline:none"/></td>'
-        +'<td style="'+td+';width:30px" title="'+(t.isQual?'⚠️ À vérifier: adresse imprécise ou trop proche':'')+'">'+(t.isQual?'<span title="À vérifier">'+pb(r.prec)+'</span>':pb(r.prec))+'</td>'
+        +'<td style="'+td+';width:30px">'+pb(r.prec)+'</td>'
         +'<td style="'+td+';white-space:nowrap;width:80px">'
         +'<button class="regeo-btn" data-idx="'+i+'" title="Regéocoder" style="background:none;border:none;cursor:pointer;font-size:13px;padding:2px 3px">🔄</button>'
         +'<button class="map-btn" data-idx="'+i+'" title="Repositionner" style="background:none;border:none;cursor:pointer;font-size:13px;padding:2px 3px">📍</button>'
@@ -802,10 +798,12 @@ function renderTable(){
   document.addEventListener('scroll',closeAllDrops,{capture:true,passive:true});
 
   // Dup-ok checkbox
-  w.querySelectorAll('.dup-ok-chk').forEach(function(chk){
+  w.querySelectorAll('.warn-ok-chk').forEach(function(chk){
     chk.addEventListener('change',function(){
       var idx=parseInt(this.getAttribute('data-idx'));
-      results[idx].dupOk=this.checked; saveData(); renderTable();
+      results[idx].warnOk=this.checked;
+      results[idx].dupOk=this.checked; // compat
+      saveData(); renderTable();
     });
   });
 
@@ -814,7 +812,9 @@ function renderTable(){
     inp.addEventListener('keydown',function(e){if(e.key==='Enter')this.blur();});
     inp.addEventListener('change',function(){
       var idx=parseInt(this.getAttribute('data-idx'));
-      results[idx].fmt=this.value; saveData();
+      results[idx].fmt=this.value;
+      results[idx].warnOk=false; results[idx].dupOk=false;
+      saveData(); renderTable();
     });
   });
 
@@ -825,7 +825,9 @@ function renderTable(){
       if(!isNaN(v)){
         if(this.classList.contains('lat-edit'))results[idx].lat=v;
         else results[idx].lng=v;
-        results[idx].prec='MANUAL'; saveData();
+        results[idx].prec='MANUAL';
+        results[idx].warnOk=false; results[idx].dupOk=false;
+        saveData(); renderTable();
       }
     });
   });
