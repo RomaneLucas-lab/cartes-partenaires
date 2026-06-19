@@ -331,15 +331,20 @@ async function sbLoadProg(name){
 async function renderProgs(){
   var list=document.getElementById('prog-list');
   list.innerHTML='<div style="text-align:center;padding:20px;color:#aaa;font-size:13px">⏳ Chargement...</div>';
-  var [progs, all]=await Promise.all([
-    sbGetProgs(),
-    fetch(SB_URL+'/rest/v1/offres?select=programme,ok&ok=eq.true',{headers:SB_H}).then(function(r){return r.json();}).catch(function(){return [];})
-  ]);
-  try{
+  // Afficher d'abord depuis le cache si disponible
+  var progs=_pc||await sbGetProgs();
+  list.innerHTML='';
+  // Comptes en background
+  fetch(SB_URL+'/rest/v1/offres?select=programme,ok&ok=eq.true',{headers:SB_H}).then(function(r){return r.json();}).then(function(all){
     _dc={};
     (all||[]).forEach(function(row){if(!_dc[row.programme])_dc[row.programme]=[];_dc[row.programme].push({ok:true});});
-  }catch(e){}
-  list.innerHTML='';
+    // Mettre à jour les compteurs affichés
+    list.querySelectorAll('[data-prog-count]').forEach(function(el){
+      var n=el.getAttribute('data-prog-count');
+      var cnt=countProg(n);
+      el.textContent=cnt>0?cnt+' offre'+(cnt>1?'s':''):'Aucune donnée';
+    });
+  }).catch(function(){});
   if(!progs.length){list.innerHTML='<div style="text-align:center;padding:20px;color:#aaa;font-size:13px">Aucun programme. Créez-en un ou restaurez une sauvegarde.</div>';return;}
   for(var i=0;i<progs.length;i++){
     (function(p){
@@ -347,7 +352,7 @@ async function renderProgs(){
       var row=document.createElement('div');
       row.style.cssText='display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #e8e8e4;border-radius:10px;padding:14px 16px;margin-bottom:8px';
       var info=document.createElement('div');
-      info.innerHTML='<div style="font-size:14px;font-weight:600">'+p.name+'</div><div style="font-size:12px;color:#aaa;margin-top:2px">'+(cnt>0?cnt+' offre'+(cnt>1?'s':''):'Aucune donnée')+'</div>';
+      info.innerHTML='<div style="font-size:14px;font-weight:600">'+p.name+'</div><div data-prog-count="'+p.name+'" style="font-size:12px;color:#aaa;margin-top:2px">'+(cnt>0?cnt+' offre'+(cnt>1?'s':''):'Aucune donnée')+'</div>';
       var btnWrap=document.createElement('div');
       btnWrap.style.cssText='display:flex;gap:8px;flex-shrink:0';
       var openBtn=document.createElement('button');
@@ -410,9 +415,9 @@ document.getElementById('add-prog-btn').addEventListener('click',function(){
 document.getElementById('new-prog-input').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('add-prog-btn').click();});
 
 function openProg(name){
-  loadGlobalLogos();
   var hb=document.getElementById('header-bar');if(hb)hb.style.display='none';
-  currentProg=name;results=[];iconCfg={};logoCfg={};logoCfg={};
+  currentProg=name;results=[];iconCfg={};logoCfg={};
+  loadGlobalLogos(); // fire and forget
   document.getElementById('prog-screen').style.display='none';
   document.getElementById('main-app').style.display='block';
   document.getElementById('prog-label').textContent=name;
