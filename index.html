@@ -222,12 +222,11 @@ function applyCorrectionsSync(res){
   // Uses _corrections already loaded by sbLoadProg — no extra fetch
   try{
     if(!res||!res.length||!_corrections||!_corrections.length)return res;
-    var corByNameAddr={}, corByName={};
+    var corByNameAddr={};
     _corrections.forEach(function(c){
       var k=(c.name+'|'+(c.address_original||'')).toLowerCase();
       corByNameAddr[k]=c;
-      // Clé par nom seul (address_original vide = correction globale)
-      if(!c.address_original){corByName[c.name.toLowerCase()]=c;}
+
     });
     var applied=0;
     for(var i=0;i<res.length;i++){
@@ -235,8 +234,7 @@ function applyCorrectionsSync(res){
       // Priorité 1 : match exact name+adresse
       var key=(res[i].name+'|'+(res[i].address||'')).toLowerCase();
       var cor=corByNameAddr[key];
-      // Priorité 2 : match par nom seul (correction globale)
-      if(!cor)cor=corByName[res[i].name.toLowerCase()];
+      // Pas de fallback par nom seul — chaque adresse est indépendante
       if(cor){res[i].lat=cor.lat;res[i].lng=cor.lng;res[i].fmt=cor.fmt||res[i].fmt;res[i].prec=cor.prec;res[i].warnOk=true;res[i].dupOk=true;applied++;}
     }
     if(applied)console.log('Applied',applied,'correction(s)');
@@ -259,10 +257,9 @@ async function applyCorrections(res){
 async function propagateCorrection(r){
   if(!r||!r.ok||!r.name)return;
   var now=new Date().toISOString();
-  // 1. Sauvegarder dans corrections (par nom+adresse ET par nom seul)
+  // 1. Sauvegarder dans corrections (par nom+adresse uniquement)
   var rows=[
-    {name:r.name,address_original:r.address||'',lat:r.lat,lng:r.lng,fmt:r.fmt||'',prec:r.prec,updated_at:now},
-    {name:r.name,address_original:'',lat:r.lat,lng:r.lng,fmt:r.fmt||'',prec:r.prec,updated_at:now}
+    {name:r.name,address_original:r.address||'',lat:r.lat,lng:r.lng,fmt:r.fmt||'',prec:r.prec,updated_at:now}
   ];
   await fetch(SB_URL+'/rest/v1/corrections',{method:'POST',headers:Object.assign({},SB_H,{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(rows)}).catch(function(){});
   // 2. Mettre à jour les offres du même nom+adresse dans tous les programmes
