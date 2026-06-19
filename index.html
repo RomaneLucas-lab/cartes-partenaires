@@ -118,16 +118,13 @@ input[type=color]{width:32px;height:28px;border:1px solid #ddd;border-radius:6px
     <textarea id="ctxt" rows="5" placeholder="Nom;Adresse;Catégorie;Sous-catégorie;Type remise;Description;URL"></textarea>
     <div class="row">
       <button class="btn bp" id="geo-btn">▶ Géocoder</button>
-      <button class="btn bo" id="load-btn">📂 Charger sauvegarde</button>
+      <label for="load-prog-file" class="btn bo" style="cursor:pointer;margin:0">📂 Charger</label>
+      <button class="btn bo" id="save-prog-btn">⬇ Sauvegarder</button>
       <button class="btn bo" id="clear-btn" style="color:#e74c3c;border-color:#e74c3c">🗑 Effacer</button>
     </div>
     <div id="bw"><div id="bp2"></div></div>
     <div id="gs"></div>
-    <div class="row" style="margin-bottom:6px">
-      <button class="btn bo" id="save-prog-btn">⬇ Sauvegarder</button>
-      <label for="load-prog-file" class="btn bo" style="cursor:pointer;margin:0">📂 Charger</label>
-      <input type="file" id="load-prog-file" accept=".json" style="position:absolute;left:-9999px;opacity:0"/>
-    </div>
+    <input type="file" id="load-prog-file" accept=".json" style="position:absolute;left:-9999px;opacity:0"/>
     <div id="p1act" style="display:none" class="row">
       <button class="btn bo" id="retry-btn">↺ Relancer échecs</button>
       <button class="btn bp" id="to-step2-btn">Personnaliser →</button>
