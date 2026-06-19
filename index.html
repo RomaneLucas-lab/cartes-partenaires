@@ -672,11 +672,12 @@ function renderTable(){
       var k2=r.name.toLowerCase()+'|'+(r.lat||0).toFixed(4)+'|'+(r.lng||0).toFixed(4);
       isDup=(seen[k1]>1||seen[k2]>1)&&!r.dupOk;
       var pk=(r.lat||0).toFixed(3)+'|'+(r.lng||0).toFixed(3);
-      isQual=QUAL_BAD.indexOf(r.prec)>=0||(posCount[pk]>1&&!r.dupOk);
+      // À vérifier = tout sauf ROOFTOP/MANUAL/NOMINATIM
+      isQual=r.prec!=='ROOFTOP'&&r.prec!=='MANUAL'&&r.prec!=='NOMINATIM';
     }else{
       isQual=true;
     }
-    var isWarn=(isDup||isQual)&&!r.warnOk;
+    var isWarn=(isDup||isQual)&&!r.warnOk&&!r.dupOk;
     tagged.push({r:r,idx:i,isDup:isDup,isQual:isQual,isWarn:isWarn});
   }
   // Pas de tri spécial — ordre naturel conservé
