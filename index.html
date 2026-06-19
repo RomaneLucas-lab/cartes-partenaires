@@ -515,8 +515,8 @@ document.getElementById('geo-btn').addEventListener('click',async function(){
   if(!txt||!key){alert('Données et clé API requis.');return;}
   var parsed;try{parsed=parseCSV(txt);}catch(e){alert('Erreur CSV: '+e.message);return;}
   var rows=parsed.rows,idx=parsed.idx;
-  var existing={};for(var i=0;i<results.length;i++)existing[results[i].name]=true;
-  var todo=rows.filter(function(r){return !existing[r[idx.name]];});
+  var existing={};for(var i=0;i<results.length;i++)existing[(results[i].name+'|'+results[i].address).toLowerCase()]=true;
+  var todo=rows.filter(function(r){return !existing[(r[idx.name]+'|'+r[idx.addr]).toLowerCase()];});
   var btn=document.getElementById('geo-btn');
   btn.disabled=true;btn.textContent='⏳ En cours...';
   document.getElementById('bw').style.display='block';
