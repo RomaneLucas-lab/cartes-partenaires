@@ -441,6 +441,30 @@ function openProg(name){
   }).catch(function(e){document.getElementById('gs').textContent='❌ '+e.message;});
 }
 
+// Listeners sélection — une seule fois, délégation
+document.addEventListener('click',function(e){
+  var t=e.target;
+  if(t.id==='sel-all-btn'){
+    var allSel=_lastFiltered.length>0&&_lastFiltered.every(function(x){return x.r._sel;});
+    _lastFiltered.forEach(function(x){x.r._sel=!allSel;});
+    renderTable();
+  }
+  if(t.id==='sel-del-btn'){
+    var sel=results.filter(function(r){return r._sel;});
+    if(!sel.length)return;
+    if(!confirm('Supprimer '+sel.length+' offre'+(sel.length>1?'s':'')+' ?'))return;
+    results=results.filter(function(r){return !r._sel;});
+    saveData();renderTable();
+    document.getElementById('gs').textContent='✅ '+results.filter(function(r){return r.ok;}).length+' offres';
+  }
+});
+document.addEventListener('change',function(e){
+  if(e.target.id==='th-sel-all'){
+    _lastFiltered.forEach(function(x){x.r._sel=e.target.checked;});
+    renderTable();
+  }
+});
+
 document.getElementById('back-btn').addEventListener('click',function(){
   var hb=document.getElementById('header-bar');if(hb)hb.style.display='flex';
   document.getElementById('main-app').style.display='none';
@@ -587,7 +611,7 @@ document.getElementById('retry-btn').addEventListener('click',async function(){
 
 function pb(p){return{ROOFTOP:'🟢',RANGE_INTERPOLATED:'🟡',GEOMETRIC_CENTER:'🟠',APPROXIMATE:'🔴',NOMINATIM:'🔵',MANUAL:'🔵'}[p]||'⚪';}
 
-var _nameFilter='', _catFilter='', _precFilter='', _nameSearch='';
+var _nameFilter='', _catFilter='', _precFilter='', _nameSearch='', _lastFiltered=[];
 
 function updateSelBar(){
   var selected=results.filter(function(r){return r._sel;});
@@ -730,7 +754,7 @@ function renderTable(){
     +'</tr></thead><tbody>';
 
   // ── Filter & render rows ──
-  var filtered=tagged.filter(function(t){
+  _lastFiltered=tagged.filter(function(t){
     if(search){
       var terms=search.split(/\s+/).filter(Boolean);
       var haystack=(t.r.name+' '+(t.r.fmt||t.r.address||'')).toLowerCase();
@@ -935,9 +959,9 @@ function renderTable(){
     var sel=results.filter(function(r){return r._sel;});
     var bar=document.getElementById('sel-bar');
     var cnt=document.getElementById('sel-count');
-    if(bar)bar.style.display=sel.length>0||true?'flex':'none'; // toujours visible si données
+    if(bar)bar.style.display=_lastFiltered.length>0?'flex':'none';
     if(cnt)cnt.textContent=sel.length>0?sel.length+' sélectionné'+(sel.length>1?'s':''):'';
-    var allSel=filtered.length>0&&filtered.every(function(t){return t.r._sel;});
+    var allSel=_lastFiltered.length>0&&_lastFiltered.every(function(t){return t.r._sel;});
     var btn=document.getElementById('sel-all-btn');
     if(btn){btn.textContent=allSel?'Désélectionner tout':'Sélectionner tout';btn.style.background=allSel?'#7F77DD':'#fff';btn.style.color=allSel?'#fff':'#7F77DD';}
     var allChk=document.getElementById('th-sel-all');
@@ -950,32 +974,7 @@ function renderTable(){
       updateSelBar();
     });
   });
-  // Tout sélectionner (header)
-  var thSelAll=document.getElementById('th-sel-all');
-  if(thSelAll){thSelAll.addEventListener('change',function(){
-    filtered.forEach(function(t){t.r._sel=this.checked;}.bind(this));
-    renderTable();
-  });}
-  // Bouton toggle sélectionner/désélectionner tout
-  var selAllBtn=document.getElementById('sel-all-btn');
-  if(selAllBtn){selAllBtn.addEventListener('click',function(){
-    var allSel=filtered.every(function(t){return t.r._sel;});
-    filtered.forEach(function(t){t.r._sel=!allSel;});
-    selAllBtn.textContent=allSel?'Sélectionner tout':'Désélectionner tout';
-    selAllBtn.style.background=allSel?'#fff':'#7F77DD';
-    selAllBtn.style.color=allSel?'#7F77DD':'#fff';
-    renderTable();
-  });}
-  // Supprimer sélection
-  var selDel=document.getElementById('sel-del-btn');
-  if(selDel){selDel.addEventListener('click',function(){
-    var sel=results.filter(function(r){return r._sel;});
-    if(!sel.length)return;
-    if(!confirm('Supprimer '+sel.length+' offre'+(sel.length>1?'s':'')+' ?'))return;
-    results=results.filter(function(r){return !r._sel;});
-    saveData();renderTable();
-    document.getElementById('gs').textContent='✅ '+results.filter(function(r){return r.ok;}).length+' offres';
-  });}
+
   updateSelBar();
 
   w.querySelectorAll('.del-btn').forEach(function(btn){
