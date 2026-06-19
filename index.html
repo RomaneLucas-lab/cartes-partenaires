@@ -326,9 +326,8 @@ async function sbLoadProg(name){
   try{
     // Lancer configs + corrections en parallèle SANS les attendre
     var cfgPromise=fetch(SB_URL+'/rest/v1/configs?programme=eq.'+encodeURIComponent(name),{headers:SB_H}).then(function(r){return r.json();}).catch(function(){return [];});
-    var corrPromise=(_corrections&&_corrections.length)
-      ? Promise.resolve(_corrections)
-      : fetch(SB_URL+'/rest/v1/corrections?select=name,address_original,lat,lng,fmt,prec',{headers:SB_H}).then(function(r){return r.json();}).catch(function(){return [];});
+    // Toujours recharger les corrections (elles peuvent avoir changé sur un autre programme)
+    var corrPromise=fetch(SB_URL+'/rest/v1/corrections?select=name,address_original,lat,lng,fmt,prec',{headers:SB_H}).then(function(r){return r.json();}).catch(function(){return [];});
     // Attendre seulement les offres → affichage immédiat
     var data=await fetchAllOffres(name);
     var mapped=(data||[]).map(function(row){return {name:row.name,category:row.category,subcategory:row.subcategory||'',remise:row.remise||'',description:row.description||'',url:row.url||'',address:row.address,fmt:row.fmt,lat:row.lat,lng:row.lng,prec:row.prec,ok:row.ok,err:row.err,dupOk:row.dup_ok,warnOk:row.dup_ok};});
@@ -339,7 +338,8 @@ async function sbLoadProg(name){
       var lc=(cd&&cd[0])?cd[0].cfg:{};
       iconCfg=lc.iconCfg||iconCfg;
       logoCfg=lc.logoCfg||logoCfg;
-      if(cors&&cors.length){_corrections=cors;applyCorrectionsSync(results);renderTable();}
+      _corrections=cors||[];
+      if(_corrections.length){applyCorrectionsSync(results);renderTable();}
     });
     return {results:mapped,cfg:{}};
   }catch(e){return {results:[],cfg:{}};}
@@ -445,7 +445,7 @@ function openProg(name){
     document.getElementById('gs').textContent='✅ '+ok+' offres chargées';
     if(results.length>0){renderTable();document.getElementById('p1act').style.display='flex';}
     // Apply corrections in background without blocking display
-    if(_corrections&&_corrections.length){applyCorrectionsSync(results);renderTable();}
+    // Les corrections seront appliquées via le Promise.all de sbLoadProg
   }).catch(function(e){document.getElementById('gs').textContent='❌ '+e.message;});
 }
 
