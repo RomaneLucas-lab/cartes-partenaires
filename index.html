@@ -756,7 +756,7 @@ function renderTable(){
     if(r.ok){
       h+='<tr data-idx="'+i+'" style="'+baseStyle+'">'
         +'<td style="'+td+';color:#aaa;width:28px">'+(i+1)+'</td>'
-        +'<td style="'+td+'"><b class="name-click" data-idx="'+i+'" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">'+r.name+'</b></td>'
+        +'<td style="'+td+'"><b class="name-click" data-idx="'+i+'" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">'+r.name+'</b>'+(t.isDup?' <span style="font-size:10px;background:#ffe082;color:#b26a00;border-radius:4px;padding:1px 5px;font-weight:700;vertical-align:middle">2x</span>':'')+'</td>'
         +'<td style="'+td+'">'+r.category+'</td>'
         +'<td style="'+td+'"><input class="editcell addr-edit" data-idx="'+i+'" value="'+(r.fmt||'').replace(/"/g,'&quot;')+'" style="border:none;background:transparent;font-size:11px;color:#555;width:100%;font-family:inherit;padding:0;outline:none"/></td>'
         +'<td style="'+td+'"><input class="editcell lat-edit" data-idx="'+i+'" value="'+(r.lat||0).toFixed(6)+'" style="border:none;background:transparent;font-size:11px;color:#555;width:75px;font-family:inherit;padding:0;outline:none"/></td>'
@@ -770,7 +770,7 @@ function renderTable(){
     }else{
       h+='<tr data-idx="'+i+'" style="'+baseStyle+'">'
         +'<td style="'+td+';color:#aaa;width:28px">'+(i+1)+'</td>'
-        +'<td style="'+td+'"><b class="name-click" data-idx="'+i+'" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">'+r.name+'</b></td>'
+        +'<td style="'+td+'"><b class="name-click" data-idx="'+i+'" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">'+r.name+'</b>'+(t.isDup?' <span style="font-size:10px;background:#ffe082;color:#b26a00;border-radius:4px;padding:1px 5px;font-weight:700;vertical-align:middle">2x</span>':'')+'</td>'
         +'<td style="'+td+'">'+r.category+'</td>'
         +'<td style="'+td+'"><input class="editcell addr-edit" data-idx="'+i+'" value="'+(r.address||'').replace(/"/g,'&quot;')+'" style="border:none;background:transparent;font-size:11px;color:#e74c3c;width:100%;font-family:inherit;padding:0;outline:none"/></td>'
         +'<td colspan="2" style="'+td+';color:#e74c3c;font-size:11px">✗ '+r.err+'</td>'
