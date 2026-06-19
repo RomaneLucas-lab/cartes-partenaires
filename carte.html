@@ -487,22 +487,18 @@ function fmtDist(km){
   }
   document.getElementById('load-status').textContent='Chargement de "'+PROG+'"...';
   try{
-    // Load offres
-    var r=await fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(PROG)+'&ok=eq.true&order=id',{headers:SB_HDR});
-    var rows=await r.json();
+    // Tout en parallèle
+    var results=await Promise.all([
+      fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(PROG)+'&ok=eq.true&order=id',{headers:SB_HDR}).then(function(r){return r.json();}),
+      fetch(SB_URL+'/rest/v1/configs?programme=eq.'+encodeURIComponent(PROG),{headers:SB_HDR}).then(function(r){return r.json();}),
+      fetch(SB_URL+'/rest/v1/logos?select=offer_name,logo_data',{headers:SB_HDR}).then(function(r){return r.json();})
+    ]);
+    var rows=results[0], cfgData=results[1], logoRows=results[2];
     if(!rows||!rows.length){document.getElementById('load-status').textContent='Aucune offre trouvée pour ce programme.';return;}
-
-    // Load config (icons/colors)
-    var rc=await fetch(SB_URL+'/rest/v1/configs?programme=eq.'+encodeURIComponent(PROG),{headers:SB_HDR});
-    var cfgData=await rc.json();
     var rawCfg=(cfgData&&cfgData[0])?cfgData[0].cfg:{};
     var cfg=rawCfg.iconCfg||rawCfg;
-    // Load global logos from dedicated table
-    var logoRes=await fetch(SB_URL+'/rest/v1/logos?select=offer_name,logo_data',{headers:SB_HDR});
-    var logoRows=await logoRes.json();
     var logoCfg={};
     (logoRows||[]).forEach(function(r){if(r.offer_name&&r.logo_data)logoCfg[r.offer_name]=r.logo_data;});
-    // Merge with per-programme logos (override global)
     var progLogos=rawCfg.logoCfg||{};
     Object.assign(logoCfg,progLogos);
 
