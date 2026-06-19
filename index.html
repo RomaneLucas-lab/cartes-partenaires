@@ -253,29 +253,12 @@ async function applyCorrections(res){
 }
 
 // Save manual/nominatim corrections globally
-// Propager une correction vers la table corrections ET toutes les offres en base
+// Sauvegarder une correction pour cette offre uniquement
 async function propagateCorrection(r){
   if(!r||!r.ok||!r.name)return;
   var now=new Date().toISOString();
-  // 1. Sauvegarder dans corrections (par nom+adresse uniquement)
-  var rows=[
-    {name:r.name,address_original:r.address||'',lat:r.lat,lng:r.lng,fmt:r.fmt||'',prec:r.prec,updated_at:now}
-  ];
-  await fetch(SB_URL+'/rest/v1/corrections',{method:'POST',headers:Object.assign({},SB_H,{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(rows)}).catch(function(){});
-  // 2. Mettre à jour les offres du même nom+adresse dans tous les programmes
-  await fetch(SB_URL+'/rest/v1/offres?name=eq.'+encodeURIComponent(r.name)+'&address=eq.'+encodeURIComponent(r.address||''),{
-    method:'PATCH',
-    headers:Object.assign({},SB_H,{'Content-Type':'application/json','Prefer':'return=minimal'}),
-    body:JSON.stringify({lat:r.lat,lng:r.lng,fmt:r.fmt||'',prec:r.prec})
-  }).catch(function(){});
-  // 3. Mettre à jour cache local
-  rows.forEach(function(row){
-    var found=false;
-    for(var i=0;i<_corrections.length;i++){
-      if(_corrections[i].name===row.name&&_corrections[i].address_original===row.address_original){_corrections[i]=row;found=true;break;}
-    }
-    if(!found)_corrections.push(row);
-  });
+  var row={name:r.name,address_original:r.address||'',lat:r.lat,lng:r.lng,fmt:r.fmt||'',prec:r.prec,updated_at:now};
+  await fetch(SB_URL+'/rest/v1/corrections',{method:'POST',headers:Object.assign({},SB_H,{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify([row])}).catch(function(){});
 }
 
 async function saveCorrections(){
