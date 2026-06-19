@@ -152,12 +152,14 @@ function renderSearches(data){
   var sorted=Object.entries(terms).sort(function(a,b){return b[1].count-a[1].count;});
   document.getElementById('k-top').textContent=sorted.length?sorted[0][0]:'---';
   if(!sorted.length){document.getElementById('t-search').innerHTML='<div class="empty">Aucune recherche</div>';return;}
-  var max=sorted[0][1].count;
-  var h='<table><thead><tr><th>#</th><th>Terme</th><th>Recherches</th></tr></thead><tbody>';
+  var total=data.length;
+  var h='<table><thead><tr><th>#</th><th>Terme</th><th>Recherches</th><th style="color:#888;font-weight:500">% du total</th></tr></thead><tbody>';
   sorted.slice(0,50).forEach(function(e,i){
     var q=e[0],s=e[1];
+    var pct=total>0?Math.round(s.count/total*1000)/10:0;
     h+='<tr><td style="color:#aaa">'+(i+1)+'</td><td><b>'+q+'</b></td>'
-      +'<td><div class="row-bar"><span style="min-width:30px">'+s.count+'</span><div class="bar-wrap"><div class="bar" style="width:'+Math.round(s.count/max*100)+'%"></div></div></div></td></tr>';
+      +'<td style="font-weight:600">'+s.count+'</td>'
+      +'<td style="color:#7F77DD;font-weight:600">'+pct+'%</td></tr>';
   });
   h+='</tbody></table>';
   document.getElementById('t-search').innerHTML=h;
