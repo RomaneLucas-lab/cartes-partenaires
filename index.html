@@ -265,8 +265,8 @@ async function propagateCorrection(r){
     {name:r.name,address_original:'',lat:r.lat,lng:r.lng,fmt:r.fmt||'',prec:r.prec,updated_at:now}
   ];
   await fetch(SB_URL+'/rest/v1/corrections',{method:'POST',headers:Object.assign({},SB_H,{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(rows)}).catch(function(){});
-  // 2. Mettre à jour TOUTES les offres du même nom dans tous les programmes en Supabase
-  await fetch(SB_URL+'/rest/v1/offres?name=eq.'+encodeURIComponent(r.name),{
+  // 2. Mettre à jour les offres du même nom+adresse dans tous les programmes
+  await fetch(SB_URL+'/rest/v1/offres?name=eq.'+encodeURIComponent(r.name)+'&address=eq.'+encodeURIComponent(r.address||''),{
     method:'PATCH',
     headers:Object.assign({},SB_H,{'Content-Type':'application/json','Prefer':'return=minimal'}),
     body:JSON.stringify({lat:r.lat,lng:r.lng,fmt:r.fmt||'',prec:r.prec})
