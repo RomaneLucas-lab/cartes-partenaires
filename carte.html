@@ -110,7 +110,7 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribu
 var CG=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,spiderfyOnMaxZoom:true,disableClusteringAtZoom:16});
 map.addLayer(CG);
 
-var AM=[],AF=[],S=[],_userLat=null,_userLng=null;
+var AM=[],AF=[],S=[],_userLat=null,_userLng=null,_searchFilter=null;
 
 function mkI(ic,col,logo){
   var inner=logo?'<img src="'+logo+'" style="width:22px;height:22px;object-fit:contain;border-radius:50%;overflow:hidden" onerror="this.style.display=\'none\'"/>':ic;
@@ -180,6 +180,7 @@ function resetSearch(){
     }
   }
   upd();
+  _searchFilter=null;
   document.getElementById('si').value='';
   document.getElementById('sr').style.display='none';
   document.getElementById('si-clear').style.display='none';
@@ -250,17 +251,27 @@ si.addEventListener('input',function(){
         if(isBrand){
           d.innerHTML='<strong>'+s.name+'</strong> <span style="color:#888;font-size:11px">'+nameCount[s.name]+' boutiques</span>';
           d.addEventListener('click',function(){
-            var grp=[];
-            for(var j=0;j<AM.length;j++){if(AM[j].s.name===s.name){CG.addLayer(AM[j].m);grp.push(AM[j].m.getLatLng());}else{CG.removeLayer(AM[j].m);}}
-            if(grp.length)map.fitBounds(L.latLngBounds(grp),{padding:[60,60],maxZoom:15,animate:true});
+            _searchFilter=s.name;
+            for(var j=0;j<AM.length;j++){
+              if(AM[j].s.name===s.name)CG.addLayer(AM[j].m);
+              else CG.removeLayer(AM[j].m);
+            }
             sr.style.display='none';
+            upd();
           });
         }else{
           d.innerHTML='<strong>'+s.name+'</strong> <span style="color:#aaa;font-size:11px">'+s.cat+'</span>';
           d.addEventListener('click',function(){
+            // 1 seule adresse : zoom sur le point
+            _searchFilter=s.name;
+            for(var j=0;j<AM.length;j++){
+              if(AM[j].s.name===s.name)CG.addLayer(AM[j].m);
+              else CG.removeLayer(AM[j].m);
+            }
             map.flyTo([s.lat,s.lng],16,{animate:true,duration:1});
             for(var j=0;j<AM.length;j++){if(AM[j].s.name===s.name&&AM[j].s.lat===s.lat){if(!CG.hasLayer(AM[j].m))CG.addLayer(AM[j].m);setTimeout(function(){AM[j].m.openPopup();},900);break;}}
             sr.style.display='none';
+            upd();
           });
         }
         sr.appendChild(d);
@@ -296,6 +307,15 @@ si.addEventListener('input',function(){
   },400);
 });
 document.getElementById('si-clear').addEventListener('click',function(){resetSearch();});
+map.on('zoomend moveend',function(){
+  if(!_searchFilter)return;
+  // Sur dezoom/déplacement : afficher tous les marqueurs de l'enseigne cherchée
+  for(var i=0;i<AM.length;i++){
+    if(AM[i].s.name===_searchFilter)CG.addLayer(AM[i].m);
+    else CG.removeLayer(AM[i].m);
+  }
+  upd();
+});
 document.addEventListener('click',function(e){if(!document.getElementById('sb').contains(e.target))sr.style.display='none';});
 
 // Geolocation
