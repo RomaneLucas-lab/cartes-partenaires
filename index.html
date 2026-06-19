@@ -704,8 +704,7 @@ function renderTable(){
         +'<td style="'+td+'"><input class="editcell lat-edit" data-idx="'+i+'" value="'+(r.lat||0).toFixed(6)+'" style="border:none;background:transparent;font-size:11px;color:#555;width:75px;font-family:inherit;padding:0;outline:none"/></td>'
         +'<td style="'+td+'"><input class="editcell lng-edit" data-idx="'+i+'" value="'+(r.lng||0).toFixed(6)+'" style="border:none;background:transparent;font-size:11px;color:#555;width:75px;font-family:inherit;padding:0;outline:none"/></td>'
         +'<td style="'+td+';width:30px">'+pb(r.prec)+'</td>'
-        +'<td style="'+td+';white-space:nowrap;width:90px">'
-        +(t.isWarn?'<input type="checkbox" class="warn-ok-chk" data-idx="'+i+'" title="Valider cette adresse" style="cursor:pointer;margin-right:3px;accent-color:#1D9E75"/>':'')
+        +'<td style="'+td+';white-space:nowrap;width:80px">'
         +'<button class="regeo-btn" data-idx="'+i+'" title="Regéocoder" style="background:none;border:none;cursor:pointer;font-size:13px;padding:2px 3px">🔄</button>'
         +'<button class="map-btn" data-idx="'+i+'" title="Repositionner" style="background:none;border:none;cursor:pointer;font-size:13px;padding:2px 3px">📍</button>'
         +'<button class="del-btn" data-idx="'+i+'" title="Supprimer" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 3px;color:#ccc">🗑</button>'
