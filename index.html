@@ -571,7 +571,7 @@ function renderTable(){
     fw.id='tw-filter-wrap';
     fw.style.cssText='display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap';
     fw.innerHTML='<input id="tw-search" type="text" placeholder="🔍 Rechercher un nom..." style="flex:1;min-width:140px;padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none"/>'
-      +'<label style="font-size:12px;color:#e67e22;cursor:pointer;white-space:nowrap;background:#fff8f0;border:1px solid #f0c080;border-radius:6px;padding:4px 10px"><input type="checkbox" id="tw-warn-only" style="margin-right:4px"/>⚠️ À vérifier</label>';
+      +'<label id="tw-warn-label" style="font-size:12px;color:#e67e22;cursor:pointer;white-space:nowrap;background:#fff8f0;border:1px solid #f0c080;border-radius:6px;padding:4px 10px"><input type="checkbox" id="tw-warn-only" style="margin-right:4px"/>⚠️ À vérifier</label>';
     w.parentNode.insertBefore(fw, w);
     var _searchTimer=null;
     document.getElementById('tw-search').addEventListener('input',function(){
@@ -622,10 +622,15 @@ function renderTable(){
     var isWarn=(isDup||isQual)&&!r.warnOk;
     tagged.push({r:r,idx:i,isDup:isDup,isQual:isQual,isWarn:isWarn});
   }
-  tagged.sort(function(a,b){
-    var sa=a.isWarn?0:(!a.r.ok?1:2), sb=b.isWarn?0:(!b.r.ok?1:2);
-    return sa-sb;
-  });
+  // Pas de tri spécial — ordre naturel conservé
+
+  // ── Mettre à jour compteur du bouton À vérifier ──
+  var warnCount=tagged.filter(function(t){return t.isWarn;}).length;
+  var warnLbl=document.getElementById('tw-warn-label');
+  if(warnLbl)warnLbl.innerHTML='<input type="checkbox" id="tw-warn-only" style="margin-right:4px"'+(warnOnly?' checked':'')+'/>'+'⚠️ À vérifier'+(warnCount?' <span style="background:#e67e22;color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;font-weight:700;margin-left:4px">'+warnCount+'</span>':'');
+  // Rebrancher le listener si recreé
+  var tww=document.getElementById('tw-warn-only');
+  if(tww&&!tww._bound){tww._bound=true;tww.addEventListener('change',function(){renderTable();});}
 
   // ── Build header with filter dropdowns ──
   var allNames=[], allCats=[], nsSeen={}, csSeen={};
@@ -693,7 +698,7 @@ function renderTable(){
     if(r.ok){
       h+='<tr data-idx="'+i+'" style="'+baseStyle+'">'
         +'<td style="'+td+';color:#aaa;width:28px">'+(i+1)+'</td>'
-        +'<td style="'+td+'"><b>'+r.name+'</b>'+(t.isWarn||r.warnOk?' <label style="font-size:11px;color:#888;cursor:pointer;white-space:nowrap"><input type="checkbox" class="warn-ok-chk" data-idx="'+i+'" '+(r.warnOk?'checked':'')+' style="margin-right:2px;cursor:pointer"/>✓ OK</label>':'')+'</td>'
+        +'<td style="'+td+'"><b class="name-click" data-idx="'+i+'" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">'+r.name+'</b></td>'
         +'<td style="'+td+'">'+r.category+'</td>'
         +'<td style="'+td+'"><input class="editcell addr-edit" data-idx="'+i+'" value="'+(r.fmt||'').replace(/"/g,'&quot;')+'" style="border:none;background:transparent;font-size:11px;color:#555;width:100%;font-family:inherit;padding:0;outline:none"/></td>'
         +'<td style="'+td+'"><input class="editcell lat-edit" data-idx="'+i+'" value="'+(r.lat||0).toFixed(6)+'" style="border:none;background:transparent;font-size:11px;color:#555;width:75px;font-family:inherit;padding:0;outline:none"/></td>'
@@ -707,7 +712,7 @@ function renderTable(){
     }else{
       h+='<tr data-idx="'+i+'" style="'+baseStyle+'">'
         +'<td style="'+td+';color:#aaa;width:28px">'+(i+1)+'</td>'
-        +'<td style="'+td+'"><b>'+r.name+'</b></td>'
+        +'<td style="'+td+'"><b class="name-click" data-idx="'+i+'" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">'+r.name+'</b></td>'
         +'<td style="'+td+'">'+r.category+'</td>'
         +'<td style="'+td+'"><input class="editcell addr-edit" data-idx="'+i+'" value="'+(r.address||'').replace(/"/g,'&quot;')+'" style="border:none;background:transparent;font-size:11px;color:#e74c3c;width:100%;font-family:inherit;padding:0;outline:none"/></td>'
         +'<td colspan="2" style="'+td+';color:#e74c3c;font-size:11px">✗ '+r.err+'</td>'
@@ -801,8 +806,9 @@ function renderTable(){
   w.querySelectorAll('.warn-ok-chk').forEach(function(chk){
     chk.addEventListener('change',function(){
       var idx=parseInt(this.getAttribute('data-idx'));
-      results[idx].warnOk=this.checked;
-      results[idx].dupOk=this.checked; // compat
+      results[idx].warnOk=true;
+      results[idx].dupOk=true;
+      results[idx].prec='ROOFTOP'; // pastille verte
       saveData(); renderTable();
     });
   });
@@ -1387,6 +1393,48 @@ document.getElementById('qr-btn').addEventListener('click',function(){
 });
 document.getElementById('qr-close').addEventListener('click',function(){document.getElementById('qr-modal').style.display='none';});
 document.getElementById('qr-modal').addEventListener('click',function(e){if(e.target===this)this.style.display='none';});
+</script>
+<div id="desc-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:99999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;padding:22px 24px;width:480px;max-width:94vw;box-shadow:0 8px 40px rgba(0,0,0,.2)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h3 id="desc-modal-title" style="font-size:15px;font-weight:600;margin:0"></h3>
+      <button id="desc-modal-close" style="background:none;border:none;font-size:20px;cursor:pointer;color:#aaa;line-height:1">✕</button>
+    </div>
+    <label style="font-size:12px;font-weight:600;color:#888;display:block;margin-bottom:4px">Description partenaire</label>
+    <textarea id="desc-modal-text" rows="5" style="width:100%;font-size:13px;padding:10px 12px;border:1px solid #ddd;border-radius:8px;resize:vertical;font-family:inherit;outline:none;box-sizing:border-box"></textarea>
+    <label style="font-size:12px;font-weight:600;color:#888;display:block;margin:10px 0 4px">Remise / Type d'offre</label>
+    <input id="desc-modal-remise" type="text" style="width:100%;font-size:13px;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-family:inherit;outline:none;box-sizing:border-box"/>
+    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+      <button id="desc-modal-cancel" class="btn bo" style="font-size:13px">Annuler</button>
+      <button id="desc-modal-save" class="btn bp" style="font-size:13px">✓ Enregistrer</button>
+    </div>
+  </div>
+</div>
+<script>
+var _descIdx=null;
+document.addEventListener('click',function(e){
+  var el=e.target.closest('.name-click');
+  if(!el)return;
+  var idx=parseInt(el.getAttribute('data-idx'));
+  _descIdx=idx;
+  var r=results[idx];
+  document.getElementById('desc-modal-title').textContent=r.name;
+  document.getElementById('desc-modal-text').value=r.description||'';
+  document.getElementById('desc-modal-remise').value=r.remise||'';
+  var m=document.getElementById('desc-modal');
+  m.style.display='flex';
+  setTimeout(function(){document.getElementById('desc-modal-text').focus();},100);
+});
+document.getElementById('desc-modal-close').addEventListener('click',function(){document.getElementById('desc-modal').style.display='none';});
+document.getElementById('desc-modal-cancel').addEventListener('click',function(){document.getElementById('desc-modal').style.display='none';});
+document.getElementById('desc-modal').addEventListener('click',function(e){if(e.target===this)this.style.display='none';});
+document.getElementById('desc-modal-save').addEventListener('click',function(){
+  if(_descIdx===null)return;
+  results[_descIdx].description=document.getElementById('desc-modal-text').value;
+  results[_descIdx].remise=document.getElementById('desc-modal-remise').value;
+  saveData();
+  document.getElementById('desc-modal').style.display='none';
+});
 </script>
 </body>
 </html>
