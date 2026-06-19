@@ -606,7 +606,7 @@ function renderTable(){
     var fw=document.createElement('div');
     fw.id='tw-filter-wrap';
     fw.style.cssText='display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap';
-    fw.innerHTML='<input id="tw-search" type="text" placeholder="🔍 Rechercher un nom..." style="flex:1;min-width:140px;padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none"/>'
+    fw.innerHTML='<input id="tw-search" type="text" placeholder="🔍 Nom, ville, code postal..." style="flex:1;min-width:140px;padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none"/>'
       +'<label id="tw-warn-label" style="font-size:12px;color:#e67e22;cursor:pointer;white-space:nowrap;background:#fff8f0;border:1px solid #f0c080;border-radius:6px;padding:4px 10px"><input type="checkbox" id="tw-warn-only" style="margin-right:4px"/>⚠️ À vérifier</label>'
       +'<label id="tw-dup-label" style="font-size:12px;color:#b26a00;cursor:pointer;white-space:nowrap;background:#fffbe6;border:1px solid #ffe082;border-radius:6px;padding:4px 10px"><input type="checkbox" id="tw-dup-only" style="margin-right:4px"/>2x Doublons</label>';
     w.parentNode.insertBefore(fw, w);
@@ -722,7 +722,12 @@ function renderTable(){
 
   // ── Filter & render rows ──
   var filtered=tagged.filter(function(t){
-    if(search && t.r.name.toLowerCase().indexOf(search)<0) return false;
+    if(search){
+      var terms=search.split(/\s+/).filter(Boolean);
+      var haystack=(t.r.name+' '+(t.r.fmt||t.r.address||'')).toLowerCase();
+      var match=terms.every(function(term){return haystack.indexOf(term)>=0;});
+      if(!match) return false;
+    }
     if(_nameFilter && t.r.name!==_nameFilter) return false;
     if(_catFilter && t.r.category!==_catFilter) return false;
     if(warnOnly && !t.isWarn) return false;
