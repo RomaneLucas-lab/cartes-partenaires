@@ -125,8 +125,6 @@ input[type=color]{width:32px;height:28px;border:1px solid #ddd;border-radius:6px
     <div id="gs"></div>
     <div id="p1act" style="display:none" class="row">
       <button class="btn bo" id="retry-btn">↺ Relancer échecs</button>
-      <button class="btn bo" id="sync-corr-btn" title="Propager les corrections de ce programme vers tous les autres">🔁 Sync corrections</button>
-      <button class="btn bo" id="json-btn">⬇ JSON</button>
       <button class="btn bp" id="to-step2-btn">Personnaliser →</button>
     </div>
     <div id="tw"></div>
@@ -587,30 +585,6 @@ document.getElementById('clear-btn').addEventListener('click',async function(){
   document.getElementById('gs').textContent='';
 });
 
-document.getElementById('sync-corr-btn').addEventListener('click',async function(){
-  var btn=this; btn.disabled=true; btn.textContent='⏳ Sync...';
-  try{
-    // Prendre TOUTES les offres ok (pas seulement MANUAL/NOMINATIM) et les écrire en corrections
-    var corrected=results.filter(function(r){return r.ok&&r.address;});
-    if(!corrected.length){alert('Aucune offre à synchroniser.');btn.disabled=false;btn.textContent='🔁 Sync corrections';return;}
-    var rows=[];
-    corrected.forEach(function(r){
-      // Entrée exacte name+adresse
-      rows.push({name:r.name,address_original:r.address,lat:r.lat,lng:r.lng,fmt:r.fmt||'',prec:r.prec,updated_at:new Date().toISOString()});
-      // Entrée globale par nom seul
-      rows.push({name:r.name,address_original:'',lat:r.lat,lng:r.lng,fmt:r.fmt||'',prec:r.prec,updated_at:new Date().toISOString()});
-    });
-    // Envoyer par batch de 50
-    for(var j=0;j<rows.length;j+=50){
-      await fetch(SB_URL+'/rest/v1/corrections',{method:'POST',headers:Object.assign({},SB_H,{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(rows.slice(j,j+50))});
-    }
-    // Mettre à jour cache local
-    _corrections=rows.filter(function(r){return r.address_original==='';});
-    btn.textContent='✅ '+corrected.length+' sync';
-    setTimeout(function(){btn.disabled=false;btn.textContent='🔁 Sync corrections';},2000);
-  }catch(e){alert('Erreur: '+e.message);btn.disabled=false;btn.textContent='🔁 Sync corrections';}
-});
-
 document.getElementById('retry-btn').addEventListener('click',async function(){
   var key=document.getElementById('apikey').value.trim();
   var failed=results.filter(function(r){return !r.ok;});
@@ -624,10 +598,7 @@ document.getElementById('retry-btn').addEventListener('click',async function(){
   document.getElementById('gs').textContent='✅ Retry terminé';saveData();
 });
 
-document.getElementById('json-btn').addEventListener('click',function(){
-  var b=new Blob([JSON.stringify(results.filter(function(r){return r.ok;}),null,2)],{type:'application/json'});
-  var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=currentProg.replace(/\s/g,'_')+'.json';a.click();
-});
+
 
 function pb(p){return{ROOFTOP:'🟢',RANGE_INTERPOLATED:'🟡',GEOMETRIC_CENTER:'🟠',APPROXIMATE:'🔴',NOMINATIM:'🔵',MANUAL:'🔵'}[p]||'⚪';}
 
@@ -651,7 +622,8 @@ function renderTable(){
     fw.id='tw-filter-wrap';
     fw.style.cssText='display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap';
     fw.innerHTML='<input id="tw-search" type="text" placeholder="🔍 Rechercher un nom..." style="flex:1;min-width:140px;padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none"/>'
-      +'<label id="tw-warn-label" style="font-size:12px;color:#e67e22;cursor:pointer;white-space:nowrap;background:#fff8f0;border:1px solid #f0c080;border-radius:6px;padding:4px 10px"><input type="checkbox" id="tw-warn-only" style="margin-right:4px"/>⚠️ À vérifier</label>';
+      +'<label id="tw-warn-label" style="font-size:12px;color:#e67e22;cursor:pointer;white-space:nowrap;background:#fff8f0;border:1px solid #f0c080;border-radius:6px;padding:4px 10px"><input type="checkbox" id="tw-warn-only" style="margin-right:4px"/>⚠️ À vérifier</label>'
+      +'<label id="tw-dup-label" style="font-size:12px;color:#b26a00;cursor:pointer;white-space:nowrap;background:#fffbe6;border:1px solid #ffe082;border-radius:6px;padding:4px 10px"><input type="checkbox" id="tw-dup-only" style="margin-right:4px"/>2x Doublons</label>';
     w.parentNode.insertBefore(fw, w);
     var _searchTimer=null;
     document.getElementById('tw-search').addEventListener('input',function(){
@@ -660,9 +632,11 @@ function renderTable(){
       _searchTimer=setTimeout(function(){_nameSearch=val;renderTable();},300);
     });
     document.getElementById('tw-warn-only').addEventListener('change',function(){renderTable();});
+    document.getElementById('tw-dup-only').addEventListener('change',function(){renderTable();});
   }
 
   var warnOnly = document.getElementById('tw-warn-only') && document.getElementById('tw-warn-only').checked;
+  var dupOnly = document.getElementById('tw-dup-only') && document.getElementById('tw-dup-only').checked;
 
   // ── Détecter les adresses trop proches (même point arrondi à 3 décimales) ──
   var posCount={};
@@ -710,6 +684,11 @@ function renderTable(){
   var warnLbl=document.getElementById('tw-warn-label');
   if(warnLbl)warnLbl.innerHTML='<input type="checkbox" id="tw-warn-only" style="margin-right:4px"'+(warnOnly?' checked':'')+'/>'+'⚠️ À vérifier'+(warnCount?' <span style="background:#e67e22;color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;font-weight:700;margin-left:4px">'+warnCount+'</span>':'');
   // Rebrancher le listener si recreé
+  var dupCount=tagged.filter(function(t){return t.isDup;}).length;
+  var dupLbl=document.getElementById('tw-dup-label');
+  if(dupLbl)dupLbl.innerHTML='<input type="checkbox" id="tw-dup-only" style="margin-right:4px"'+(dupOnly?' checked':'')+'/>'+'2x Doublons'+(dupCount?' <span style="background:#b26a00;color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;font-weight:700;margin-left:4px">'+dupCount+'</span>':'');
+  var twd=document.getElementById('tw-dup-only');
+  if(twd&&!twd._bound){twd._bound=true;twd.addEventListener('change',function(){renderTable();});}
   var tww=document.getElementById('tw-warn-only');
   if(tww&&!tww._bound){tww._bound=true;tww.addEventListener('change',function(){renderTable();});}
 
@@ -762,6 +741,7 @@ function renderTable(){
     if(_nameFilter && t.r.name!==_nameFilter) return false;
     if(_catFilter && t.r.category!==_catFilter) return false;
     if(warnOnly && !t.isWarn) return false;
+    if(dupOnly && !t.isDup) return false;
     if(_precFilter && t.r.ok){
       if(_precFilter.indexOf('|')>=0){if(_precFilter.split('|').indexOf(t.r.prec)<0)return false;}
       else if(t.r.prec!==_precFilter) return false;
