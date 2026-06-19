@@ -125,6 +125,7 @@ input[type=color]{width:32px;height:28px;border:1px solid #ddd;border-radius:6px
     <div id="gs"></div>
     <div id="p1act" style="display:none" class="row">
       <button class="btn bo" id="retry-btn">↺ Relancer échecs</button>
+      <button class="btn bo" id="sync-corr-btn" title="Propager les corrections de ce programme vers tous les autres">🔁 Sync corrections</button>
       <button class="btn bo" id="json-btn">⬇ JSON</button>
       <button class="btn bp" id="to-step2-btn">Personnaliser →</button>
     </div>
@@ -256,28 +257,36 @@ async function applyCorrections(res){
 }
 
 // Save manual/nominatim corrections globally
+// Propager une correction vers la table corrections ET toutes les offres en base
+async function propagateCorrection(r){
+  if(!r||!r.ok||!r.name)return;
+  var now=new Date().toISOString();
+  // 1. Sauvegarder dans corrections (par nom+adresse ET par nom seul)
+  var rows=[
+    {name:r.name,address_original:r.address||'',lat:r.lat,lng:r.lng,fmt:r.fmt||'',prec:r.prec,updated_at:now},
+    {name:r.name,address_original:'',lat:r.lat,lng:r.lng,fmt:r.fmt||'',prec:r.prec,updated_at:now}
+  ];
+  await fetch(SB_URL+'/rest/v1/corrections',{method:'POST',headers:Object.assign({},SB_H,{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(rows)}).catch(function(){});
+  // 2. Mettre à jour TOUTES les offres du même nom dans tous les programmes en Supabase
+  await fetch(SB_URL+'/rest/v1/offres?name=eq.'+encodeURIComponent(r.name),{
+    method:'PATCH',
+    headers:Object.assign({},SB_H,{'Content-Type':'application/json','Prefer':'return=minimal'}),
+    body:JSON.stringify({lat:r.lat,lng:r.lng,fmt:r.fmt||'',prec:r.prec})
+  }).catch(function(){});
+  // 3. Mettre à jour cache local
+  rows.forEach(function(row){
+    var found=false;
+    for(var i=0;i<_corrections.length;i++){
+      if(_corrections[i].name===row.name&&_corrections[i].address_original===row.address_original){_corrections[i]=row;found=true;break;}
+    }
+    if(!found)_corrections.push(row);
+  });
+}
+
 async function saveCorrections(){
   try{
     var corrected=results.filter(function(r){return r.ok&&(r.prec==='MANUAL'||r.prec==='NOMINATIM')&&r.address;});
-    if(!corrected.length)return;
-    // Sauvegarder avec l'adresse originale ET avec une clé vide pour matcher par nom seul
-    var rows=[];
-    corrected.forEach(function(r){
-      rows.push({name:r.name,address_original:r.address,lat:r.lat,lng:r.lng,fmt:r.fmt||'',prec:r.prec,updated_at:new Date().toISOString()});
-      // Entrée par nom seul (address_original='') pour matcher toutes les variantes d'adresse
-      rows.push({name:r.name,address_original:'',lat:r.lat,lng:r.lng,fmt:r.fmt||'',prec:r.prec,updated_at:new Date().toISOString()});
-    });
-    await fetch(SB_URL+'/rest/v1/corrections',{method:'POST',headers:Object.assign({},SB_H,{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(rows)});
-    // Mettre à jour le cache local
-    rows.forEach(function(row){
-      var existing=false;
-      for(var i=0;i<_corrections.length;i++){
-        if(_corrections[i].name===row.name&&_corrections[i].address_original===row.address_original){
-          _corrections[i]=row;existing=true;break;
-        }
-      }
-      if(!existing)_corrections.push(row);
-    });
+    for(var i=0;i<corrected.length;i++)await propagateCorrection(corrected[i]);
   }catch(e){console.error('saveCorrections',e);}
 }
 
@@ -553,6 +562,30 @@ document.getElementById('clear-btn').addEventListener('click',async function(){
   document.getElementById('tw').style.display='none';
   document.getElementById('p1act').style.display='none';
   document.getElementById('gs').textContent='';
+});
+
+document.getElementById('sync-corr-btn').addEventListener('click',async function(){
+  var btn=this; btn.disabled=true; btn.textContent='⏳ Sync...';
+  try{
+    // Prendre TOUTES les offres ok (pas seulement MANUAL/NOMINATIM) et les écrire en corrections
+    var corrected=results.filter(function(r){return r.ok&&r.address;});
+    if(!corrected.length){alert('Aucune offre à synchroniser.');btn.disabled=false;btn.textContent='🔁 Sync corrections';return;}
+    var rows=[];
+    corrected.forEach(function(r){
+      // Entrée exacte name+adresse
+      rows.push({name:r.name,address_original:r.address,lat:r.lat,lng:r.lng,fmt:r.fmt||'',prec:r.prec,updated_at:new Date().toISOString()});
+      // Entrée globale par nom seul
+      rows.push({name:r.name,address_original:'',lat:r.lat,lng:r.lng,fmt:r.fmt||'',prec:r.prec,updated_at:new Date().toISOString()});
+    });
+    // Envoyer par batch de 50
+    for(var j=0;j<rows.length;j+=50){
+      await fetch(SB_URL+'/rest/v1/corrections',{method:'POST',headers:Object.assign({},SB_H,{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(rows.slice(j,j+50))});
+    }
+    // Mettre à jour cache local
+    _corrections=rows.filter(function(r){return r.address_original==='';});
+    btn.textContent='✅ '+corrected.length+' sync';
+    setTimeout(function(){btn.disabled=false;btn.textContent='🔁 Sync corrections';},2000);
+  }catch(e){alert('Erreur: '+e.message);btn.disabled=false;btn.textContent='🔁 Sync corrections';}
 });
 
 document.getElementById('retry-btn').addEventListener('click',async function(){
@@ -857,6 +890,7 @@ function renderTable(){
         else results[idx].lng=v;
         results[idx].prec='MANUAL';
         results[idx].warnOk=false; results[idx].dupOk=false;
+        propagateCorrection(results[idx]);
         saveData(); renderTable();
       }
     });
@@ -879,6 +913,7 @@ function renderTable(){
           results[idx].fmt=res[0].display_name;
           results[idx].prec='NOMINATIM';
           results[idx].ok=true; results[idx].err=null;
+          propagateCorrection(results[idx]);
           saveData(); renderTable();
         }else{
           row.querySelector('.addr-edit').style.color='#e74c3c';
@@ -1368,6 +1403,7 @@ document.getElementById('modal-confirm').addEventListener('click',function(){
   if(_mmk&&_mmi!==null){
     var ll=_mmk.getLatLng();
     results[_mmi].lat=ll.lat; results[_mmi].lng=ll.lng; results[_mmi].prec='MANUAL';
+    propagateCorrection(results[_mmi]);
     saveData(); renderTable();
   }
   document.getElementById('map-modal').classList.remove('open');
