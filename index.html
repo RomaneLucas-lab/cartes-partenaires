@@ -311,24 +311,19 @@ async function sbLoadProg(name){
     return all;
   }
   try{
-    // Lancer configs + corrections en parallèle SANS les attendre
-    var cfgPromise=fetch(SB_URL+'/rest/v1/configs?programme=eq.'+encodeURIComponent(name),{headers:SB_H}).then(function(r){return r.json();}).catch(function(){return [];});
-    // Toujours recharger les corrections (elles peuvent avoir changé sur un autre programme)
-    var corrPromise=fetch(SB_URL+'/rest/v1/corrections?select=name,address_original,lat,lng,fmt,prec',{headers:SB_H}).then(function(r){return r.json();}).catch(function(){return [];});
-    // Attendre seulement les offres → affichage immédiat
-    var data=await fetchAllOffres(name);
+    // Tout en parallèle : offres + cfg + corrections
+    var vals=await Promise.all([
+      fetchAllOffres(name),
+      fetch(SB_URL+'/rest/v1/configs?programme=eq.'+encodeURIComponent(name),{headers:SB_H}).then(function(r){return r.json();}).catch(function(){return [];}),
+      fetch(SB_URL+'/rest/v1/corrections?select=name,address_original,lat,lng,fmt,prec',{headers:SB_H}).then(function(r){return r.json();}).catch(function(){return [];})
+    ]);
+    var data=vals[0], cd=vals[1], cors=vals[2];
     var mapped=(data||[]).map(function(row){return {name:row.name,category:row.category,subcategory:row.subcategory||'',remise:row.remise||'',description:row.description||'',url:row.url||'',address:row.address,fmt:row.fmt,lat:row.lat,lng:row.lng,prec:row.prec,ok:row.ok,err:row.err,dupOk:row.dup_ok,warnOk:row.dup_ok};});
     _dc[name]=mapped;
-    // Appliquer cfg+corrections quand elles arrivent (sans bloquer)
-    Promise.all([cfgPromise,corrPromise]).then(function(vals){
-      var cd=vals[0], cors=vals[1];
-      var lc=(cd&&cd[0])?cd[0].cfg:{};
-      iconCfg=lc.iconCfg||iconCfg;
-      logoCfg=lc.logoCfg||logoCfg;
-      _corrections=cors||[];
-      if(_corrections.length){applyCorrectionsSync(results);renderTable();}
-    });
-    return {results:mapped,cfg:{}};
+    var lc=(cd&&cd[0])?cd[0].cfg:{};
+    _corrections=cors||[];
+    if(_corrections.length)applyCorrectionsSync(mapped);
+    return {results:mapped,cfg:lc};
   }catch(e){return {results:[],cfg:{}};}
 }
 
@@ -427,12 +422,15 @@ function openProg(name){
   document.getElementById('pvwrap').style.display='none';
   setStep(1);
   sbLoadProg(name).then(function(loaded){
-    results=loaded.results; // cfg applied in background by sbLoadProg Promise.all
+    results=loaded.results;
+    var lc=loaded.cfg||{};
+    iconCfg=lc.iconCfg||{};
+    logoCfg=lc.logoCfg||{};
+    // Merger les logos globaux
+    Object.keys(globalLogos).forEach(function(n){if(!logoCfg[n])logoCfg[n]=globalLogos[n];});
     var ok=results.filter(function(r){return r.ok;}).length;
     document.getElementById('gs').textContent='✅ '+ok+' offres chargées';
     if(results.length>0){renderTable();document.getElementById('p1act').style.display='flex';}
-    // Apply corrections in background without blocking display
-    // Les corrections seront appliquées via le Promise.all de sbLoadProg
   }).catch(function(e){document.getElementById('gs').textContent='❌ '+e.message;});
 }
 
