@@ -273,7 +273,7 @@ si.addEventListener('input',function(){
         })(res[i]);}
       }).catch(function(){lhdr.remove();});
     },300);
-  },400); // debounce 400ms avant affichage résultats
+  },800); // debounce 800ms avant affichage résultats
 });
 document.addEventListener('click',function(e){if(!document.getElementById('sb').contains(e.target))sr.style.display='none';});
 
