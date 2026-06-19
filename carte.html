@@ -198,82 +198,82 @@ function initFilters(cats,catData){
 
 // Search
 var si=document.getElementById('si'),sr=document.getElementById('sr'),_lst=null;
+var _siTimer=null;
 si.addEventListener('input',function(){
-  var q=si.value.trim();sr.innerHTML='';sr.style.display='none';
+  var q=si.value.trim();
+  sr.innerHTML='';sr.style.display='none';
   if(q.length<2)return;
-  // Log searches after 2s debounce
-  clearTimeout(window._searchLogTimer);
-  window._searchLogTimer=setTimeout(function(){
-    if(q.length>=2){
-      var hasRes=AM.filter(function(a){
-        return a.s.name.toLowerCase().includes(q.toLowerCase());
-      }).length>0;
-      fetch(SB_URL+'/rest/v1/search_logs',{
-        method:'POST',
-        headers:Object.assign({'Content-Type':'application/json','Prefer':'return=minimal'},SB_HDR),
-        body:JSON.stringify({programme:PROG,query:q,has_results:hasRes})
-      }).catch(function(){});
+  clearTimeout(_siTimer);
+  _siTimer=setTimeout(function(){
+    q=si.value.trim();
+    if(q.length<2)return;
+    // Log en Supabase après 1.5s supplémentaires
+    clearTimeout(window._searchLogTimer);
+    window._searchLogTimer=setTimeout(function(){
+      var hasRes=AM.filter(function(a){return a.s.name.toLowerCase().includes(q.toLowerCase());}).length>0;
+      fetch(SB_URL+'/rest/v1/search_logs',{method:'POST',headers:Object.assign({'Content-Type':'application/json','Prefer':'return=minimal'},SB_HDR),body:JSON.stringify({programme:PROG,query:q,has_results:hasRes})}).catch(function(){});
+    },1500);
+    // Afficher résultats offres
+    sr.style.display='block';
+    var hits=[],ql=q.toLowerCase();
+    for(var i=0;i<S.length;i++){if(S[i].name.toLowerCase().indexOf(ql)>=0)hits.push(S[i]);}
+    if(hits.length>0){
+      var nameCount={};
+      for(var i=0;i<hits.length;i++)nameCount[hits[i].name]=(nameCount[hits[i].name]||0)+1;
+      var brands={};
+      for(var i=0;i<hits.length;i++){
+        (function(s){
+          var isBrand=nameCount[s.name]>1;
+          if(isBrand&&brands[s.name])return;if(isBrand)brands[s.name]=true;
+          var d=document.createElement('div');
+          if(isBrand){
+            d.innerHTML='<strong>'+s.name+'</strong> <span style="color:#888;font-size:11px">'+nameCount[s.name]+' boutiques</span>';
+            d.addEventListener('click',function(){
+              var grp=[];
+              for(var j=0;j<AM.length;j++){if(AM[j].s.name===s.name){CG.addLayer(AM[j].m);grp.push(AM[j].m.getLatLng());}else{CG.removeLayer(AM[j].m);}}
+              if(grp.length)map.fitBounds(L.latLngBounds(grp),{padding:[60,60],maxZoom:15,animate:true});
+              sr.style.display='none';si.value='';
+            });
+          }else{
+            d.innerHTML='<strong>'+s.name+'</strong> <span style="color:#aaa;font-size:11px">'+s.cat+'</span>';
+            d.addEventListener('click',function(){
+              map.flyTo([s.lat,s.lng],16,{animate:true,duration:1});
+              for(var j=0;j<AM.length;j++){if(AM[j].s.name===s.name&&AM[j].s.lat===s.lat){if(!CG.hasLayer(AM[j].m))CG.addLayer(AM[j].m);setTimeout(function(){AM[j].m.openPopup();},900);break;}}
+              sr.style.display='none';si.value='';
+            });
+          }
+          sr.appendChild(d);
+        })(hits[i]);
+      }
     }
-  },2000);
-  sr.style.display='block';
-  var hits=[],ql=q.toLowerCase();
-  for(var i=0;i<S.length;i++){if(S[i].name.toLowerCase().indexOf(ql)>=0)hits.push(S[i]);}
-  if(hits.length>0){
-    var nameCount={};
-    for(var i=0;i<hits.length;i++)nameCount[hits[i].name]=(nameCount[hits[i].name]||0)+1;
-    var brands={};
-    for(var i=0;i<hits.length;i++){
-      (function(s){
-        var isBrand=nameCount[s.name]>1;
-        if(isBrand&&brands[s.name])return;if(isBrand)brands[s.name]=true;
-        var d=document.createElement('div');
-        if(isBrand){
-          d.innerHTML='<strong>'+s.name+'</strong> <span style="color:#888;font-size:11px">'+nameCount[s.name]+' boutiques</span>';
+    // Nominatim
+    var lhdr=document.createElement('div');
+    lhdr.style.cssText='padding:4px 12px;font-size:10px;font-weight:700;color:#bbb;text-transform:uppercase;background:#f9f9f9;border-top:1px solid #f0f0ee';
+    lhdr.textContent='Lieux';sr.appendChild(lhdr);
+    clearTimeout(_lst);
+    _lst=setTimeout(function(){
+      fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q)+'&limit=5&addressdetails=1&accept-language=fr')
+      .then(function(r){return r.json();}).then(function(res){
+        if(!res||!res.length){lhdr.remove();return;}
+        var seen={};
+        for(var i=0;i<res.length;i++){(function(pl){
+          var addr=pl.address||{},main=addr.road||addr.city||addr.town||addr.village||pl.display_name.split(',')[0];
+          var sec=pl.display_name.split(',').slice(1,3).join(',').trim();
+          var key=(main+sec.split(',')[0]).toLowerCase().replace(/\s/g,'');if(seen[key])return;seen[key]=true;
+          var d=document.createElement('div');
+          d.innerHTML='📍 <strong>'+main+'</strong><span style="color:#aaa;font-size:11px"> '+sec+'</span>';
           d.addEventListener('click',function(){
-            var grp=[];
-            for(var j=0;j<AM.length;j++){if(AM[j].s.name===s.name){CG.addLayer(AM[j].m);grp.push(AM[j].m.getLatLng());}else{CG.removeLayer(AM[j].m);}}
-            if(grp.length)map.fitBounds(L.latLngBounds(grp),{padding:[60,60],maxZoom:15,animate:true});
+            var lat=parseFloat(pl.lat),lng=parseFloat(pl.lon),tp=pl.type||'',cl=pl.class||'',a=pl.address||{};
+            var z=tp==='house'||cl==='building'?18:tp==='road'?17:tp==='suburb'?15:tp==='village'?14:tp==='city'||tp==='town'?15:cl==='boundary'?12:a.house_number?18:a.road?17:14;
+            map.flyTo([lat,lng],z,{animate:true,duration:1.2});
+            clearTimeout(window._searchLogTimer);
             sr.style.display='none';si.value='';
           });
-        }else{
-          d.innerHTML='<strong>'+s.name+'</strong> <span style="color:#aaa;font-size:11px">'+s.cat+'</span>';
-          d.addEventListener('click',function(){
-            map.flyTo([s.lat,s.lng],16,{animate:true,duration:1});
-            for(var j=0;j<AM.length;j++){if(AM[j].s.name===s.name&&AM[j].s.lat===s.lat){if(!CG.hasLayer(AM[j].m))CG.addLayer(AM[j].m);setTimeout(function(){AM[j].m.openPopup();},900);break;}}
-            sr.style.display='none';si.value='';
-          });
-        }
-        sr.appendChild(d);
-      })(hits[i]);
-    }
-  }
-  // Nominatim
-  var lhdr=document.createElement('div');
-  lhdr.style.cssText='padding:4px 12px;font-size:10px;font-weight:700;color:#bbb;text-transform:uppercase;background:#f9f9f9;border-top:1px solid #f0f0ee';
-  lhdr.textContent='Lieux';sr.appendChild(lhdr);
-  clearTimeout(_lst);
-  _lst=setTimeout(function(){
-    fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q)+'&limit=5&addressdetails=1&accept-language=fr')
-    .then(function(r){return r.json();}).then(function(res){
-      if(!res||!res.length){lhdr.remove();return;}
-      var seen={};
-      for(var i=0;i<res.length;i++){(function(pl){
-        var addr=pl.address||{},main=addr.road||addr.city||addr.town||addr.village||pl.display_name.split(',')[0];
-        var sec=pl.display_name.split(',').slice(1,3).join(',').trim();
-        var key=(main+sec.split(',')[0]).toLowerCase().replace(/\s/g,'');if(seen[key])return;seen[key]=true;
-        var d=document.createElement('div');
-        d.innerHTML='📍 <strong>'+main+'</strong><span style="color:#aaa;font-size:11px"> '+sec+'</span>';
-        d.addEventListener('click',function(){
-          var lat=parseFloat(pl.lat),lng=parseFloat(pl.lon),tp=pl.type||'',cl=pl.class||'',a=pl.address||{};
-          var z=tp==='house'||cl==='building'?18:tp==='road'?17:tp==='suburb'?15:tp==='village'?14:tp==='city'||tp==='town'?15:cl==='boundary'?12:a.house_number?18:a.road?17:14;
-          map.flyTo([lat,lng],z,{animate:true,duration:1.2});
-          clearTimeout(window._searchLogTimer);
-          sr.style.display='none';si.value='';
-        });
-        sr.appendChild(d);
-      })(res[i]);}
-    }).catch(function(){lhdr.remove();});
-  },400);
+          sr.appendChild(d);
+        })(res[i]);}
+      }).catch(function(){lhdr.remove();});
+    },300);
+  },400); // debounce 400ms avant affichage résultats
 });
 document.addEventListener('click',function(e){if(!document.getElementById('sb').contains(e.target))sr.style.display='none';});
 
