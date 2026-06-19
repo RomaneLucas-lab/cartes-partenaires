@@ -613,13 +613,7 @@ function pb(p){return{ROOFTOP:'🟢',RANGE_INTERPOLATED:'🟡',GEOMETRIC_CENTER:
 
 var _nameFilter='', _catFilter='', _precFilter='', _nameSearch='', _lastFiltered=[];
 
-function updateSelBar(){
-  var selected=results.filter(function(r){return r._sel;});
-  var bar=document.getElementById('sel-bar'),cnt=document.getElementById('sel-count');
-  if(!bar)return;
-  bar.style.display=selected.length>0?'flex':'none';
-  if(cnt)cnt.textContent=selected.length+' sélectionnée'+(selected.length>1?'s':'');
-}
+
 
 function renderTable(){
   var w=document.getElementById('tw');
@@ -772,9 +766,9 @@ function renderTable(){
     return true;
   });
 
-  if(!filtered.length) h+='<tr style="display:table;width:100%;table-layout:fixed"><td colspan="8" style="text-align:center;color:#aaa;padding:16px;font-size:12px">Aucun résultat</td></tr>';
+  if(!_lastFiltered.length) h+='<tr style="display:table;width:100%;table-layout:fixed"><td colspan="8" style="text-align:center;color:#aaa;padding:16px;font-size:12px">Aucun résultat</td></tr>';
 
-  filtered.forEach(function(t){
+  _lastFiltered.forEach(function(t){
     var r=t.r, i=t.idx;
     var bg=t.isWarn?'background:#fff8f0':(!r.ok&&!t.isWarn?'background:#fff8f8':'');
     var baseStyle=bg;
