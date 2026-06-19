@@ -618,6 +618,14 @@ function renderTable(){
     });
     document.getElementById('tw-warn-only').addEventListener('change',function(){renderTable();});
     document.getElementById('tw-dup-only').addEventListener('change',function(){renderTable();});
+    // Barre de sélection multiple
+    var selBar=document.createElement('div');
+    selBar.id='sel-bar';
+    selBar.style.cssText='display:none;gap:8px;align-items:center;margin-top:6px;padding:6px 10px;background:#f0f0ff;border-radius:8px;border:1px solid #c0c0ee';
+    selBar.innerHTML='<button id="sel-all-btn" style="font-size:12px;padding:3px 12px;border-radius:6px;border:1px solid #7F77DD;background:#fff;color:#7F77DD;cursor:pointer">Sélectionner tout</button>'
+      +'<span id="sel-count" style="font-size:12px;color:#666"></span>'
+      +'<button id="sel-del-btn" class="btn" style="font-size:12px;padding:3px 12px;border-radius:6px;border:1px solid #e74c3c;background:#fff;color:#e74c3c;cursor:pointer;margin-left:auto">🗑 Supprimer la sélection</button>';
+    fw.parentNode.insertBefore(selBar, fw.nextSibling);
   }
 
   var warnOnly = document.getElementById('tw-warn-only') && document.getElementById('tw-warn-only').checked;
@@ -708,8 +716,9 @@ function renderTable(){
 
   var ths='padding:8px 6px;text-align:left;font-size:11px;color:#888;font-weight:600;border-bottom:2px solid #e8e8e4;background:#fff;';
   var h='<table style="width:100%;border-collapse:collapse;table-layout:fixed">'
-    +'<colgroup><col style="width:30px"><col style="width:120px"><col style="width:90px"><col><col style="width:85px"><col style="width:85px"><col style="width:35px"><col style="width:90px"></colgroup>'
+    +'<colgroup><col style="width:24px"><col style="width:30px"><col style="width:120px"><col style="width:90px"><col><col style="width:85px"><col style="width:85px"><col style="width:35px"><col style="width:90px"></colgroup>'
     +'<thead><tr>'
+    +'<th style="'+ths+'padding:8px 4px"><input type="checkbox" id="th-sel-all" style="cursor:pointer"/></th>'
     +'<th style="'+ths+'">#</th>'
     +'<th style="'+ths+'position:relative;cursor:pointer;user-select:none" id="th-nom">'+nLabel+mkDrop('nom-drop',nomItems,'data-val',_nameFilter,nomSearch)+'</th>'
     +'<th style="'+ths+'position:relative;cursor:pointer;user-select:none" id="th-cat">'+cLabel+mkDrop('cat-drop',catItems,'data-val',_catFilter)+'</th>'
@@ -748,6 +757,7 @@ function renderTable(){
     var td='padding:6px;font-size:12px;border-bottom:1px solid #f5f5f3;vertical-align:middle';
     if(r.ok){
       h+='<tr data-idx="'+i+'" style="'+baseStyle+'">'
+        +'<td style="'+td+';padding:6px 4px"><input type="checkbox" class="row-sel-chk" data-idx="'+i+'" '+(r._sel?'checked':'')+' style="cursor:pointer"/></td>'
         +'<td style="'+td+';color:#aaa;width:28px">'+(i+1)+'</td>'
         +'<td style="'+td+'"><b class="name-click" data-idx="'+i+'" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">'+r.name+'</b>'+(t.isDup?' <span style="font-size:10px;background:#ffe082;color:#b26a00;border-radius:4px;padding:1px 5px;font-weight:700;vertical-align:middle">2x</span>':'')+'</td>'
         +'<td style="'+td+'">'+r.category+'</td>'
@@ -762,6 +772,7 @@ function renderTable(){
         +'</td></tr>';
     }else{
       h+='<tr data-idx="'+i+'" style="'+baseStyle+'">'
+        +'<td style="'+td+';padding:6px 4px"><input type="checkbox" class="row-sel-chk" data-idx="'+i+'" '+(r._sel?'checked':'')+' style="cursor:pointer"/></td>'
         +'<td style="'+td+';color:#aaa;width:28px">'+(i+1)+'</td>'
         +'<td style="'+td+'"><b class="name-click" data-idx="'+i+'" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">'+r.name+'</b>'+(t.isDup?' <span style="font-size:10px;background:#ffe082;color:#b26a00;border-radius:4px;padding:1px 5px;font-weight:700;vertical-align:middle">2x</span>':'')+'</td>'
         +'<td style="'+td+'">'+r.category+'</td>'
@@ -919,6 +930,54 @@ function renderTable(){
   });
 
   // Delete button
+  // Checkboxes individuelles
+  function updateSelBar(){
+    var sel=results.filter(function(r){return r._sel;});
+    var bar=document.getElementById('sel-bar');
+    var cnt=document.getElementById('sel-count');
+    if(bar)bar.style.display=sel.length>0||true?'flex':'none'; // toujours visible si données
+    if(cnt)cnt.textContent=sel.length>0?sel.length+' sélectionné'+(sel.length>1?'s':''):'';
+    var allSel=filtered.length>0&&filtered.every(function(t){return t.r._sel;});
+    var btn=document.getElementById('sel-all-btn');
+    if(btn){btn.textContent=allSel?'Désélectionner tout':'Sélectionner tout';btn.style.background=allSel?'#7F77DD':'#fff';btn.style.color=allSel?'#fff':'#7F77DD';}
+    var allChk=document.getElementById('th-sel-all');
+    if(allChk)allChk.checked=allSel;
+  }
+  w.querySelectorAll('.row-sel-chk').forEach(function(chk){
+    chk.addEventListener('change',function(){
+      var idx=parseInt(this.getAttribute('data-idx'));
+      results[idx]._sel=this.checked;
+      updateSelBar();
+    });
+  });
+  // Tout sélectionner (header)
+  var thSelAll=document.getElementById('th-sel-all');
+  if(thSelAll){thSelAll.addEventListener('change',function(){
+    filtered.forEach(function(t){t.r._sel=this.checked;}.bind(this));
+    renderTable();
+  });}
+  // Bouton toggle sélectionner/désélectionner tout
+  var selAllBtn=document.getElementById('sel-all-btn');
+  if(selAllBtn){selAllBtn.addEventListener('click',function(){
+    var allSel=filtered.every(function(t){return t.r._sel;});
+    filtered.forEach(function(t){t.r._sel=!allSel;});
+    selAllBtn.textContent=allSel?'Sélectionner tout':'Désélectionner tout';
+    selAllBtn.style.background=allSel?'#fff':'#7F77DD';
+    selAllBtn.style.color=allSel?'#7F77DD':'#fff';
+    renderTable();
+  });}
+  // Supprimer sélection
+  var selDel=document.getElementById('sel-del-btn');
+  if(selDel){selDel.addEventListener('click',function(){
+    var sel=results.filter(function(r){return r._sel;});
+    if(!sel.length)return;
+    if(!confirm('Supprimer '+sel.length+' offre'+(sel.length>1?'s':'')+' ?'))return;
+    results=results.filter(function(r){return !r._sel;});
+    saveData();renderTable();
+    document.getElementById('gs').textContent='✅ '+results.filter(function(r){return r.ok;}).length+' offres';
+  });}
+  updateSelBar();
+
   w.querySelectorAll('.del-btn').forEach(function(btn){
     btn.addEventListener('click',function(){
       var idx=parseInt(this.getAttribute('data-idx'));
