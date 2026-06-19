@@ -580,14 +580,7 @@ document.getElementById('geo-btn').addEventListener('click',async function(){
   saveCorrections();
 });
 
-document.getElementById('load-btn').addEventListener('click',function(){
-  document.getElementById('gs').textContent='⏳ Chargement...';
-  sbLoadProg(currentProg).then(function(loaded){
-    results=loaded.results; var lc2=loaded.cfg||{}; iconCfg=lc2.iconCfg||lc2; logoCfg=lc2.logoCfg||{};
-    if(results.length>0){renderTable();document.getElementById('p1act').style.display='flex';document.getElementById('gs').textContent='✅ '+results.filter(function(r){return r.ok;}).length+' offres chargées';}
-    else{document.getElementById('gs').textContent='Aucune donnée pour ce programme.';}
-  });
-});
+
 
 document.getElementById('clear-btn').addEventListener('click',async function(){
   if(!window.confirm('Effacer les données de "'+currentProg+'" ?'))return;
