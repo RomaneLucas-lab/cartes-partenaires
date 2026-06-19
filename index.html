@@ -238,7 +238,7 @@ function applyCorrectionsSync(res){
       var cor=corByNameAddr[key];
       // Priorité 2 : match par nom seul (correction globale)
       if(!cor)cor=corByName[res[i].name.toLowerCase()];
-      if(cor){res[i].lat=cor.lat;res[i].lng=cor.lng;res[i].fmt=cor.fmt||res[i].fmt;res[i].prec=cor.prec;applied++;}
+      if(cor){res[i].lat=cor.lat;res[i].lng=cor.lng;res[i].fmt=cor.fmt||res[i].fmt;res[i].prec=cor.prec;res[i].warnOk=true;res[i].dupOk=true;applied++;}
     }
     if(applied)console.log('Applied',applied,'correction(s)');
   }catch(e){console.error('applyCorrectionsSync',e);}
