@@ -403,17 +403,21 @@ function exportSearchCSV(){
   var searches=filterData(allSearches,'searched_at');
   var f=getFilters();
   var prog=f.prog||'Tous';
-  var byKey={};
+  var terms={};
   searches.forEach(function(d){
     var q=(d.query||'').toLowerCase().trim();
     if(!q)return;
-    var k=(d.programme||'')+'||'+q;
-    if(!byKey[k])byKey[k]={prog:d.programme||'',term:q,count:0};
-    byKey[k].count++;
+    if(!terms[q])terms[q]={count:0,progs:{}};
+    terms[q].count++;
+    terms[q].progs[d.programme]=(terms[q].progs[d.programme]||0)+1;
   });
-  var rows=['sep=;','Programme;Terme;Nombre de recherches'];
-  Object.values(byKey).sort(function(a,b){return b.count-a.count;}).forEach(function(c){
-    rows.push('"'+c.prog+'";"'+c.term+'";'+c.count);
+  var groups=groupTerms(terms);
+  var total=groups.reduce(function(s,g){return s+g.count;},0);
+  var rows=['sep=;','Rang;Terme principal;Variantes;Recherches;% du total;Programmes'];
+  groups.forEach(function(g,i){
+    var pct=(total>0?Math.round(g.count/total*100):0)+'%';
+    var variants=g.variants.slice(1).join(', ');
+    rows.push((i+1)+';"'+g.label+'";"'+variants+'";'+g.count+';'+pct+';"'+Object.keys(g.progs).join(', ')+'"');
   });
   downloadCSV(rows.join('\n'),'recherches_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
 }
