@@ -385,12 +385,13 @@ async function loadAll(){
     fetch(SB_URL+'/rest/v1/search_logs?select=programme,query,searched_at&order=searched_at.desc&limit=10000',{headers:SB_H}),
     fetch(SB_URL+'/rest/v1/offer_clicks?select=programme,offer_name,offer_address,clicked_at&order=clicked_at.desc&limit=10000',{headers:SB_H}),
     fetch(SB_URL+'/rest/v1/marker_clicks?select=programme,offer_name,offer_category,offer_subcategory,offer_address,offer_city,clicked_at&order=clicked_at.desc&limit=10000',{headers:SB_H}),
-    fetch(SB_URL+'/rest/v1/loc_clicks?select=programme,lat,lng,city,department,department_num,region,clicked_at&order=clicked_at.desc&limit=10000',{headers:SB_H})
+    fetch(SB_URL+'/rest/v1/loc_clicks?select=programme,lat,lng,city,department,department_num,region,clicked_at&order=clicked_at.desc&limit=10000',{headers:SB_H}).catch(function(){return {json:function(){return [];}}})
   ]);
   allSearches=await r[0].json()||[];
   allClicks=await r[1].json()||[];
   allMarkers=await r[2].json()||[];
-  allLocs=await r[3].json()||[];
+  try{allLocs=await r[3].json()||[];}catch(e){allLocs=[];}
+  if(!Array.isArray(allLocs))allLocs=[];
   render();
 }
 
