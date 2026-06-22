@@ -203,6 +203,10 @@ function groupTerms(terms){
       }
     }
     assigned.add(label);
+    // Choisir le terme le plus long (le plus complet) comme label
+    g.label=g.variants.reduce(function(best,v){return v.length>best.length?v:best;},g.variants[0]);
+    // Mettre le label en tête, les autres après
+    g.variants=[g.label].concat(g.variants.filter(function(v){return v!==g.label;}));
     groups.push(g);
   }
   return groups.sort(function(a,b){return b.count-a.count;});
