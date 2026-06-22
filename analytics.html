@@ -220,12 +220,14 @@ function renderSearches(data){
   var groups=groupTerms(terms);
   document.getElementById('k-top').textContent=groups.length?groups[0].label:'---';
   if(!groups.length){document.getElementById('t-search').innerHTML='<div class="empty">Aucune recherche</div>';return;}
+  var total=groups.reduce(function(s,g){return s+g.count;},0);
   var max=groups[0].count;
   var h='<table><thead><tr><th>#</th><th>Terme</th><th>Recherches</th><th>Programmes</th></tr></thead><tbody>';
   groups.slice(0,50).forEach(function(g,i){
     var badge=g.variants.length>1?' <span onclick="toggleVariants(this)" data-variants="'+g.variants.join('|')+'" style="font-size:10px;background:#f0f0ff;color:#7F77DD;border-radius:4px;padding:1px 5px;cursor:pointer;margin-left:4px;user-select:none">+'+(g.variants.length-1)+'</span><div class="variants-list" style="display:none;margin-top:4px;font-size:11px;color:#999;line-height:1.8"></div>':'';
+    var pct=Math.round(g.count/total*100);
     h+='<tr><td style="color:#aaa">'+(i+1)+'</td><td><b>'+g.label+'</b>'+badge+'</td>'
-      +'<td><div class="row-bar"><span style="min-width:30px">'+g.count+'</span><div class="bar-wrap"><div class="bar" style="width:'+Math.round(g.count/max*100)+'%"></div></div></div></td>'
+      +'<td style="white-space:nowrap"><span style="font-size:13px;font-weight:600">'+g.count+'</span> <span style="font-size:12px;color:#aaa">'+pct+'%</span></td>'
       +'<td style="color:#888;font-size:12px">'+Object.keys(g.progs).join(', ')+'</td></tr>';
   });
   h+='</tbody></table>';
