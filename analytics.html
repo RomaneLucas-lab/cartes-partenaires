@@ -138,65 +138,81 @@ function render(){
   renderProgTable(searches);
 }
 
+// ── Utilitaires regroupement ──────────────────────────────────────────
 function normalizeQ(s){
-  // Supprime accents, ponctuation, espaces multiples -> clé de regroupement
-  return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ').trim();
+  return s.toLowerCase().trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[''`]/g,"'")
+    .replace(/\s+/g,' ');
+}
+function stemQ(s){
+  return s.replace(/ux$/,'l').replace(/aux$/,'al')
+    .replace(/s$/,'').replace(/es$/,'')
+    .replace(/tion$/,'').replace(/tions$/,'')
+    .replace(/ment$/,'').replace(/ments$/,'');
 }
 function levenshtein(a,b){
-  var m=a.length,n=b.length,dp=[];
-  for(var i=0;i<=m;i++){dp[i]=[i];for(var j=1;j<=n;j++)dp[i][j]=i===0?j:0;}
-  for(var j=1;j<=n;j++)dp[0][j]=j;
-  for(var i=1;i<=m;i++)for(var j=1;j<=n;j++)
-    dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j-1],dp[i-1][j],dp[i][j-1]);
+  if(a===b)return 0;
+  if(!a.length)return b.length;
+  if(!b.length)return a.length;
+  var m=a.length,n=b.length,dp=[],i,j;
+  for(i=0;i<=m;i++){dp[i]=[i];for(j=1;j<=n;j++)dp[i][j]=0;}
+  for(j=0;j<=n;j++)dp[0][j]=j;
+  for(i=1;i<=m;i++)for(j=1;j<=n;j++){
+    dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  }
   return dp[m][n];
+}
+function areClose(a,b){
+  var na=normalizeQ(a),nb=normalizeQ(b);
+  if(na===nb)return true;
+  if(stemQ(na)===stemQ(nb))return true;
+  var shorter=na.length<nb.length?na:nb,longer=na.length<nb.length?nb:na;
+  if(shorter.length>=3&&longer.indexOf(shorter)===0)return true;
+  var maxLen=Math.max(na.length,nb.length);
+  if(maxLen>=4&&levenshtein(na,nb)<=Math.floor(maxLen*0.25))return true;
+  return false;
+}
+function groupTerms(terms){
+  var entries=Object.entries(terms).sort(function(a,b){return b[1].count-a[1].count;});
+  var groups=[],assigned=new Set(),i,j;
+  for(i=0;i<entries.length;i++){
+    if(assigned.has(entries[i][0]))continue;
+    var label=entries[i][0],g={label:label,count:entries[i][1].count,variants:[label],progs:Object.assign({},entries[i][1].progs)};
+    for(j=i+1;j<entries.length;j++){
+      if(assigned.has(entries[j][0]))continue;
+      if(areClose(label,entries[j][0])){
+        g.count+=entries[j][1].count;
+        g.variants.push(entries[j][0]);
+        Object.keys(entries[j][1].progs).forEach(function(p){g.progs[p]=(g.progs[p]||0)+entries[j][1].progs[p];});
+        assigned.add(entries[j][0]);
+      }
+    }
+    assigned.add(label);
+    groups.push(g);
+  }
+  return groups.sort(function(a,b){return b.count-a.count;});
 }
 function renderSearches(data){
   document.getElementById('k-total').textContent=data.length;
-  // Étape 1 : compter par terme brut
-  var raw={};
+  var terms={};
   data.forEach(function(d){
     var q=(d.query||'').toLowerCase().trim();
-    var p=d.programme||'(non renseigné)';
     if(!q)return;
-    if(!raw[q])raw[q]={count:0,progs:{}};
-    raw[q].count++;
-    raw[q].progs[p]=(raw[q].progs[p]||0)+1;
+    if(!terms[q])terms[q]={count:0,progs:{}};
+    terms[q].count++;
+    terms[q].progs[d.programme]=(terms[q].progs[d.programme]||0)+1;
   });
-  // Étape 2 : regrouper les variantes (même clé normalisée OU distance <= 1 si longueur >= 5)
-  var groups={};   // clé normalisée -> {label, count, progs, variants}
-  Object.entries(raw).forEach(function(e){
-    var q=e[0],v=e[1];
-    var nq=normalizeQ(q);
-    // Chercher un groupe existant similaire
-    var matched=null;
-    Object.keys(groups).forEach(function(gk){
-      if(matched)return;
-      if(gk===nq){matched=gk;return;}
-      // Distance de Levenshtein sur clés normalisées si longueur >= 5
-      var minLen=Math.min(nq.length,gk.length);
-      var maxDist=minLen>=10?3:minLen>=7?2:1;if(minLen>=5&&levenshtein(nq,gk)<=maxDist)matched=gk;
-    });
-    if(matched){
-      groups[matched].count+=v.count;
-      Object.keys(v.progs).forEach(function(p){groups[matched].progs[p]=(groups[matched].progs[p]||0)+v.progs[p];});
-      groups[matched].variants.push(q);
-      // Garder le label le plus fréquent
-      if(v.count>groups[matched].topCount){groups[matched].label=q;groups[matched].topCount=v.count;}
-    }else{
-      groups[nq]={label:q,count:v.count,progs:Object.assign({},v.progs),variants:[q],topCount:v.count};
-    }
-  });
-  var sorted=Object.values(groups).sort(function(a,b){return b.count-a.count;});
-  document.getElementById('k-top').textContent=sorted.length?sorted[0].label:'---';
-  if(!sorted.length){document.getElementById('t-search').innerHTML='<div class="empty">Aucune recherche</div>';return;}
-  var total=data.length;
-  var h='<table><thead><tr><th>#</th><th>Terme</th><th>Recherches</th><th style="color:#888;font-weight:500">% du total</th></tr></thead><tbody>';
-  sorted.slice(0,50).forEach(function(e,i){
-    var variants=e.variants.length>1?' <span style="font-size:10px;color:#aaa;font-weight:400">('+e.variants.join(', ')+')</span>':'';
-    var pct=total>0?Math.round(e.count/total*1000)/10:0;
-    h+='<tr><td style="color:#aaa">'+(i+1)+'</td><td><b>'+e.label+'</b>'+variants+'</td>'
-      +'<td style="font-weight:600">'+e.count+'</td>'
-      +'<td style="color:#7F77DD;font-weight:600">'+pct+'%</td></tr>';
+  var groups=groupTerms(terms);
+  document.getElementById('k-top').textContent=groups.length?groups[0].label:'---';
+  if(!groups.length){document.getElementById('t-search').innerHTML='<div class="empty">Aucune recherche</div>';return;}
+  var max=groups[0].count;
+  var h='<table><thead><tr><th>#</th><th>Terme</th><th>Recherches</th><th>Programmes</th></tr></thead><tbody>';
+  groups.slice(0,50).forEach(function(g,i){
+    var badge=g.variants.length>1?' <span title="'+g.variants.join(', ')+'" style="font-size:10px;background:#f0f0ff;color:#7F77DD;border-radius:4px;padding:1px 5px;cursor:help;margin-left:4px">+'+(g.variants.length-1)+'</span>':'';
+    h+='<tr><td style="color:#aaa">'+(i+1)+'</td><td><b>'+g.label+'</b>'+badge+'</td>'
+      +'<td><div class="row-bar"><span style="min-width:30px">'+g.count+'</span><div class="bar-wrap"><div class="bar" style="width:'+Math.round(g.count/max*100)+'%"></div></div></div></td>'
+      +'<td style="color:#888;font-size:12px">'+Object.keys(g.progs).join(', ')+'</td></tr>';
   });
   h+='</tbody></table>';
   document.getElementById('t-search').innerHTML=h;
