@@ -381,20 +381,35 @@ function renderProgTable(data){
 }
 
 async function safeJson(resp){
-  try{var d=await resp.json();return Array.isArray(d)?d:[];}catch(e){return [];}
+  try{
+    var d=await resp.json();
+    if(Array.isArray(d))return d;
+    console.warn('safeJson: pas un tableau',d);
+    return [];
+  }catch(e){
+    console.warn('safeJson erreur',e);
+    return [];
+  }
 }
 async function loadAll(){
-  var r=await Promise.all([
-    fetch(SB_URL+'/rest/v1/search_logs?select=programme,query,searched_at&order=searched_at.desc&limit=10000',{headers:SB_H}),
-    fetch(SB_URL+'/rest/v1/offer_clicks?select=programme,offer_name,offer_address,clicked_at&order=clicked_at.desc&limit=10000',{headers:SB_H}),
-    fetch(SB_URL+'/rest/v1/marker_clicks?select=programme,offer_name,offer_category,offer_subcategory,offer_address,offer_city,clicked_at&order=clicked_at.desc&limit=10000',{headers:SB_H}),
-    fetch(SB_URL+'/rest/v1/loc_clicks?select=programme,lat,lng,city,department,department_num,region,clicked_at&order=clicked_at.desc&limit=10000',{headers:SB_H}).catch(function(){return new Response('[]');})
-  ]);
-  allSearches=await safeJson(r[0]);
-  allClicks=await safeJson(r[1]);
-  allMarkers=await safeJson(r[2]);
-  allLocs=await safeJson(r[3]);
-  render();
+  console.log('loadAll start');
+  try{
+    var r=await Promise.all([
+      fetch(SB_URL+'/rest/v1/search_logs?select=programme,query,searched_at&order=searched_at.desc&limit=10000',{headers:SB_H}),
+      fetch(SB_URL+'/rest/v1/offer_clicks?select=programme,offer_name,offer_address,clicked_at&order=clicked_at.desc&limit=10000',{headers:SB_H}),
+      fetch(SB_URL+'/rest/v1/marker_clicks?select=programme,offer_name,offer_category,offer_subcategory,offer_address,offer_city,clicked_at&order=clicked_at.desc&limit=10000',{headers:SB_H}),
+      fetch(SB_URL+'/rest/v1/loc_clicks?select=programme,lat,lng,city,department,department_num,region,clicked_at&order=clicked_at.desc&limit=10000',{headers:SB_H}).catch(function(e){console.warn('loc_clicks fetch error',e);return new Response('[]');})
+    ]);
+    console.log('fetches status:',r[0].status,r[1].status,r[2].status,r[3].status);
+    allSearches=await safeJson(r[0]);
+    allClicks=await safeJson(r[1]);
+    allMarkers=await safeJson(r[2]);
+    allLocs=await safeJson(r[3]);
+    console.log('données:',allSearches.length,'searches',allClicks.length,'clicks',allMarkers.length,'markers',allLocs.length,'locs');
+    render();
+  }catch(e){
+    console.error('loadAll ERREUR',e);
+  }
 }
 
 async function loadProgs(){
