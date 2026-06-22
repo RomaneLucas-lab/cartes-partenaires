@@ -323,21 +323,7 @@ var _lm=null,_lw=null,_la=false;
 function handleLocClick(){
   var btn=document.getElementById('loc-btn');
   if(!navigator.geolocation){alert('Géolocalisation non supportée.');return;}
-  if(_la){
-    if(_lw!==null){navigator.geolocation.clearWatch(_lw);_lw=null;}
-    if(_lm){_lm.remove();_lm=null;}
-    _la=false;_userLat=null;_userLng=null;_activeRadius=0;
-    btn.textContent='📍 Me localiser';btn.style.background='';btn.style.color='';
-    // Cacher "Autour de moi" et réafficher tous les marqueurs
-    var rw=document.getElementById('radius-wrap');if(rw)rw.style.display='none';
-    document.getElementById('radius-btn').textContent='🎯 Autour de moi';
-    document.getElementById('radius-btn').style.background='rgba(255,255,255,0.9)';
-    document.getElementById('radius-btn').style.color='';
-    document.querySelectorAll('.rbtn').forEach(function(b){b.classList.remove('active');});
-    for(var i=0;i<AM.length;i++){if(inAF(AM[i].s.cat))CG.addLayer(AM[i].m);}
-    upd();
-    return;
-  }
+  if(_la){if(_lw!==null){navigator.geolocation.clearWatch(_lw);_lw=null;}if(_lm){_lm.remove();_lm=null;}_la=false;btn.textContent='📍 Me localiser';btn.style.background='';btn.style.color='';return;}
   btn.textContent='⏳ Localisation...';btn.disabled=true;
   function updPos(pos){
     var lat=pos.coords.latitude,lng=pos.coords.longitude;
@@ -372,7 +358,24 @@ function handleLocClick(){
       btn.style.background='#3A8AE8';
       btn.style.color='#fff';
       var zoomLvl=19;
-    map.setView([lat,lng],zoomLvl);
+      map.setView([lat,lng],zoomLvl);
+      // Log géolocalisation
+      (function(lat,lng){
+        fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lng+'&zoom=10&accept-language=fr')
+          .then(function(r){return r.json();})
+          .then(function(d){
+            var a=d.address||{};
+            var city=a.city||a.town||a.village||a.municipality||a.county||'';
+            var dept=a.county||'';
+            var dept_num=(a.postcode||'').slice(0,2)||'';
+            var region=a.state||'';
+            fetch(SB_URL+'/rest/v1/loc_clicks',{
+              method:'POST',
+              headers:Object.assign({'Content-Type':'application/json','Prefer':'return=minimal'},SB_HDR),
+              body:JSON.stringify({programme:PROG,lat:lat,lng:lng,city:city,department:dept,department_num:dept_num,region:region})
+            }).catch(function(){});
+          }).catch(function(){});
+      })(lat,lng);
     }
   }
   function errPos(e){
@@ -502,27 +505,19 @@ function fmtDist(km){
   document.getElementById('load-status').textContent='Chargement de "'+PROG+'"...';
   try{
     // Tout en parallèle
-    // Offres + config en parallèle (logos en background après)
     var results=await Promise.all([
       fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(PROG)+'&ok=eq.true&order=id',{headers:SB_HDR}).then(function(r){return r.json();}),
-      fetch(SB_URL+'/rest/v1/configs?programme=eq.'+encodeURIComponent(PROG),{headers:SB_HDR}).then(function(r){return r.json();})
+      fetch(SB_URL+'/rest/v1/configs?programme=eq.'+encodeURIComponent(PROG),{headers:SB_HDR}).then(function(r){return r.json();}),
+      fetch(SB_URL+'/rest/v1/logos?select=offer_name,logo_data',{headers:SB_HDR}).then(function(r){return r.json();})
     ]);
-    var rows=results[0], cfgData=results[1];
+    var rows=results[0], cfgData=results[1], logoRows=results[2];
     if(!rows||!rows.length){document.getElementById('load-status').textContent='Aucune offre trouvée pour ce programme.';return;}
     var rawCfg=(cfgData&&cfgData[0])?cfgData[0].cfg:{};
     var cfg=rawCfg.iconCfg||rawCfg;
-    var logoCfg=rawCfg.logoCfg||{};
-    // Logos en background — mis à jour sur les marqueurs quand disponibles
-    fetch(SB_URL+'/rest/v1/logos?select=offer_name,logo_data',{headers:SB_HDR}).then(function(r){return r.json();}).then(function(logoRows){
-      (logoRows||[]).forEach(function(r){if(r.offer_name&&r.logo_data&&!logoCfg[r.offer_name])logoCfg[r.offer_name]=r.logo_data;});
-      // Mettre à jour les icônes des marqueurs déjà affichés
-      for(var i=0;i<AM.length;i++){
-        if(logoCfg[AM[i].s.name]&&!AM[i].s.logo){
-          AM[i].s.logo=logoCfg[AM[i].s.name];
-          AM[i].m.setIcon(mkI(AM[i].s.icon,AM[i].s.color,AM[i].s.logo));
-        }
-      }
-    }).catch(function(){});
+    var logoCfg={};
+    (logoRows||[]).forEach(function(r){if(r.offer_name&&r.logo_data)logoCfg[r.offer_name]=r.logo_data;});
+    var progLogos=rawCfg.logoCfg||{};
+    Object.assign(logoCfg,progLogos);
 
     // Build catData
     var catData={};
