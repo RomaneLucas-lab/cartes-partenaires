@@ -667,9 +667,7 @@ function exportAllCSV(){
     sections.push('"'+r.num+'";"'+r.nom+'";'+r.count+';'+pct+';"'+Object.keys(r.progs).join(', ')+'"');
   });
 
-  downloadCSV('sep=;
-'+sections.join('
-'),'export_complet_'+prog+'_'+date+'.csv');
+  downloadCSV('sep=;\n'+sections.join('\n'),'export_complet_'+prog+'_'+date+'.csv');
 }
 
 function downloadCSV(content,filename){
