@@ -416,9 +416,18 @@ function renderLoc(data){
   if(!data||!data.length){el.innerHTML='<div class="empty">Aucune localisation enregistrée</div>';return;}
   var byKey={};
   data.forEach(function(d){
-    var key=_locView==='dept'
-      ?(d.department_num&&d.department?(d.department_num+' — '+d.department):(d.department||'Inconnu'))
-      :(d.city||'Inconnu');
+    var key;
+    if(_locView==='dept'){
+      var num=d.department_num||'';
+      var nom=d.department||'';
+      // Nettoyer : parfois Nominatim renvoie "Département du Rhône" -> garder tel quel
+      if(num&&nom) key=num+' — '+nom;
+      else if(num) key=num;
+      else if(nom) key=nom;
+      else key='Inconnu';
+    } else {
+      key=d.city||'Inconnu';
+    }
     if(!key)key='Inconnu';
     if(!byKey[key])byKey[key]={label:key,count:0,progs:{}};
     byKey[key].count++;
@@ -452,9 +461,17 @@ function exportLocCSV(){
   var prog=f.prog||'Tous';
   var byKey={};
   data.forEach(function(d){
-    var key=_locView==='dept'
-      ?(d.department_num&&d.department?(d.department_num+' — '+d.department):(d.department||'Inconnu'))
-      :(d.city||'Inconnu');
+    var key;
+    if(_locView==='dept'){
+      var num=d.department_num||'';
+      var nom=d.department||'';
+      if(num&&nom) key=num+' — '+nom;
+      else if(num) key=num;
+      else if(nom) key=nom;
+      else key='Inconnu';
+    } else {
+      key=d.city||'Inconnu';
+    }
     if(!key)key='Inconnu';
     if(!byKey[key])byKey[key]={label:key,count:0,progs:{}};
     byKey[key].count++;
