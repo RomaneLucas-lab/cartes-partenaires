@@ -224,12 +224,14 @@ function renderSearches(data){
   var max=groups[0].count;
   var h='<table><thead><tr><th>#</th><th>Terme</th><th>Recherches</th><th>% du total</th><th>Programmes</th></tr></thead><tbody>';
   groups.slice(0,50).forEach(function(g,i){
-    var others=g.variants.slice(1);
-    var sub=others.length?' <span style="font-size:11px;color:#aaa;font-weight:400;margin-left:6px">('+others.join(', ')+')</span>':'';
     var pct=Math.round(g.count/total*100);
+    var badge=g.variants.length>1
+      ?' <span onclick="toggleVariants(this)" data-variants="'+g.variants.slice(1).join('|')+'" style="font-size:10px;background:#f0f0ff;color:#7F77DD;border-radius:4px;padding:1px 6px;cursor:pointer;margin-left:6px;user-select:none;font-weight:600">+'+(g.variants.length-1)+'</span>'
+        +'<div class="variants-list" style="display:none;margin-top:5px;font-size:11px;color:#888;line-height:1.9"></div>'
+      :'';
     h+='<tr>'
-      +'<td style="color:#aaa;padding-top:14px;vertical-align:top">'+(i+1)+'</td>'
-      +'<td style="vertical-align:middle"><b>'+g.label+'</b>'+sub+'</td>'
+      +'<td style="color:#aaa;vertical-align:top;padding-top:14px">'+(i+1)+'</td>'
+      +'<td style="vertical-align:middle"><b>'+g.label+'</b>'+badge+'</td>'
       +'<td style="vertical-align:middle;font-size:13px;font-weight:600">'+g.count+'</td>'
       +'<td style="vertical-align:middle;font-size:13px;font-weight:600;color:#7F77DD">'+pct+'%</td>'
       +'<td style="vertical-align:middle;color:#888;font-size:12px">'+Object.keys(g.progs).join(', ')+'</td>'
