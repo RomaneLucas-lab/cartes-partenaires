@@ -63,6 +63,7 @@ tr:hover td{background:#fafafa}
 
 <div class="cards">
   <div class="card"><div class="n" id="k-total">-</div><div class="l">Recherches totales</div></div>
+  <div class="card"><div class="n" id="k-loc-total">-</div><div class="l">Localisations totales</div></div>
   <div class="card"><div class="n" id="k-top-city" style="font-size:16px">-</div><div class="l">Ville top localisations</div></div>
   <div class="card"><div class="n" id="k-top" style="font-size:16px">-</div><div class="l">Terme le plus cherche</div></div>
   <div class="card"><div class="n" id="k-click" style="font-size:16px">-</div><div class="l">Offre la plus cliquee</div></div>
@@ -479,18 +480,38 @@ function renderLoc(data){
   var max=sorted[0].count;
   // KPI top city
   document.getElementById('k-top-city').textContent=sorted[0].label;
-  var h='<table><thead><tr><th>#</th><th>'+(
-    _locView==='dept'?'Département':'Ville')+'</th><th>Localisations</th><th>% du total</th><th>Programmes</th></tr></thead><tbody>';
-  sorted.slice(0,50).forEach(function(r,i){
-    var pct=Math.round(r.count/total*100);
-    h+='<tr>'
-      +'<td style="color:#aaa;vertical-align:middle">'+(i+1)+'</td>'
-      +'<td style="vertical-align:middle"><b>'+r.label+'</b></td>'
-      +'<td style="vertical-align:middle;font-size:13px;font-weight:600">'+r.count+'</td>'
-      +'<td style="vertical-align:middle;font-size:13px;font-weight:600;color:#7F77DD">'+pct+'%</td>'
-      +'<td style="vertical-align:middle;color:#888;font-size:12px">'+Object.keys(r.progs).join(', ')+'</td>'
-      +'</tr>';
-  });
+  // KPI total localisations
+  document.getElementById('k-loc-total').textContent=total;
+  var h;
+  if(_locView==='dept'){
+    h='<table><thead><tr><th>#</th><th>N°</th><th>Département</th><th>Localisations</th><th>% du total</th><th>Programmes</th></tr></thead><tbody>';
+    sorted.slice(0,50).forEach(function(r,i){
+      var pct=Math.round(r.count/total*100);
+      var parts=r.label.split(' — ');
+      var num=parts[0]||'';
+      var nom=parts.slice(1).join(' — ')||'';
+      h+='<tr>'
+        +'<td style="color:#aaa;vertical-align:middle">'+(i+1)+'</td>'
+        +'<td style="vertical-align:middle;font-weight:600;color:#555">'+num+'</td>'
+        +'<td style="vertical-align:middle"><b>'+nom+'</b></td>'
+        +'<td style="vertical-align:middle;font-size:13px;font-weight:600">'+r.count+'</td>'
+        +'<td style="vertical-align:middle;font-size:13px;font-weight:600;color:#7F77DD">'+pct+'%</td>'
+        +'<td style="vertical-align:middle;color:#888;font-size:12px">'+Object.keys(r.progs).join(', ')+'</td>'
+        +'</tr>';
+    });
+  } else {
+    h='<table><thead><tr><th>#</th><th>Ville</th><th>Localisations</th><th>% du total</th><th>Programmes</th></tr></thead><tbody>';
+    sorted.slice(0,50).forEach(function(r,i){
+      var pct=Math.round(r.count/total*100);
+      h+='<tr>'
+        +'<td style="color:#aaa;vertical-align:middle">'+(i+1)+'</td>'
+        +'<td style="vertical-align:middle"><b>'+r.label+'</b></td>'
+        +'<td style="vertical-align:middle;font-size:13px;font-weight:600">'+r.count+'</td>'
+        +'<td style="vertical-align:middle;font-size:13px;font-weight:600;color:#7F77DD">'+pct+'%</td>'
+        +'<td style="vertical-align:middle;color:#888;font-size:12px">'+Object.keys(r.progs).join(', ')+'</td>'
+        +'</tr>';
+    });
+  }
   h+='</tbody></table>';
   el.innerHTML=h;
 }
@@ -520,12 +541,24 @@ function exportLocCSV(){
   });
   var sorted=Object.values(byKey).sort(function(a,b){return b.count-a.count;});
   var total=sorted.reduce(function(s,r){return s+r.count;},0);
-  var col=_locView==='dept'?'Département':'Ville';
-  var rows=['sep=;','Rang;'+col+';Localisations;% du total;Programmes'];
-  sorted.forEach(function(r,i){
-    var pct=(total>0?Math.round(r.count/total*100):0)+'%';
-    rows.push((i+1)+';"'+r.label+'";'+r.count+';'+pct+';"'+Object.keys(r.progs).join(', ')+'"');
-  });
+  var rows;
+  if(_locView==='dept'){
+    rows=['sep=;','N° département;Nom département;Localisations;% du total;Programmes'];
+    sorted.forEach(function(r){
+      var pct=(total>0?Math.round(r.count/total*100):0)+'%';
+      // Séparer num et nom depuis le label "75 — Paris"
+      var parts=r.label.split(' — ');
+      var num=parts[0]||'';
+      var nom=parts.slice(1).join(' — ')||'';
+      rows.push('"'+num+'";"'+nom+'";'+r.count+';'+pct+';"'+Object.keys(r.progs).join(', ')+'"');
+    });
+  } else {
+    rows=['sep=;','Ville;Localisations;% du total;Programmes'];
+    sorted.forEach(function(r){
+      var pct=(total>0?Math.round(r.count/total*100):0)+'%';
+      rows.push('"'+r.label+'";'+r.count+';'+pct+';"'+Object.keys(r.progs).join(', ')+'"');
+    });
+  }
   downloadCSV(rows.join('\n'),'localisations_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
 }
 
