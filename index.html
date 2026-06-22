@@ -1567,11 +1567,22 @@ document.addEventListener('click',function(e){
 document.getElementById('desc-modal-close').addEventListener('click',function(){document.getElementById('desc-modal').style.display='none';});
 document.getElementById('desc-modal-cancel').addEventListener('click',function(){document.getElementById('desc-modal').style.display='none';});
 document.getElementById('desc-modal').addEventListener('click',function(e){if(e.target===this)this.style.display='none';});
-document.getElementById('desc-modal-save').addEventListener('click',function(){
+document.getElementById('desc-modal-save').addEventListener('click',async function(){
   if(_descIdx===null)return;
-  results[_descIdx].description=document.getElementById('desc-modal-text').value;
-  saveData();
+  var desc=document.getElementById('desc-modal-text').value;
+  var name=results[_descIdx].name;
+  // Propager à TOUS les programmes en Supabase via nom uniquement
+  await fetch(SB_URL+'/rest/v1/offres?name=eq.'+encodeURIComponent(name),{
+    method:'PATCH',
+    headers:Object.assign({},SB_H,{'Content-Type':'application/json','Prefer':'return=minimal'}),
+    body:JSON.stringify({description:desc})
+  }).catch(function(){});
+  // Mettre à jour results localement (tous les Aubert du programme courant)
+  for(var i=0;i<results.length;i++){
+    if(results[i].name===name)results[i].description=desc;
+  }
   document.getElementById('desc-modal').style.display='none';
+  renderTable();
 });
 </script>
 </body>
