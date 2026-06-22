@@ -61,6 +61,10 @@ tr:hover td{background:#fafafa}
   </span>
 </div>
 
+<div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+  <button class="expbtn" onclick="exportAllCSV()" style="background:#1D9E75;font-size:13px;padding:8px 20px">⬇ Exporter tout</button>
+</div>
+
 <div class="cards">
   <div class="card"><div class="n" id="k-total">-</div><div class="l">Recherches totales</div></div>
   <div class="card"><div class="n" id="k-loc-total">-</div><div class="l">Localisations totales</div></div>
@@ -560,6 +564,112 @@ function exportLocCSV(){
     });
   }
   downloadCSV(rows.join('\n'),'localisations_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
+}
+
+function exportAllCSV(){
+  var f=getFilters();
+  var prog=f.prog||'Tous';
+  var date=new Date().toISOString().split('T')[0];
+  var sections=[];
+
+  // ── Recherches ──
+  var searches=filterData(allSearches,'searched_at');
+  var terms={};
+  searches.forEach(function(d){
+    var q=(d.query||'').toLowerCase().trim();
+    if(!q)return;
+    if(!terms[q])terms[q]={count:0,progs:{}};
+    terms[q].count++;
+    terms[q].progs[d.programme]=(terms[q].progs[d.programme]||0)+1;
+  });
+  var groups=groupTerms(terms);
+  var totalS=groups.reduce(function(s,g){return s+g.count;},0);
+  sections.push('=== TOP RECHERCHES ===');
+  sections.push('Terme;Variantes;Recherches;% du total;Programmes');
+  groups.forEach(function(g){
+    var pct=(totalS>0?Math.round(g.count/totalS*100):0)+'%';
+    sections.push('"'+g.label+'";"'+g.variants.slice(1).join(', ')+'";'+g.count+';'+pct+';"'+Object.keys(g.progs).join(', ')+'"');
+  });
+  sections.push('');
+
+  // ── Clics offres ──
+  var clicks=filterData(allClicks,'clicked_at');
+  var byName={};
+  clicks.forEach(function(d){
+    var n=d.offer_name||'?';
+    if(!byName[n])byName[n]={name:n,total:0,programme:d.programme};
+    byName[n].total++;
+  });
+  var sortedC=Object.values(byName).sort(function(a,b){return b.total-a.total;});
+  var totalC=sortedC.reduce(function(s,r){return s+r.total;},0);
+  sections.push('=== CLICS SUR LES OFFRES ===');
+  sections.push('Offre;Clics;% du total;Programme');
+  sortedC.forEach(function(r){
+    var pct=(totalC>0?Math.round(r.total/totalC*100):0)+'%';
+    sections.push('"'+r.name+'";'+r.total+';'+pct+';"'+r.programme+'"');
+  });
+  sections.push('');
+
+  // ── Clics marqueurs ──
+  var markers=filterData(allMarkers,'clicked_at');
+  var byM={};
+  markers.forEach(function(d){
+    var n=d.offer_name||'?';
+    if(!byM[n])byM[n]={name:n,total:0,programme:d.programme};
+    byM[n].total++;
+  });
+  var sortedM=Object.values(byM).sort(function(a,b){return b.total-a.total;});
+  var totalM=sortedM.reduce(function(s,r){return s+r.total;},0);
+  sections.push('=== CLICS SUR LES MARQUEURS ===');
+  sections.push('Offre;Clics;% du total;Programme');
+  sortedM.forEach(function(r){
+    var pct=(totalM>0?Math.round(r.total/totalM*100):0)+'%';
+    sections.push('"'+r.name+'";'+r.total+';'+pct+';"'+r.programme+'"');
+  });
+  sections.push('');
+
+  // ── Localisations par ville ──
+  var locs=filterData(allLocs,'clicked_at');
+  var byCity={};
+  locs.forEach(function(d){
+    var k=d.city||'Inconnu';
+    if(!byCity[k])byCity[k]={count:0,progs:{}};
+    byCity[k].count++;
+    var p=d.programme||'?';
+    byCity[k].progs[p]=(byCity[k].progs[p]||0)+1;
+  });
+  var sortedCity=Object.entries(byCity).sort(function(a,b){return b[1].count-a[1].count;});
+  var totalL=sortedCity.reduce(function(s,r){return s+r[1].count;},0);
+  sections.push('=== LOCALISATIONS PAR VILLE ===');
+  sections.push('Ville;Localisations;% du total;Programmes');
+  sortedCity.forEach(function(e){
+    var pct=(totalL>0?Math.round(e[1].count/totalL*100):0)+'%';
+    sections.push('"'+e[0]+'";'+e[1].count+';'+pct+';"'+Object.keys(e[1].progs).join(', ')+'"');
+  });
+  sections.push('');
+
+  // ── Localisations par département ──
+  var byDept={};
+  locs.forEach(function(d){
+    var num=d.department_num||'';
+    var nom=DEPT_NAMES[num]||d.department||'';
+    var k=num&&nom?num+' — '+nom:(num||nom||'Inconnu');
+    if(!byDept[k])byDept[k]={num:num,nom:nom,count:0,progs:{}};
+    byDept[k].count++;
+    var p=d.programme||'?';
+    byDept[k].progs[p]=(byDept[k].progs[p]||0)+1;
+  });
+  var sortedDept=Object.values(byDept).sort(function(a,b){return b.count-a.count;});
+  sections.push('=== LOCALISATIONS PAR DÉPARTEMENT ===');
+  sections.push('N° département;Nom département;Localisations;% du total;Programmes');
+  sortedDept.forEach(function(r){
+    var pct=(totalL>0?Math.round(r.count/totalL*100):0)+'%';
+    sections.push('"'+r.num+'";"'+r.nom+'";'+r.count+';'+pct+';"'+Object.keys(r.progs).join(', ')+'"');
+  });
+
+  downloadCSV('sep=;
+'+sections.join('
+'),'export_complet_'+prog+'_'+date+'.csv');
 }
 
 function downloadCSV(content,filename){
