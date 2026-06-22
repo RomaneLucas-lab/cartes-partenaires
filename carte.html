@@ -361,13 +361,24 @@ function handleLocClick(){
       map.setView([lat,lng],zoomLvl);
       // Log géolocalisation
       (function(lat,lng){
-        fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lng+'&zoom=10&accept-language=fr')
+        fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lng+'&zoom=14&accept-language=fr')
           .then(function(r){return r.json();})
           .then(function(d){
             var a=d.address||{};
-            var city=a.city||a.town||a.village||a.municipality||a.county||'';
-            var dept=a.county||'';
-            var dept_num=(a.postcode||'').slice(0,2)||'';
+            // Ville
+            var city=a.city||a.town||a.village||a.municipality||a.suburb||'';
+            // Code postal -> numéro département
+            var cp=(a.postcode||'').replace(/\s/g,'');
+            var dept_num='';
+            if(cp.length>=3&&(cp.slice(0,2)==='97'||cp.slice(0,2)==='98')){
+              dept_num=cp.slice(0,3); // DOM-TOM
+            } else if(cp.length>=2){
+              dept_num=cp.slice(0,2);
+            }
+            // Nom du département : Nominatim retourne 'department' pour FR, sinon county
+            var dept=a.department||a.county||'';
+            // Si on n'a pas de nom, on utilise juste le numéro
+            if(!dept&&dept_num) dept='Département '+dept_num;
             var region=a.state||'';
             fetch(SB_URL+'/rest/v1/loc_clicks',{
               method:'POST',
