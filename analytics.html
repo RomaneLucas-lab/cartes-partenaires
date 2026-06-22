@@ -63,7 +63,7 @@ tr:hover td{background:#fafafa}
 
 <div class="cards">
   <div class="card"><div class="n" id="k-total">-</div><div class="l">Recherches totales</div></div>
-  <div class="card"><div class="n" id="k-top-city" style="font-size:16px">-</div><div class="l">Ville la plus cliquee</div></div>
+  <div class="card"><div class="n" id="k-top-city" style="font-size:16px">-</div><div class="l">Ville top localisations</div></div>
   <div class="card"><div class="n" id="k-top" style="font-size:16px">-</div><div class="l">Terme le plus cherche</div></div>
   <div class="card"><div class="n" id="k-click" style="font-size:16px">-</div><div class="l">Offre la plus cliquee</div></div>
 </div>
@@ -93,6 +93,15 @@ tr:hover td{background:#fafafa}
 </div>
 
 <div class="section">
+  <div class="sh"><h2>📍 Localisations utilisateurs</h2><button class="expbtn" onclick="exportLocCSV()">⬇ Export CSV</button></div>
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+    <button id="lv-ville" onclick="setLocView('ville')" style="padding:5px 14px;background:#7F77DD;color:#fff;border:1px solid #7F77DD;border-radius:8px;font-size:12px;cursor:pointer">Par ville</button>
+    <button id="lv-dept" onclick="setLocView('dept')" style="padding:5px 14px;background:#fff;color:#7F77DD;border:1px solid #7F77DD;border-radius:8px;font-size:12px;cursor:pointer">Par département</button>
+  </div>
+  <div class="scroll" id="t-loc"><div class="empty">Chargement...</div></div>
+</div>
+
+<div class="section">
   <h2>📅 Recherches par programme</h2>
   <div class="scroll" id="t-prog"><div class="empty">Chargement...</div></div>
 </div>
@@ -103,7 +112,7 @@ var SB_URL='https://hfxpobmdolslwjrygaww.supabase.co';
 var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmeHBvYm1kb2xzbHdqcnlnYXd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzM0MzcsImV4cCI6MjA5NTQ0OTQzN30.4cneDKHlJQmUCsJZ_LRNLNqHMmcZAZ-ykyBQQyx4kOs';
 var SB_H={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
 
-var allSearches=[], allClicks=[], allMarkers=[], _clicksData=[];
+var allSearches=[], allClicks=[], allMarkers=[], allLocs=[], _clicksData=[];
 var _markerView='enseigne';
 
 function getFilters(){
@@ -135,6 +144,7 @@ function render(){
   renderSearches(searches);
   renderClicksData(clicks);
   renderMarkers(markers);
+  renderLoc(filterData(allLocs,'clicked_at'));
   renderProgTable(searches);
 }
 
@@ -374,11 +384,13 @@ async function loadAll(){
   var r=await Promise.all([
     fetch(SB_URL+'/rest/v1/search_logs?select=programme,query,searched_at&order=searched_at.desc&limit=10000',{headers:SB_H}),
     fetch(SB_URL+'/rest/v1/offer_clicks?select=programme,offer_name,offer_address,clicked_at&order=clicked_at.desc&limit=10000',{headers:SB_H}),
-    fetch(SB_URL+'/rest/v1/marker_clicks?select=programme,offer_name,offer_category,offer_subcategory,offer_address,offer_city,clicked_at&order=clicked_at.desc&limit=10000',{headers:SB_H})
+    fetch(SB_URL+'/rest/v1/marker_clicks?select=programme,offer_name,offer_category,offer_subcategory,offer_address,offer_city,clicked_at&order=clicked_at.desc&limit=10000',{headers:SB_H}),
+    fetch(SB_URL+'/rest/v1/loc_clicks?select=programme,lat,lng,city,department,department_num,region,clicked_at&order=clicked_at.desc&limit=10000',{headers:SB_H})
   ]);
   allSearches=await r[0].json()||[];
   allClicks=await r[1].json()||[];
   allMarkers=await r[2].json()||[];
+  allLocs=await r[3].json()||[];
   render();
 }
 
@@ -387,6 +399,77 @@ async function loadProgs(){
   var d=await r.json();
   var sel=document.getElementById('f-prog');
   (d||[]).forEach(function(p){var o=document.createElement('option');o.value=p.name;o.textContent=p.name;sel.appendChild(o);});
+}
+
+var _locView='ville';
+function setLocView(v){
+  _locView=v;
+  document.getElementById('lv-ville').style.background=v==='ville'?'#7F77DD':'#fff';
+  document.getElementById('lv-ville').style.color=v==='ville'?'#fff':'#7F77DD';
+  document.getElementById('lv-dept').style.background=v==='dept'?'#7F77DD':'#fff';
+  document.getElementById('lv-dept').style.color=v==='dept'?'#fff':'#7F77DD';
+  renderLoc(filterData(allLocs,'clicked_at'));
+}
+
+function renderLoc(data){
+  var el=document.getElementById('t-loc');
+  if(!data||!data.length){el.innerHTML='<div class="empty">Aucune localisation enregistrée</div>';return;}
+  var byKey={};
+  data.forEach(function(d){
+    var key=_locView==='dept'
+      ?(d.department_num&&d.department?(d.department_num+' — '+d.department):(d.department||'Inconnu'))
+      :(d.city||'Inconnu');
+    if(!key)key='Inconnu';
+    if(!byKey[key])byKey[key]={label:key,count:0,progs:{}};
+    byKey[key].count++;
+    var p=d.programme||'?';
+    byKey[key].progs[p]=(byKey[key].progs[p]||0)+1;
+  });
+  var sorted=Object.values(byKey).sort(function(a,b){return b.count-a.count;});
+  var total=sorted.reduce(function(s,r){return s+r.count;},0);
+  var max=sorted[0].count;
+  // KPI top city
+  document.getElementById('k-top-city').textContent=sorted[0].label;
+  var h='<table><thead><tr><th>#</th><th>'+(
+    _locView==='dept'?'Département':'Ville')+'</th><th>Localisations</th><th>% du total</th><th>Programmes</th></tr></thead><tbody>';
+  sorted.slice(0,50).forEach(function(r,i){
+    var pct=Math.round(r.count/total*100);
+    h+='<tr>'
+      +'<td style="color:#aaa;vertical-align:middle">'+(i+1)+'</td>'
+      +'<td style="vertical-align:middle"><b>'+r.label+'</b></td>'
+      +'<td style="vertical-align:middle;font-size:13px;font-weight:600">'+r.count+'</td>'
+      +'<td style="vertical-align:middle;font-size:13px;font-weight:600;color:#7F77DD">'+pct+'%</td>'
+      +'<td style="vertical-align:middle;color:#888;font-size:12px">'+Object.keys(r.progs).join(', ')+'</td>'
+      +'</tr>';
+  });
+  h+='</tbody></table>';
+  el.innerHTML=h;
+}
+
+function exportLocCSV(){
+  var data=filterData(allLocs,'clicked_at');
+  var f=getFilters();
+  var prog=f.prog||'Tous';
+  var byKey={};
+  data.forEach(function(d){
+    var key=_locView==='dept'
+      ?(d.department_num&&d.department?(d.department_num+' — '+d.department):(d.department||'Inconnu'))
+      :(d.city||'Inconnu');
+    if(!key)key='Inconnu';
+    if(!byKey[key])byKey[key]={label:key,count:0,progs:{}};
+    byKey[key].count++;
+    var p=d.programme||'?';
+    byKey[key].progs[p]=(byKey[key].progs[p]||0)+1;
+  });
+  var sorted=Object.values(byKey).sort(function(a,b){return b.count-a.count;});
+  var total=sorted.reduce(function(s,r){return s+r.count;},0);
+  var col=_locView==='dept'?'Département':'Ville';
+  var rows=['sep=;','Rang;'+col+';Localisations;% du total;Programmes'];
+  sorted.forEach(function(r,i){
+    var pct=(total>0?Math.round(r.count/total*100):0)+'%';
+    rows.push((i+1)+';"'+r.label+'";'+r.count+';'+pct+';"'+Object.keys(r.progs).join(', ')+'"');
+  });
+  downloadCSV(rows.join('\n'),'localisations_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
 }
 
 function downloadCSV(content,filename){
