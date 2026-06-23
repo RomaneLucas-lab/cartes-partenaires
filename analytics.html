@@ -62,7 +62,8 @@ tr:hover td{background:#fafafa}
 </div>
 
 <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-  <button class="expbtn" onclick="exportAllCSV()" style="background:#1D9E75;font-size:13px;padding:8px 20px">⬇ Exporter tout</button>
+  <button class="expbtn" onclick="openDashboard()" style="background:#1D9E75;font-size:13px;padding:8px 20px">&#128196; Dashboard export</button>
+  <button class="expbtn" onclick="exportAllCSV()" style="font-size:13px;padding:8px 20px;margin-left:8px">&#8595; Export CSV complet</button>
 </div>
 
 <div class="cards">
@@ -567,21 +568,30 @@ function exportLocCSV(){
 }
 
 function esc(v){return '"'+(v||'').toString().replace(/"/g,'""')+'"';}
+function fmtDate(iso){if(!iso)return '';try{return iso.slice(0,10);}catch(e){return '';}}
 function exportAllCSV(){
   var f=getFilters();
   var prog=f.prog||'Tous';
   var date=new Date().toISOString().split('T')[0];
+
+  // Colonnes :
+  // Programme | Date
+  // | Recherche | Variantes
+  // | Clic offre
+  // | Clic marqueur | Catégorie marqueur | Adresse marqueur
+  // | Ville localisation | N° département | Nom département
+
   var rows=[];
   rows.push('sep=;');
   rows.push([
-    'Type','Date','Programme',
-    'Terme recherché','Variantes groupées','Nb recherches terme',
-    'Offre cliquée (lien)','Nb clics offre',
-    'Offre cliquée (marqueur)','Nb clics marqueur',
-    'Ville localisation','N° département','Nom département'
+    'Programme','Date',
+    'Recherche','Variantes groupées',
+    'Clic offre',
+    'Clic marqueur','Catégorie','Adresse',
+    'Ville','N° département','Nom département'
   ].join(';'));
 
-  // ── Recherches groupées ──
+  // Map termes -> label principal
   var searches=filterData(allSearches,'searched_at');
   var terms={};
   searches.forEach(function(d){
@@ -591,76 +601,67 @@ function exportAllCSV(){
     terms[q].count++;
     terms[q].progs[d.programme]=(terms[q].progs[d.programme]||0)+1;
   });
-  var groups=groupTerms(terms);
-  groups.forEach(function(g){
-    var progs=Object.keys(g.progs).join(', ');
-    rows.push([
-      esc('Recherche'),esc(''),esc(progs),
-      esc(g.label),esc(g.variants.slice(1).join(', ')),g.count,
-      esc(''),esc(''),
-      esc(''),esc(''),
-      esc(''),esc(''),esc('')
-    ].join(';'));
+  var varMap={};
+  groupTerms(terms).forEach(function(g){
+    g.variants.forEach(function(v){varMap[v]=g;});
   });
 
-  // ── Clics offres (lien) ──
-  var clicks=filterData(allClicks,'clicked_at');
-  var byOffer={};
-  clicks.forEach(function(d){
-    var k=(d.offer_name||'?')+'||'+(d.programme||'');
-    if(!byOffer[k])byOffer[k]={name:d.offer_name||'?',prog:d.programme||'',count:0};
-    byOffer[k].count++;
-  });
-  Object.values(byOffer).sort(function(a,b){return b.count-a.count;}).forEach(function(r){
+  // Recherches
+  searches.forEach(function(d){
+    var q=(d.query||'').toLowerCase().trim();
+    if(!q)return;
+    var g=varMap[q]||{label:q,variants:[q]};
+    var others=g.variants.filter(function(v){return v!==g.label;});
     rows.push([
-      esc('Clic offre'),esc(''),esc(r.prog),
+      esc(d.programme),esc(fmtDate(d.searched_at)),
+      esc(g.label),esc(others.join(', ')),
+      esc(''),
       esc(''),esc(''),esc(''),
-      esc(r.name),r.count,
-      esc(''),esc(''),
       esc(''),esc(''),esc('')
     ].join(';'));
   });
 
-  // ── Clics marqueurs ──
-  var markers=filterData(allMarkers,'clicked_at');
-  var byMarker={};
-  markers.forEach(function(d){
-    var k=(d.offer_name||'?')+'||'+(d.programme||'');
-    if(!byMarker[k])byMarker[k]={name:d.offer_name||'?',prog:d.programme||'',count:0};
-    byMarker[k].count++;
-  });
-  Object.values(byMarker).sort(function(a,b){return b.count-a.count;}).forEach(function(r){
+  // Clics offres
+  filterData(allClicks,'clicked_at').forEach(function(d){
     rows.push([
-      esc('Clic marqueur'),esc(''),esc(r.prog),
-      esc(''),esc(''),esc(''),
+      esc(d.programme),esc(fmtDate(d.clicked_at)),
       esc(''),esc(''),
-      esc(r.name),r.count,
+      esc(d.offer_name||''),
+      esc(''),esc(''),esc(''),
       esc(''),esc(''),esc('')
     ].join(';'));
   });
 
-  // ── Localisations ──
-  var locs=filterData(allLocs,'clicked_at');
-  var byLoc={};
-  locs.forEach(function(d){
-    var city=d.city||'Inconnu';
+  // Clics marqueurs
+  filterData(allMarkers,'clicked_at').forEach(function(d){
+    rows.push([
+      esc(d.programme),esc(fmtDate(d.clicked_at)),
+      esc(''),esc(''),
+      esc(''),
+      esc(d.offer_name||''),esc(d.offer_category||''),esc(d.offer_address||''),
+      esc(''),esc(''),esc('')
+    ].join(';'));
+  });
+
+  // Localisations
+  filterData(allLocs,'clicked_at').forEach(function(d){
     var num=d.department_num||'';
     var nom=DEPT_NAMES[num]||d.department||'';
-    var k=city+'||'+num;
-    if(!byLoc[k])byLoc[k]={city:city,num:num,nom:nom,prog:d.programme||'',count:0};
-    byLoc[k].count++;
-  });
-  Object.values(byLoc).sort(function(a,b){return b.count-a.count;}).forEach(function(r){
     rows.push([
-      esc('Localisation'),esc(''),esc(r.prog),
+      esc(d.programme),esc(fmtDate(d.clicked_at)),
+      esc(''),esc(''),
+      esc(''),
       esc(''),esc(''),esc(''),
-      esc(''),esc(''),
-      esc(''),esc(''),
-      esc(r.city),esc(r.num),esc(r.nom)
+      esc(d.city||''),esc(num),esc(nom)
     ].join(';'));
   });
 
   downloadCSV(rows.join('\n'),'export_complet_'+prog+'_'+date+'.csv');
+}
+
+function openDashboard(){
+  var base=window.location.origin+window.location.pathname.replace(/[^/]*$/,'');
+  window.open(base+'dashboard.html','_blank');
 }
 
 function downloadCSV(content,filename){
