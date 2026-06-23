@@ -67,11 +67,26 @@ tr:hover td{background:#fafafa}
 </div>
 
 <div class="cards">
-  <div class="card"><div class="n" id="k-total">-</div><div class="l">Recherches totales</div></div>
-  <div class="card"><div class="n" id="k-loc-total">-</div><div class="l">Localisations totales</div></div>
-  <div class="card"><div class="n" id="k-top-city" style="font-size:16px">-</div><div class="l">Ville top localisations</div></div>
-  <div class="card"><div class="n" id="k-top" style="font-size:16px">-</div><div class="l">Terme le plus cherche</div></div>
-  <div class="card"><div class="n" id="k-click" style="font-size:16px">-</div><div class="l">Offre la plus cliquee</div></div>
+  <div class="card">
+    <div class="l">Recherches totales</div>
+    <div class="n" id="k-total">-</div>
+    <div id="k-top-sub" style="font-size:12px;color:#888;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+  </div>
+  <div class="card">
+    <div class="l">Clics offres</div>
+    <div class="n" id="k-click-total">-</div>
+    <div id="k-click-sub" style="font-size:12px;color:#888;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+  </div>
+  <div class="card">
+    <div class="l">Clics marqueurs</div>
+    <div class="n" id="k-marker-total">-</div>
+    <div id="k-marker-sub" style="font-size:12px;color:#888;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+  </div>
+  <div class="card">
+    <div class="l">Localisations</div>
+    <div class="n" id="k-loc-total">-</div>
+    <div id="k-loc-sub" style="font-size:12px;color:#888;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+  </div>
 </div>
 
 <div class="section">
@@ -238,7 +253,9 @@ function renderSearches(data){
     terms[q].progs[d.programme]=(terms[q].progs[d.programme]||0)+1;
   });
   var groups=groupTerms(terms);
-  document.getElementById('k-top').textContent=groups.length?groups[0].label:'---';
+  if(groups.length){
+    document.getElementById('k-top-sub').textContent='Top : '+groups[0].label+' ('+groups[0].count+')';
+  }
   if(!groups.length){document.getElementById('t-search').innerHTML='<div class="empty">Aucune recherche</div>';return;}
   var total=groups.reduce(function(s,g){return s+g.count;},0);
   var max=groups[0].count;
@@ -272,7 +289,9 @@ function renderClicksData(data){
     byName[name].addresses[ak].count++;
   });
   _clicksData=Object.values(byName).sort(function(a,b){return b.total-a.total;});
-  document.getElementById('k-click').textContent=_clicksData.length?_clicksData[0].name+' ('+_clicksData[0].total+')':'---';
+  var totalClicks=_clicksData.reduce(function(s,r){return s+r.total;},0);
+  document.getElementById('k-click-total').textContent=totalClicks;
+  if(_clicksData.length)document.getElementById('k-click-sub').textContent='Top : '+_clicksData[0].name+' ('+_clicksData[0].total+')';
   filterClicks();
 }
 
@@ -312,7 +331,12 @@ function renderMarkers(data){
   var cityCount={};
   data.forEach(function(d){var c=d.offer_city||'?';cityCount[c]=(cityCount[c]||0)+1;});
   var topCity=Object.entries(cityCount).sort(function(a,b){return b[1]-a[1];});
-  document.getElementById('k-top-city').textContent=topCity.length?topCity[0][0]+' ('+topCity[0][1]+')':'---';
+  // Top marqueur
+  var byOffer={};
+  data.forEach(function(d){var n=d.offer_name||'?';byOffer[n]=(byOffer[n]||0)+1;});
+  var topOffer=Object.entries(byOffer).sort(function(a,b){return b[1]-a[1];});
+  document.getElementById('k-marker-total').textContent=data.length;
+  if(topOffer.length)document.getElementById('k-marker-sub').textContent='Top : '+topOffer[0][0]+' ('+topOffer[0][1]+')';
   if(!data.length){document.getElementById('t-markers').innerHTML='<div class="empty">Aucun clic</div>';return;}
   var q=(document.getElementById('f-marker').value||'').toLowerCase().trim();
   if(q)data=data.filter(function(d){
@@ -484,7 +508,7 @@ function renderLoc(data){
   var total=sorted.reduce(function(s,r){return s+r.count;},0);
   var max=sorted[0].count;
   // KPI top city
-  document.getElementById('k-top-city').textContent=sorted[0].label;
+  document.getElementById('k-loc-sub').textContent='Top : '+sorted[0].label+' ('+sorted[0].count+')';
   // KPI total localisations
   document.getElementById('k-loc-total').textContent=total;
   var h;
