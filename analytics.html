@@ -566,13 +566,22 @@ function exportLocCSV(){
   downloadCSV(rows.join('\n'),'localisations_'+prog+'_'+new Date().toISOString().split('T')[0]+'.csv');
 }
 
+function esc(v){return '"'+(v||'').toString().replace(/"/g,'""')+'"';}
 function exportAllCSV(){
   var f=getFilters();
   var prog=f.prog||'Tous';
   var date=new Date().toISOString().split('T')[0];
-  var sections=[];
+  var rows=[];
+  rows.push('sep=;');
+  rows.push([
+    'Type','Date','Programme',
+    'Terme recherché','Variantes groupées','Nb recherches terme',
+    'Offre cliquée (lien)','Nb clics offre',
+    'Offre cliquée (marqueur)','Nb clics marqueur',
+    'Ville localisation','N° département','Nom département'
+  ].join(';'));
 
-  // ── Recherches ──
+  // ── Recherches groupées ──
   var searches=filterData(allSearches,'searched_at');
   var terms={};
   searches.forEach(function(d){
@@ -583,91 +592,75 @@ function exportAllCSV(){
     terms[q].progs[d.programme]=(terms[q].progs[d.programme]||0)+1;
   });
   var groups=groupTerms(terms);
-  var totalS=groups.reduce(function(s,g){return s+g.count;},0);
-  sections.push('=== TOP RECHERCHES ===');
-  sections.push('Terme;Variantes;Recherches;% du total;Programmes');
   groups.forEach(function(g){
-    var pct=(totalS>0?Math.round(g.count/totalS*100):0)+'%';
-    sections.push('"'+g.label+'";"'+g.variants.slice(1).join(', ')+'";'+g.count+';'+pct+';"'+Object.keys(g.progs).join(', ')+'"');
+    var progs=Object.keys(g.progs).join(', ');
+    rows.push([
+      esc('Recherche'),esc(''),esc(progs),
+      esc(g.label),esc(g.variants.slice(1).join(', ')),g.count,
+      esc(''),esc(''),
+      esc(''),esc(''),
+      esc(''),esc(''),esc('')
+    ].join(';'));
   });
-  sections.push('');
 
-  // ── Clics offres ──
+  // ── Clics offres (lien) ──
   var clicks=filterData(allClicks,'clicked_at');
-  var byName={};
+  var byOffer={};
   clicks.forEach(function(d){
-    var n=d.offer_name||'?';
-    if(!byName[n])byName[n]={name:n,total:0,programme:d.programme};
-    byName[n].total++;
+    var k=(d.offer_name||'?')+'||'+(d.programme||'');
+    if(!byOffer[k])byOffer[k]={name:d.offer_name||'?',prog:d.programme||'',count:0};
+    byOffer[k].count++;
   });
-  var sortedC=Object.values(byName).sort(function(a,b){return b.total-a.total;});
-  var totalC=sortedC.reduce(function(s,r){return s+r.total;},0);
-  sections.push('=== CLICS SUR LES OFFRES ===');
-  sections.push('Offre;Clics;% du total;Programme');
-  sortedC.forEach(function(r){
-    var pct=(totalC>0?Math.round(r.total/totalC*100):0)+'%';
-    sections.push('"'+r.name+'";'+r.total+';'+pct+';"'+r.programme+'"');
+  Object.values(byOffer).sort(function(a,b){return b.count-a.count;}).forEach(function(r){
+    rows.push([
+      esc('Clic offre'),esc(''),esc(r.prog),
+      esc(''),esc(''),esc(''),
+      esc(r.name),r.count,
+      esc(''),esc(''),
+      esc(''),esc(''),esc('')
+    ].join(';'));
   });
-  sections.push('');
 
   // ── Clics marqueurs ──
   var markers=filterData(allMarkers,'clicked_at');
-  var byM={};
+  var byMarker={};
   markers.forEach(function(d){
-    var n=d.offer_name||'?';
-    if(!byM[n])byM[n]={name:n,total:0,programme:d.programme};
-    byM[n].total++;
+    var k=(d.offer_name||'?')+'||'+(d.programme||'');
+    if(!byMarker[k])byMarker[k]={name:d.offer_name||'?',prog:d.programme||'',count:0};
+    byMarker[k].count++;
   });
-  var sortedM=Object.values(byM).sort(function(a,b){return b.total-a.total;});
-  var totalM=sortedM.reduce(function(s,r){return s+r.total;},0);
-  sections.push('=== CLICS SUR LES MARQUEURS ===');
-  sections.push('Offre;Clics;% du total;Programme');
-  sortedM.forEach(function(r){
-    var pct=(totalM>0?Math.round(r.total/totalM*100):0)+'%';
-    sections.push('"'+r.name+'";'+r.total+';'+pct+';"'+r.programme+'"');
+  Object.values(byMarker).sort(function(a,b){return b.count-a.count;}).forEach(function(r){
+    rows.push([
+      esc('Clic marqueur'),esc(''),esc(r.prog),
+      esc(''),esc(''),esc(''),
+      esc(''),esc(''),
+      esc(r.name),r.count,
+      esc(''),esc(''),esc('')
+    ].join(';'));
   });
-  sections.push('');
 
-  // ── Localisations par ville ──
+  // ── Localisations ──
   var locs=filterData(allLocs,'clicked_at');
-  var byCity={};
+  var byLoc={};
   locs.forEach(function(d){
-    var k=d.city||'Inconnu';
-    if(!byCity[k])byCity[k]={count:0,progs:{}};
-    byCity[k].count++;
-    var p=d.programme||'?';
-    byCity[k].progs[p]=(byCity[k].progs[p]||0)+1;
-  });
-  var sortedCity=Object.entries(byCity).sort(function(a,b){return b[1].count-a[1].count;});
-  var totalL=sortedCity.reduce(function(s,r){return s+r[1].count;},0);
-  sections.push('=== LOCALISATIONS PAR VILLE ===');
-  sections.push('Ville;Localisations;% du total;Programmes');
-  sortedCity.forEach(function(e){
-    var pct=(totalL>0?Math.round(e[1].count/totalL*100):0)+'%';
-    sections.push('"'+e[0]+'";'+e[1].count+';'+pct+';"'+Object.keys(e[1].progs).join(', ')+'"');
-  });
-  sections.push('');
-
-  // ── Localisations par département ──
-  var byDept={};
-  locs.forEach(function(d){
+    var city=d.city||'Inconnu';
     var num=d.department_num||'';
     var nom=DEPT_NAMES[num]||d.department||'';
-    var k=num&&nom?num+' — '+nom:(num||nom||'Inconnu');
-    if(!byDept[k])byDept[k]={num:num,nom:nom,count:0,progs:{}};
-    byDept[k].count++;
-    var p=d.programme||'?';
-    byDept[k].progs[p]=(byDept[k].progs[p]||0)+1;
+    var k=city+'||'+num;
+    if(!byLoc[k])byLoc[k]={city:city,num:num,nom:nom,prog:d.programme||'',count:0};
+    byLoc[k].count++;
   });
-  var sortedDept=Object.values(byDept).sort(function(a,b){return b.count-a.count;});
-  sections.push('=== LOCALISATIONS PAR DÉPARTEMENT ===');
-  sections.push('N° département;Nom département;Localisations;% du total;Programmes');
-  sortedDept.forEach(function(r){
-    var pct=(totalL>0?Math.round(r.count/totalL*100):0)+'%';
-    sections.push('"'+r.num+'";"'+r.nom+'";'+r.count+';'+pct+';"'+Object.keys(r.progs).join(', ')+'"');
+  Object.values(byLoc).sort(function(a,b){return b.count-a.count;}).forEach(function(r){
+    rows.push([
+      esc('Localisation'),esc(''),esc(r.prog),
+      esc(''),esc(''),esc(''),
+      esc(''),esc(''),
+      esc(''),esc(''),
+      esc(r.city),esc(r.num),esc(r.nom)
+    ].join(';'));
   });
 
-  downloadCSV('sep=;\n'+sections.join('\n'),'export_complet_'+prog+'_'+date+'.csv');
+  downloadCSV(rows.join('\n'),'export_complet_'+prog+'_'+date+'.csv');
 }
 
 function downloadCSV(content,filename){
