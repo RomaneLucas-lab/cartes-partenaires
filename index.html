@@ -326,7 +326,7 @@ async function sbLoadProg(name){
       : fetch(SB_URL+'/rest/v1/corrections?select=name,address_original,lat,lng,fmt,prec',{headers:SB_H}).then(function(r){return r.json();}).catch(function(){return [];});
     var vals=await Promise.all([
       fetchAllOffres(name),
-      fetch(SB_URL+'/rest/v1/configs?programme=eq.'+encodeURIComponent(name)+'&select=cfg',{headers:SB_H}).then(function(r){return r.json();}).catch(function(){return [];}),
+      fetch(SB_URL+'/rest/v1/configs?select=cfg&programme=eq.'+encodeURIComponent(name),{headers:SB_H}).then(function(r){return r.json();}).catch(function(){return [];}),
       corsPromise
     ]);
     var data=vals[0], cd=vals[1], cors=vals[2];
@@ -343,10 +343,11 @@ async function renderProgs(){
   var list=document.getElementById('prog-list');
   list.innerHTML='<div style="text-align:center;padding:20px;color:#aaa;font-size:13px">⏳ Chargement...</div>';
   // Lancer progs + counts en parallèle
-  var [progs, countRes] = await Promise.all([
+  var _pAll = await Promise.all([
     sbGetProgs(),
     fetch(SB_URL+'/rest/v1/offres?select=programme&ok=eq.true',{headers:SB_H}).then(function(r){return r.json();}).catch(function(){return [];})
   ]);
+  var progs=_pAll[0], countRes=_pAll[1];
   try{
     _dc={};
     (countRes||[]).forEach(function(row){if(!_dc[row.programme])_dc[row.programme]=[];_dc[row.programme].push({ok:true});});
@@ -592,7 +593,6 @@ document.getElementById('load-prog-file').addEventListener('change',async functi
     document.getElementById('p1act').style.display='flex';
     document.getElementById('gs').textContent='\u2705 '+results.filter(function(r){return r.ok;}).length+' offres charg\u00e9es';
   }catch(e){alert('Erreur import: '+e.message);}
-});
 });
 
 document.getElementById('clear-btn').addEventListener('click',async function(){
