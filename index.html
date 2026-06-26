@@ -118,13 +118,11 @@ input[type=color]{width:32px;height:28px;border:1px solid #ddd;border-radius:6px
     <textarea id="ctxt" rows="5" placeholder="Nom;Adresse;Catégorie;Sous-catégorie;Type remise;Description;URL"></textarea>
     <div class="row">
       <button class="btn bp" id="geo-btn">▶ Géocoder</button>
-      <label for="load-prog-file" class="btn bo" style="cursor:pointer;margin:0">📂 Charger</label>
-      <button class="btn bo" id="save-prog-btn">⬇ Sauvegarder</button>
+      <button class="btn bo" id="load-btn">📂 Charger sauvegarde</button>
       <button class="btn bo" id="clear-btn" style="color:#e74c3c;border-color:#e74c3c">🗑 Effacer</button>
     </div>
     <div id="bw"><div id="bp2"></div></div>
     <div id="gs"></div>
-    <input type="file" id="load-prog-file" accept=".json" style="position:absolute;left:-9999px;opacity:0"/>
     <div id="p1act" style="display:none" class="row">
       <button class="btn bo" id="retry-btn">↺ Relancer échecs</button>
       <button class="btn bp" id="to-step2-btn">Personnaliser →</button>
@@ -207,7 +205,7 @@ function getProgs(){return _pc||[{'name':'Banque Populaire'},{'name':"Caisse d'�
 function saveProgs(p){_pc=p;}
 function countProg(n){var d=_dc[n];return d?d.filter(function(r){return r.ok;}).length:0;}
 
-function saveData(){saveDataAsync();}
+function saveData(){saveDataAsync();saveCorrections();}
 async function saveDataAsync(){
   try{
     await fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(currentProg),{method:'DELETE',headers:SB_H});
@@ -273,7 +271,6 @@ async function saveCorrections(){
 var globalLogos={};
 
 async function loadGlobalLogos(){
-  if(Object.keys(globalLogos).length>0)return;
   try{
     var r=await fetch(SB_URL+'/rest/v1/logos?select=offer_name,logo_data',{headers:SB_H});
     var d=await r.json();
@@ -302,29 +299,39 @@ async function deleteLogoGlobal(name){
 
 async function sbLoadProg(name){
   async function fetchAllOffres(name){
-    var all=[], offset=0, limit=500;
-    while(true){
-      var r=await fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(name)+'&order=id&limit='+limit+'&offset='+offset,{headers:Object.assign({},SB_H,{'Range-Unit':'items','Range':'0-*','Prefer':'count=none'})});
-      var chunk=await r.json();
-      if(!chunk||!chunk.length) break;
-      all=all.concat(chunk);
-      if(chunk.length<limit) break;
-      offset+=limit;
+    // Limite haute en une seule requête — évite la pagination pour <1000 offres
+    var r=await fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(name)+'&order=id&limit=1000',{headers:SB_H});
+    var data=await r.json();
+    // Si exactement 1000, paginer pour le reste
+    if(data&&data.length===1000){
+      var all=data, offset=1000, limit=500;
+      while(true){
+        var r2=await fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(name)+'&order=id&limit='+limit+'&offset='+offset,{headers:SB_H});
+        var chunk=await r2.json();
+        if(!chunk||!chunk.length) break;
+        all=all.concat(chunk);
+        if(chunk.length<limit) break;
+        offset+=limit;
+      }
+      return all;
     }
-    return all;
+    return data||[];
   }
   try{
-    // Tout en parallèle : offres + cfg + corrections
+    // Corrections déjà en cache ? on évite le refetch
+    var corsPromise=(_corrections&&_corrections.length)
+      ? Promise.resolve(_corrections)
+      : fetch(SB_URL+'/rest/v1/corrections?select=name,address_original,lat,lng,fmt,prec',{headers:SB_H}).then(function(r){return r.json();}).catch(function(){return [];});
     var vals=await Promise.all([
       fetchAllOffres(name),
-      fetch(SB_URL+'/rest/v1/configs?programme=eq.'+encodeURIComponent(name),{headers:SB_H}).then(function(r){return r.json();}).catch(function(){return [];}),
-      (_corrections&&_corrections.length?Promise.resolve(_corrections):fetch(SB_URL+'/rest/v1/corrections?select=name,address_original,lat,lng,fmt,prec',{headers:SB_H}).then(function(r){return r.json();}).catch(function(){return [];}))
+      fetch(SB_URL+'/rest/v1/configs?programme=eq.'+encodeURIComponent(name)+'&select=cfg',{headers:SB_H}).then(function(r){return r.json();}).catch(function(){return [];}),
+      corsPromise
     ]);
     var data=vals[0], cd=vals[1], cors=vals[2];
     var mapped=(data||[]).map(function(row){return {name:row.name,category:row.category,subcategory:row.subcategory||'',remise:row.remise||'',description:row.description||'',url:row.url||'',address:row.address,fmt:row.fmt,lat:row.lat,lng:row.lng,prec:row.prec,ok:row.ok,err:row.err,dupOk:row.dup_ok,warnOk:row.dup_ok};});
     _dc[name]=mapped;
     var lc=(cd&&cd[0])?cd[0].cfg:{};
-    _corrections=cors||[];
+    if(!_corrections||!_corrections.length)_corrections=cors||[];
     if(_corrections.length)applyCorrectionsSync(mapped);
     return {results:mapped,cfg:lc};
   }catch(e){return {results:[],cfg:{}};}
@@ -333,20 +340,16 @@ async function sbLoadProg(name){
 async function renderProgs(){
   var list=document.getElementById('prog-list');
   list.innerHTML='<div style="text-align:center;padding:20px;color:#aaa;font-size:13px">⏳ Chargement...</div>';
-  // Afficher d'abord depuis le cache si disponible
-  var progs=_pc||await sbGetProgs();
-  list.innerHTML='';
-  // Comptes en background
-  fetch(SB_URL+'/rest/v1/offres?select=programme,ok&ok=eq.true',{headers:SB_H}).then(function(r){return r.json();}).then(function(all){
+  // Lancer progs + counts en parallèle
+  var [progs, countRes] = await Promise.all([
+    sbGetProgs(),
+    fetch(SB_URL+'/rest/v1/offres?select=programme&ok=eq.true',{headers:SB_H}).then(function(r){return r.json();}).catch(function(){return [];})
+  ]);
+  try{
     _dc={};
-    (all||[]).forEach(function(row){if(!_dc[row.programme])_dc[row.programme]=[];_dc[row.programme].push({ok:true});});
-    // Mettre à jour les compteurs affichés
-    list.querySelectorAll('[data-prog-count]').forEach(function(el){
-      var n=el.getAttribute('data-prog-count');
-      var cnt=countProg(n);
-      el.textContent=cnt>0?cnt+' offre'+(cnt>1?'s':''):'Aucune donnée';
-    });
-  }).catch(function(){});
+    (countRes||[]).forEach(function(row){if(!_dc[row.programme])_dc[row.programme]=[];_dc[row.programme].push({ok:true});});
+  }catch(e){}
+  list.innerHTML='';
   if(!progs.length){list.innerHTML='<div style="text-align:center;padding:20px;color:#aaa;font-size:13px">Aucun programme. Créez-en un ou restaurez une sauvegarde.</div>';return;}
   for(var i=0;i<progs.length;i++){
     (function(p){
@@ -354,7 +357,7 @@ async function renderProgs(){
       var row=document.createElement('div');
       row.style.cssText='display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #e8e8e4;border-radius:10px;padding:14px 16px;margin-bottom:8px';
       var info=document.createElement('div');
-      info.innerHTML='<div style="font-size:14px;font-weight:600">'+p.name+'</div><div data-prog-count="'+p.name+'" style="font-size:12px;color:#aaa;margin-top:2px">'+(cnt>0?cnt+' offre'+(cnt>1?'s':''):'Aucune donnée')+'</div>';
+      info.innerHTML='<div style="font-size:14px;font-weight:600">'+p.name+'</div><div style="font-size:12px;color:#aaa;margin-top:2px">'+(cnt>0?cnt+' offre'+(cnt>1?'s':''):'Aucune donnée')+'</div>';
       var btnWrap=document.createElement('div');
       btnWrap.style.cssText='display:flex;gap:8px;flex-shrink:0';
       var openBtn=document.createElement('button');
@@ -417,12 +420,9 @@ document.getElementById('add-prog-btn').addEventListener('click',function(){
 document.getElementById('new-prog-input').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('add-prog-btn').click();});
 
 function openProg(name){
+  loadGlobalLogos();
   var hb=document.getElementById('header-bar');if(hb)hb.style.display='none';
-  currentProg=name;results=[];iconCfg={};logoCfg={};
-  _nameSearch='';_nameFilter='';_catFilter='';_precFilter='';
-  var twsearch=document.getElementById('tw-search');
-  if(twsearch)twsearch.value='';
-  loadGlobalLogos(); // fire and forget
+  currentProg=name;results=[];iconCfg={};logoCfg={};logoCfg={};
   document.getElementById('prog-screen').style.display='none';
   document.getElementById('main-app').style.display='block';
   document.getElementById('prog-label').textContent=name;
@@ -445,30 +445,6 @@ function openProg(name){
     if(results.length>0){renderTable();document.getElementById('p1act').style.display='flex';}
   }).catch(function(e){document.getElementById('gs').textContent='❌ '+e.message;});
 }
-
-// Listeners sélection — une seule fois, délégation
-document.addEventListener('click',function(e){
-  var t=e.target;
-  if(t.id==='sel-all-btn'){
-    var allSel=_lastFiltered.length>0&&_lastFiltered.every(function(x){return x.r._sel;});
-    _lastFiltered.forEach(function(x){x.r._sel=!allSel;});
-    renderTable();
-  }
-  if(t.id==='sel-del-btn'){
-    var sel=results.filter(function(r){return r._sel;});
-    if(!sel.length)return;
-    if(!confirm('Supprimer '+sel.length+' offre'+(sel.length>1?'s':'')+' ?'))return;
-    results=results.filter(function(r){return !r._sel;});
-    saveData();renderTable();
-    document.getElementById('gs').textContent='✅ '+results.filter(function(r){return r.ok;}).length+' offres';
-  }
-});
-document.addEventListener('change',function(e){
-  if(e.target.id==='th-sel-all'){
-    _lastFiltered.forEach(function(x){x.r._sel=e.target.checked;});
-    renderTable();
-  }
-});
 
 document.getElementById('back-btn').addEventListener('click',function(){
   var hb=document.getElementById('header-bar');if(hb)hb.style.display='flex';
@@ -580,7 +556,14 @@ document.getElementById('geo-btn').addEventListener('click',async function(){
   saveCorrections();
 });
 
-
+document.getElementById('load-btn').addEventListener('click',function(){
+  document.getElementById('gs').textContent='⏳ Chargement...';
+  sbLoadProg(currentProg).then(function(loaded){
+    results=loaded.results; var lc2=loaded.cfg||{}; iconCfg=lc2.iconCfg||lc2; logoCfg=lc2.logoCfg||{};
+    if(results.length>0){renderTable();document.getElementById('p1act').style.display='flex';document.getElementById('gs').textContent='✅ '+results.filter(function(r){return r.ok;}).length+' offres chargées';}
+    else{document.getElementById('gs').textContent='Aucune donnée pour ce programme.';}
+  });
+});
 
 document.getElementById('clear-btn').addEventListener('click',async function(){
   if(!window.confirm('Effacer les données de "'+currentProg+'" ?'))return;
@@ -590,44 +573,6 @@ document.getElementById('clear-btn').addEventListener('click',async function(){
   document.getElementById('tw').style.display='none';
   document.getElementById('p1act').style.display='none';
   document.getElementById('gs').textContent='';
-});
-
-// Sauvegarder le programme courant
-document.getElementById('save-prog-btn').addEventListener('click',async function(){
-  var btn=this;btn.disabled=true;btn.textContent='⏳...';
-  try{
-    var loaded=await sbLoadProg(currentProg);
-    var bundle={version:1,exported:new Date().toISOString(),programme:currentProg,results:loaded.results,cfg:loaded.cfg};
-    var a=document.createElement('a');
-    a.href=URL.createObjectURL(new Blob([JSON.stringify(bundle,null,2)],{type:'application/json'}));
-    a.download='sauvegarde_'+currentProg.replace(/\s/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.json';
-    document.body.appendChild(a);a.click();setTimeout(function(){document.body.removeChild(a);},200);
-  }catch(e){alert('Erreur: '+e.message);}
-  btn.disabled=false;btn.textContent='⬇ Sauvegarder';
-});
-
-// Charger une sauvegarde pour le programme courant
-document.getElementById('load-prog-file').addEventListener('change',async function(){
-  if(!this.files||!this.files[0])return;
-  var file=this.files[0];
-  var text;
-  try{text=await file.text();}catch(e){alert('Erreur lecture: '+e.message);return;}
-  this.value='';
-  try{
-    var b=JSON.parse(text);
-    if(!b.results||!b.cfg){alert('Fichier invalide.');return;}
-    // Sauvegarder en Supabase
-    var rows=b.results.map(function(r){return {programme:currentProg,name:r.name||'',category:r.category||'',subcategory:r.subcategory||'',remise:r.remise||'',description:r.description||'',url:r.url||'',address:r.address||'',fmt:r.fmt||'',lat:r.lat||null,lng:r.lng||null,prec:r.prec||'',ok:r.ok||false,err:r.err||null,dup_ok:r.dupOk||false};});
-    await fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(currentProg),{method:'DELETE',headers:SB_H});
-    for(var j=0;j<rows.length;j+=50)await fetch(SB_URL+'/rest/v1/offres',{method:'POST',headers:SB_H,body:JSON.stringify(rows.slice(j,j+50))});
-    await fetch(SB_URL+'/rest/v1/configs',{method:'POST',headers:Object.assign({},SB_H,{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({programme:currentProg,cfg:b.cfg})});
-    results=b.results;
-    var lc=b.cfg||{};iconCfg=lc.iconCfg||{};logoCfg=lc.logoCfg||{};
-    Object.keys(globalLogos).forEach(function(n){if(!logoCfg[n])logoCfg[n]=globalLogos[n];});
-    renderTable();
-    document.getElementById('p1act').style.display='flex';
-    document.getElementById('gs').textContent='✅ '+results.filter(function(r){return r.ok;}).length+' offres chargées';
-  }catch(e){alert('Erreur import: '+e.message);}
 });
 
 document.getElementById('retry-btn').addEventListener('click',async function(){
@@ -647,9 +592,15 @@ document.getElementById('retry-btn').addEventListener('click',async function(){
 
 function pb(p){return{ROOFTOP:'🟢',RANGE_INTERPOLATED:'🟡',GEOMETRIC_CENTER:'🟠',APPROXIMATE:'🔴',NOMINATIM:'🔵',MANUAL:'🔵'}[p]||'⚪';}
 
-var _nameFilter='', _catFilter='', _precFilter='', _nameSearch='', _lastFiltered=[];
+var _nameFilter='', _catFilter='', _precFilter='', _nameSearch='';
 
-
+function updateSelBar(){
+  var selected=results.filter(function(r){return r._sel;});
+  var bar=document.getElementById('sel-bar'),cnt=document.getElementById('sel-count');
+  if(!bar)return;
+  bar.style.display=selected.length>0?'flex':'none';
+  if(cnt)cnt.textContent=selected.length+' sélectionnée'+(selected.length>1?'s':'');
+}
 
 function renderTable(){
   var w=document.getElementById('tw');
@@ -660,7 +611,7 @@ function renderTable(){
     var fw=document.createElement('div');
     fw.id='tw-filter-wrap';
     fw.style.cssText='display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap';
-    fw.innerHTML='<input id="tw-search" type="text" placeholder="🔍 Nom, ville, code postal..." style="flex:1;min-width:140px;padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none"/>'
+    fw.innerHTML='<input id="tw-search" type="text" placeholder="🔍 Rechercher un nom..." style="flex:1;min-width:140px;padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none"/>'
       +'<label id="tw-warn-label" style="font-size:12px;color:#e67e22;cursor:pointer;white-space:nowrap;background:#fff8f0;border:1px solid #f0c080;border-radius:6px;padding:4px 10px"><input type="checkbox" id="tw-warn-only" style="margin-right:4px"/>⚠️ À vérifier</label>'
       +'<label id="tw-dup-label" style="font-size:12px;color:#b26a00;cursor:pointer;white-space:nowrap;background:#fffbe6;border:1px solid #ffe082;border-radius:6px;padding:4px 10px"><input type="checkbox" id="tw-dup-only" style="margin-right:4px"/>2x Doublons</label>';
     w.parentNode.insertBefore(fw, w);
@@ -672,14 +623,6 @@ function renderTable(){
     });
     document.getElementById('tw-warn-only').addEventListener('change',function(){renderTable();});
     document.getElementById('tw-dup-only').addEventListener('change',function(){renderTable();});
-    // Barre de sélection multiple
-    var selBar=document.createElement('div');
-    selBar.id='sel-bar';
-    selBar.style.cssText='display:none;gap:8px;align-items:center;margin-top:6px;padding:6px 10px;background:#f0f0ff;border-radius:8px;border:1px solid #c0c0ee';
-    selBar.innerHTML='<button id="sel-all-btn" style="font-size:12px;padding:3px 12px;border-radius:6px;border:1px solid #7F77DD;background:#fff;color:#7F77DD;cursor:pointer">Sélectionner tout</button>'
-      +'<span id="sel-count" style="font-size:12px;color:#666"></span>'
-      +'<button id="sel-del-btn" class="btn" style="font-size:12px;padding:3px 12px;border-radius:6px;border:1px solid #e74c3c;background:#fff;color:#e74c3c;cursor:pointer;margin-left:auto">🗑 Supprimer la sélection</button>';
-    fw.parentNode.insertBefore(selBar, fw.nextSibling);
   }
 
   var warnOnly = document.getElementById('tw-warn-only') && document.getElementById('tw-warn-only').checked;
@@ -770,9 +713,8 @@ function renderTable(){
 
   var ths='padding:8px 6px;text-align:left;font-size:11px;color:#888;font-weight:600;border-bottom:2px solid #e8e8e4;background:#fff;';
   var h='<table style="width:100%;border-collapse:collapse;table-layout:fixed">'
-    +'<colgroup><col style="width:24px"><col style="width:30px"><col style="width:120px"><col style="width:90px"><col><col style="width:85px"><col style="width:85px"><col style="width:35px"><col style="width:90px"></colgroup>'
+    +'<colgroup><col style="width:30px"><col style="width:120px"><col style="width:90px"><col><col style="width:85px"><col style="width:85px"><col style="width:35px"><col style="width:90px"></colgroup>'
     +'<thead><tr>'
-    +'<th style="'+ths+'padding:8px 4px"><input type="checkbox" id="th-sel-all" style="cursor:pointer"/></th>'
     +'<th style="'+ths+'">#</th>'
     +'<th style="'+ths+'position:relative;cursor:pointer;user-select:none" id="th-nom">'+nLabel+mkDrop('nom-drop',nomItems,'data-val',_nameFilter,nomSearch)+'</th>'
     +'<th style="'+ths+'position:relative;cursor:pointer;user-select:none" id="th-cat">'+cLabel+mkDrop('cat-drop',catItems,'data-val',_catFilter)+'</th>'
@@ -784,13 +726,8 @@ function renderTable(){
     +'</tr></thead><tbody>';
 
   // ── Filter & render rows ──
-  _lastFiltered=tagged.filter(function(t){
-    if(search){
-      var terms=search.split(/\s+/).filter(Boolean);
-      var haystack=(t.r.name+' '+(t.r.fmt||t.r.address||'')).toLowerCase();
-      var match=terms.every(function(term){return haystack.indexOf(term)>=0;});
-      if(!match) return false;
-    }
+  var filtered=tagged.filter(function(t){
+    if(search && t.r.name.toLowerCase().indexOf(search)<0) return false;
     if(_nameFilter && t.r.name!==_nameFilter) return false;
     if(_catFilter && t.r.category!==_catFilter) return false;
     if(warnOnly && !t.isWarn) return false;
@@ -802,16 +739,15 @@ function renderTable(){
     return true;
   });
 
-  if(!_lastFiltered.length) h+='<tr style="display:table;width:100%;table-layout:fixed"><td colspan="8" style="text-align:center;color:#aaa;padding:16px;font-size:12px">Aucun résultat</td></tr>';
+  if(!filtered.length) h+='<tr style="display:table;width:100%;table-layout:fixed"><td colspan="8" style="text-align:center;color:#aaa;padding:16px;font-size:12px">Aucun résultat</td></tr>';
 
-  _lastFiltered.forEach(function(t){
+  filtered.forEach(function(t){
     var r=t.r, i=t.idx;
     var bg=t.isWarn?'background:#fff8f0':(!r.ok&&!t.isWarn?'background:#fff8f8':'');
     var baseStyle=bg;
     var td='padding:6px;font-size:12px;border-bottom:1px solid #f5f5f3;vertical-align:middle';
     if(r.ok){
       h+='<tr data-idx="'+i+'" style="'+baseStyle+'">'
-        +'<td style="'+td+';padding:6px 4px"><input type="checkbox" class="row-sel-chk" data-idx="'+i+'" '+(r._sel?'checked':'')+' style="cursor:pointer"/></td>'
         +'<td style="'+td+';color:#aaa;width:28px">'+(i+1)+'</td>'
         +'<td style="'+td+'"><b class="name-click" data-idx="'+i+'" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">'+r.name+'</b>'+(t.isDup?' <span style="font-size:10px;background:#ffe082;color:#b26a00;border-radius:4px;padding:1px 5px;font-weight:700;vertical-align:middle">2x</span>':'')+'</td>'
         +'<td style="'+td+'">'+r.category+'</td>'
@@ -826,7 +762,6 @@ function renderTable(){
         +'</td></tr>';
     }else{
       h+='<tr data-idx="'+i+'" style="'+baseStyle+'">'
-        +'<td style="'+td+';padding:6px 4px"><input type="checkbox" class="row-sel-chk" data-idx="'+i+'" '+(r._sel?'checked':'')+' style="cursor:pointer"/></td>'
         +'<td style="'+td+';color:#aaa;width:28px">'+(i+1)+'</td>'
         +'<td style="'+td+'"><b class="name-click" data-idx="'+i+'" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">'+r.name+'</b>'+(t.isDup?' <span style="font-size:10px;background:#ffe082;color:#b26a00;border-radius:4px;padding:1px 5px;font-weight:700;vertical-align:middle">2x</span>':'')+'</td>'
         +'<td style="'+td+'">'+r.category+'</td>'
@@ -984,29 +919,6 @@ function renderTable(){
   });
 
   // Delete button
-  // Checkboxes individuelles
-  function updateSelBar(){
-    var sel=results.filter(function(r){return r._sel;});
-    var bar=document.getElementById('sel-bar');
-    var cnt=document.getElementById('sel-count');
-    if(bar)bar.style.display=_lastFiltered.length>0?'flex':'none';
-    if(cnt)cnt.textContent=sel.length>0?sel.length+' sélectionné'+(sel.length>1?'s':''):'';
-    var allSel=_lastFiltered.length>0&&_lastFiltered.every(function(t){return t.r._sel;});
-    var btn=document.getElementById('sel-all-btn');
-    if(btn){btn.textContent=allSel?'Désélectionner tout':'Sélectionner tout';btn.style.background=allSel?'#7F77DD':'#fff';btn.style.color=allSel?'#fff':'#7F77DD';}
-    var allChk=document.getElementById('th-sel-all');
-    if(allChk)allChk.checked=allSel;
-  }
-  w.querySelectorAll('.row-sel-chk').forEach(function(chk){
-    chk.addEventListener('change',function(){
-      var idx=parseInt(this.getAttribute('data-idx'));
-      results[idx]._sel=this.checked;
-      updateSelBar();
-    });
-  });
-
-  updateSelBar();
-
   w.querySelectorAll('.del-btn').forEach(function(btn){
     btn.addEventListener('click',function(){
       var idx=parseInt(this.getAttribute('data-idx'));
@@ -1567,22 +1479,11 @@ document.addEventListener('click',function(e){
 document.getElementById('desc-modal-close').addEventListener('click',function(){document.getElementById('desc-modal').style.display='none';});
 document.getElementById('desc-modal-cancel').addEventListener('click',function(){document.getElementById('desc-modal').style.display='none';});
 document.getElementById('desc-modal').addEventListener('click',function(e){if(e.target===this)this.style.display='none';});
-document.getElementById('desc-modal-save').addEventListener('click',async function(){
+document.getElementById('desc-modal-save').addEventListener('click',function(){
   if(_descIdx===null)return;
-  var desc=document.getElementById('desc-modal-text').value;
-  var name=results[_descIdx].name;
-  // Propager à TOUS les programmes en Supabase via nom uniquement
-  await fetch(SB_URL+'/rest/v1/offres?name=eq.'+encodeURIComponent(name),{
-    method:'PATCH',
-    headers:Object.assign({},SB_H,{'Content-Type':'application/json','Prefer':'return=minimal'}),
-    body:JSON.stringify({description:desc})
-  }).catch(function(){});
-  // Mettre à jour results localement (tous les Aubert du programme courant)
-  for(var i=0;i<results.length;i++){
-    if(results[i].name===name)results[i].description=desc;
-  }
+  results[_descIdx].description=document.getElementById('desc-modal-text').value;
+  saveData();
   document.getElementById('desc-modal').style.display='none';
-  renderTable();
 });
 </script>
 </body>
