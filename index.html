@@ -637,8 +637,7 @@ function renderTable(){
     var fw=document.createElement('div');
     fw.id='tw-filter-wrap';
     fw.style.cssText='display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap';
-    fw.innerHTML='<input id="tw-search" type="text" placeholder="🔍 Nom, ville, code postal..." style="flex:1;min-width:140px;padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none"/>'
-      +'<label id="tw-warn-label" style="font-size:12px;color:#e67e22;cursor:pointer;white-space:nowrap;background:#fff8f0;border:1px solid #f0c080;border-radius:6px;padding:4px 10px"><input type="checkbox" id="tw-warn-only" style="margin-right:4px"/>⚠️ À vérifier</label>'
+    fw.innerHTML='<input id="tw-search" type="text" placeholder="🔍 Nom, ville, code postal..." style="flex:1;min-width:140px;padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none"/>'      +'<button id="sel-filtered-btn" style="font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid #7F77DD;background:#fff;color:#7F77DD;cursor:pointer;white-space:nowrap;flex-shrink:0">Sélectionner</button>'      +'<button id="desel-all-btn" style="font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid #aaa;background:#fff;color:#666;cursor:pointer;white-space:nowrap;flex-shrink:0">Désélectionner</button>'      +'<button id="del-sel-btn" style="font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid #e74c3c;background:#fff;color:#e74c3c;cursor:pointer;white-space:nowrap;flex-shrink:0">🗑 Supprimer</button>'      +'<label id="tw-warn-label" style="font-size:12px;color:#e67e22;cursor:pointer;white-space:nowrap;background:#fff8f0;border:1px solid #f0c080;border-radius:6px;padding:4px 10px"><input type="checkbox" id="tw-warn-only" style="margin-right:4px"/>⚠️ À vérifier</label>'
       +'<label id="tw-dup-label" style="font-size:12px;color:#b26a00;cursor:pointer;white-space:nowrap;background:#fffbe6;border:1px solid #ffe082;border-radius:6px;padding:4px 10px"><input type="checkbox" id="tw-dup-only" style="margin-right:4px"/>2x Doublons</label>';
     w.parentNode.insertBefore(fw, w);
     var selBar=document.createElement('div');
@@ -660,6 +659,26 @@ function renderTable(){
     });
     document.getElementById('tw-warn-only').addEventListener('change',function(){renderTable();});
     document.getElementById('tw-dup-only').addEventListener('change',function(){renderTable();});
+
+    // Sélectionner les résultats filtrés
+    document.getElementById('sel-filtered-btn').addEventListener('click',function(){
+      filtered.forEach(function(t){t.r._sel=true;});
+      renderTable();
+    });
+    // Tout désélectionner
+    document.getElementById('desel-all-btn').addEventListener('click',function(){
+      results.forEach(function(r){r._sel=false;});
+      renderTable();
+    });
+    // Supprimer la sélection
+    document.getElementById('del-sel-btn').addEventListener('click',function(){
+      var sel=results.filter(function(r){return r._sel;});
+      if(!sel.length){alert('Aucune offre sélectionnée.');return;}
+      if(!confirm('Supprimer '+sel.length+' offre'+(sel.length>1?'s':'')+' ?'))return;
+      results=results.filter(function(r){return !r._sel;});
+      saveData();renderTable();
+      document.getElementById('gs').textContent='✅ '+results.filter(function(r){return r.ok;}).length+' offres';
+    });
   }
 
   var warnOnly = document.getElementById('tw-warn-only') && document.getElementById('tw-warn-only').checked;
