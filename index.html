@@ -637,7 +637,7 @@ function renderTable(){
     var fw=document.createElement('div');
     fw.id='tw-filter-wrap';
     fw.style.cssText='display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap';
-    fw.innerHTML='<input id="tw-search" type="text" placeholder="🔍 Nom, ville, code postal..." style="flex:1;min-width:140px;padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none"/>'      +'<button id="sel-filtered-btn" style="font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid #7F77DD;background:#fff;color:#7F77DD;cursor:pointer;white-space:nowrap;flex-shrink:0">Sélectionner</button>'      +'<button id="desel-all-btn" style="font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid #aaa;background:#fff;color:#666;cursor:pointer;white-space:nowrap;flex-shrink:0">Désélectionner</button>'      +'<button id="del-sel-btn" style="font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid #e74c3c;background:#fff;color:#e74c3c;cursor:pointer;white-space:nowrap;flex-shrink:0">🗑 Supprimer</button>'      +'<label id="tw-warn-label" style="font-size:12px;color:#e67e22;cursor:pointer;white-space:nowrap;background:#fff8f0;border:1px solid #f0c080;border-radius:6px;padding:4px 10px"><input type="checkbox" id="tw-warn-only" style="margin-right:4px"/>⚠️ À vérifier</label>'
+    fw.innerHTML='<input id="tw-search" type="text" placeholder="🔍 Nom, ville, code postal..." style="flex:1;min-width:140px;padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none"/>'      +'<button id="sel-filtered-btn" style="font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid #7F77DD;background:#fff;color:#7F77DD;cursor:pointer;white-space:nowrap;flex-shrink:0">Sélectionner</button>'      +'<button id="del-sel-btn" style="font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid #e74c3c;background:#fff;color:#e74c3c;cursor:pointer;white-space:nowrap;flex-shrink:0">🗑 Supprimer</button>'      +'<label id="tw-warn-label" style="font-size:12px;color:#e67e22;cursor:pointer;white-space:nowrap;background:#fff8f0;border:1px solid #f0c080;border-radius:6px;padding:4px 10px"><input type="checkbox" id="tw-warn-only" style="margin-right:4px"/>⚠️ À vérifier</label>'
       +'<label id="tw-dup-label" style="font-size:12px;color:#b26a00;cursor:pointer;white-space:nowrap;background:#fffbe6;border:1px solid #ffe082;border-radius:6px;padding:4px 10px"><input type="checkbox" id="tw-dup-only" style="margin-right:4px"/>2x Doublons</label>';
     w.parentNode.insertBefore(fw, w);
     var selBar=document.createElement('div');
@@ -660,14 +660,10 @@ function renderTable(){
     document.getElementById('tw-warn-only').addEventListener('change',function(){renderTable();});
     document.getElementById('tw-dup-only').addEventListener('change',function(){renderTable();});
 
-    // Sélectionner les résultats filtrés
+    // Sélectionner / désélectionner les résultats filtrés (toggle)
     document.getElementById('sel-filtered-btn').addEventListener('click',function(){
-      filtered.forEach(function(t){t.r._sel=true;});
-      renderTable();
-    });
-    // Tout désélectionner
-    document.getElementById('desel-all-btn').addEventListener('click',function(){
-      results.forEach(function(r){r._sel=false;});
+      var allSel=filtered.every(function(t){return t.r._sel;});
+      filtered.forEach(function(t){t.r._sel=!allSel;});
       renderTable();
     });
     // Supprimer la sélection
@@ -771,7 +767,6 @@ function renderTable(){
   var h='<table style="width:100%;border-collapse:collapse;table-layout:fixed">'
     +'<colgroup><col style="width:30px"><col style="width:120px"><col style="width:90px"><col><col style="width:85px"><col style="width:85px"><col style="width:35px"><col style="width:90px"></colgroup>'
     +'<thead><tr>'
-    +'<th style="padding:6px 4px"><input type="checkbox" id="th-sel-all" style="cursor:pointer"/></th>'
     +'<th style="'+ths+'">#</th>'
     +'<th style="'+ths+'position:relative;cursor:pointer;user-select:none" id="th-nom">'+nLabel+mkDrop('nom-drop',nomItems,'data-val',_nameFilter,nomSearch)+'</th>'
     +'<th style="'+ths+'position:relative;cursor:pointer;user-select:none" id="th-cat">'+cLabel+mkDrop('cat-drop',catItems,'data-val',_catFilter)+'</th>'
@@ -809,7 +804,6 @@ function renderTable(){
     var td='padding:6px;font-size:12px;border-bottom:1px solid #f5f5f3;vertical-align:middle';
     if(r.ok){
       h+='<tr data-idx="'+i+'" style="'+baseStyle+'">'
-        +'<td style="padding:6px 4px"><input type="checkbox" class="row-sel-chk" data-idx="'+i+'" '+(r._sel?'checked':'')+' style="cursor:pointer"/></td>'
         +'<td style="'+td+';color:#aaa;width:28px">'+(i+1)+'</td>'
         +'<td style="'+td+'"><b class="name-click" data-idx="'+i+'" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">'+r.name+'</b>'+(t.isDup?' <span style="font-size:10px;background:#ffe082;color:#b26a00;border-radius:4px;padding:1px 5px;font-weight:700;vertical-align:middle">2x</span>':'')+'</td>'
         +'<td style="'+td+'">'+r.category+'</td>'
@@ -824,7 +818,6 @@ function renderTable(){
         +'</td></tr>';
     }else{
       h+='<tr data-idx="'+i+'" style="'+baseStyle+'">'
-        +'<td style="padding:6px 4px"><input type="checkbox" class="row-sel-chk" data-idx="'+i+'" '+(r._sel?'checked':'')+' style="cursor:pointer"/></td>'
         +'<td style="'+td+';color:#aaa;width:28px">'+(i+1)+'</td>'
         +'<td style="'+td+'"><b class="name-click" data-idx="'+i+'" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">'+r.name+'</b>'+(t.isDup?' <span style="font-size:10px;background:#ffe082;color:#b26a00;border-radius:4px;padding:1px 5px;font-weight:700;vertical-align:middle">2x</span>':'')+'</td>'
         +'<td style="'+td+'">'+r.category+'</td>'
@@ -872,8 +865,7 @@ function renderTable(){
           _nameFilter=this.getAttribute('data-val');
           _nameSearch='';
           var sw=document.getElementById('tw-search');if(sw)sw.value='';
-        }
-        else if(filterKey==='_catFilter') _catFilter=this.getAttribute('data-val');
+        } else if(filterKey==='_catFilter') _catFilter=this.getAttribute('data-val');
         else if(filterKey==='_precFilter') _precFilter=this.getAttribute('data-val');
         drop.style.display='none';
         renderTable();
@@ -895,27 +887,14 @@ function renderTable(){
   setupDrop('th-cat','cat-drop','_catFilter');
   setupDrop('th-prec','prec-drop','_precFilter');
 
-  // Checkboxes sélection
-  w.querySelectorAll('.row-sel-chk').forEach(function(chk){
-    chk.addEventListener('change',function(){
-      results[parseInt(this.getAttribute('data-idx'))]._sel=this.checked;
-      updateSelBar();
-    });
-  });
-  var thAll=document.getElementById('th-sel-all');
-  if(thAll){
-    thAll.checked=filtered.length>0&&filtered.every(function(t){return t.r._sel;});
-    thAll.onchange=function(){filtered.forEach(function(t){t.r._sel=thAll.checked;});renderTable();};
-  }
-  var selAllBtn=document.getElementById('sel-all-btn');
-  if(selAllBtn){
-    var allSel=filtered.length>0&&filtered.every(function(t){return t.r._sel;});
-    selAllBtn.textContent=allSel?'Désélectionner tout':'Sélectionner tout';
-    selAllBtn.onclick=function(){
-      var nowSel=filtered.every(function(t){return t.r._sel;});
-      filtered.forEach(function(t){t.r._sel=!nowSel;});
-      renderTable();
-    };
+
+  // Mettre à jour label bouton sélection
+  var selBtn=document.getElementById('sel-filtered-btn');
+  if(selBtn){
+    var allFilSel=filtered.length>0&&filtered.every(function(t){return t.r._sel;});
+    selBtn.textContent=allFilSel?'Désélectionner':'Sélectionner';
+    selBtn.style.background=allFilSel?'#7F77DD':'#fff';
+    selBtn.style.color=allFilSel?'#fff':'#7F77DD';
   }
   var selDelBtn=document.getElementById('sel-del-btn');
   if(selDelBtn){
