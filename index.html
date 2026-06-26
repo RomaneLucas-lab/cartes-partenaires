@@ -118,7 +118,9 @@ input[type=color]{width:32px;height:28px;border:1px solid #ddd;border-radius:6px
     <textarea id="ctxt" rows="5" placeholder="Nom;Adresse;Catégorie;Sous-catégorie;Type remise;Description;URL"></textarea>
     <div class="row">
       <button class="btn bp" id="geo-btn">▶ Géocoder</button>
-      <button class="btn bo" id="load-btn">📂 Charger sauvegarde</button>
+      <label for="load-prog-file" class="btn bo" style="cursor:pointer;margin:0">📂 Charger</label>
+      <input type="file" id="load-prog-file" accept=".json" style="position:absolute;left:-9999px;opacity:0"/>
+      <button class="btn bo" id="save-prog-btn">⬇ Sauvegarder</button>
       <button class="btn bo" id="clear-btn" style="color:#e74c3c;border-color:#e74c3c">🗑 Effacer</button>
     </div>
     <div id="bw"><div id="bp2"></div></div>
@@ -556,13 +558,41 @@ document.getElementById('geo-btn').addEventListener('click',async function(){
   saveCorrections();
 });
 
-document.getElementById('load-btn').addEventListener('click',function(){
-  document.getElementById('gs').textContent='⏳ Chargement...';
-  sbLoadProg(currentProg).then(function(loaded){
-    results=loaded.results; var lc2=loaded.cfg||{}; iconCfg=lc2.iconCfg||lc2; logoCfg=lc2.logoCfg||{};
-    if(results.length>0){renderTable();document.getElementById('p1act').style.display='flex';document.getElementById('gs').textContent='✅ '+results.filter(function(r){return r.ok;}).length+' offres chargées';}
-    else{document.getElementById('gs').textContent='Aucune donnée pour ce programme.';}
-  });
+// Sauvegarder le programme courant en JSON
+document.getElementById('save-prog-btn').addEventListener('click',async function(){
+  var btn=this;btn.disabled=true;btn.textContent='⏳...';
+  try{
+    var loaded=await sbLoadProg(currentProg);
+    var bundle={version:1,exported:new Date().toISOString(),programme:currentProg,results:loaded.results,cfg:loaded.cfg};
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([JSON.stringify(bundle,null,2)],{type:'application/json'}));
+    a.download='sauvegarde_'+currentProg.replace(/[^a-z0-9]/gi,'_')+'_'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a);a.click();setTimeout(function(){document.body.removeChild(a);},200);
+  }catch(e){alert('Erreur: '+e.message);}
+  btn.disabled=false;btn.textContent='\u2b07 Sauvegarder';
+});
+
+// Charger une sauvegarde JSON
+document.getElementById('load-prog-file').addEventListener('change',async function(){
+  if(!this.files||!this.files[0])return;
+  var file=this.files[0],text;
+  try{text=await file.text();}catch(e){alert('Erreur lecture: '+e.message);return;}
+  this.value='';
+  try{
+    var b=JSON.parse(text);
+    if(!b.results||!b.cfg){alert('Fichier invalide.');return;}
+    var rows=b.results.map(function(r){return {programme:currentProg,name:r.name||'',category:r.category||'',subcategory:r.subcategory||'',remise:r.remise||'',description:r.description||'',url:r.url||'',address:r.address||'',fmt:r.fmt||'',lat:r.lat||null,lng:r.lng||null,prec:r.prec||'',ok:r.ok||false,err:r.err||null,dup_ok:r.dupOk||false};});
+    await fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(currentProg),{method:'DELETE',headers:SB_H});
+    for(var j=0;j<rows.length;j+=50)await fetch(SB_URL+'/rest/v1/offres',{method:'POST',headers:SB_H,body:JSON.stringify(rows.slice(j,j+50))});
+    await fetch(SB_URL+'/rest/v1/configs',{method:'POST',headers:Object.assign({},SB_H,{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({programme:currentProg,cfg:b.cfg})});
+    results=b.results;
+    var lc=b.cfg||{};iconCfg=lc.iconCfg||{};logoCfg=lc.logoCfg||{};
+    Object.keys(globalLogos).forEach(function(n){if(!logoCfg[n])logoCfg[n]=globalLogos[n];});
+    renderTable();
+    document.getElementById('p1act').style.display='flex';
+    document.getElementById('gs').textContent='\u2705 '+results.filter(function(r){return r.ok;}).length+' offres charg\u00e9es';
+  }catch(e){alert('Erreur import: '+e.message);}
+});
 });
 
 document.getElementById('clear-btn').addEventListener('click',async function(){
@@ -611,7 +641,7 @@ function renderTable(){
     var fw=document.createElement('div');
     fw.id='tw-filter-wrap';
     fw.style.cssText='display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap';
-    fw.innerHTML='<input id="tw-search" type="text" placeholder="🔍 Rechercher un nom..." style="flex:1;min-width:140px;padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none"/>'
+    fw.innerHTML='<input id="tw-search" type="text" placeholder="🔍 Nom, ville, code postal..." style="flex:1;min-width:140px;padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none"/>'
       +'<label id="tw-warn-label" style="font-size:12px;color:#e67e22;cursor:pointer;white-space:nowrap;background:#fff8f0;border:1px solid #f0c080;border-radius:6px;padding:4px 10px"><input type="checkbox" id="tw-warn-only" style="margin-right:4px"/>⚠️ À vérifier</label>'
       +'<label id="tw-dup-label" style="font-size:12px;color:#b26a00;cursor:pointer;white-space:nowrap;background:#fffbe6;border:1px solid #ffe082;border-radius:6px;padding:4px 10px"><input type="checkbox" id="tw-dup-only" style="margin-right:4px"/>2x Doublons</label>';
     w.parentNode.insertBefore(fw, w);
@@ -619,7 +649,12 @@ function renderTable(){
     document.getElementById('tw-search').addEventListener('input',function(){
       var val=this.value.toLowerCase();
       clearTimeout(_searchTimer);
-      _searchTimer=setTimeout(function(){_nameSearch=val;renderTable();},300);
+      _searchTimer=setTimeout(function(){
+        _nameSearch=val;
+        // Vider le filtre nom — les deux sont indépendants
+        if(val) _nameFilter='';
+        renderTable();
+      },300);
     });
     document.getElementById('tw-warn-only').addEventListener('change',function(){renderTable();});
     document.getElementById('tw-dup-only').addEventListener('change',function(){renderTable();});
@@ -727,7 +762,11 @@ function renderTable(){
 
   // ── Filter & render rows ──
   var filtered=tagged.filter(function(t){
-    if(search && t.r.name.toLowerCase().indexOf(search)<0) return false;
+    if(search){
+      var terms=search.split(/\s+/).filter(Boolean);
+      var haystack=(t.r.name+' '+(t.r.fmt||t.r.address||'')).toLowerCase();
+      if(!terms.every(function(term){return haystack.indexOf(term)>=0;})) return false;
+    }
     if(_nameFilter && t.r.name!==_nameFilter) return false;
     if(_catFilter && t.r.category!==_catFilter) return false;
     if(warnOnly && !t.isWarn) return false;
@@ -805,8 +844,12 @@ function renderTable(){
     drop.querySelectorAll('div[data-val]').forEach(function(opt){
       opt.addEventListener('click',function(e){
         e.stopPropagation();
-        if(filterKey==='_nameFilter') _nameFilter=this.getAttribute('data-val');
-        else if(filterKey==='_catFilter') _catFilter=this.getAttribute('data-val');
+        if(filterKey==='_nameFilter'){
+          _nameFilter=this.getAttribute('data-val');
+          // Vider la barre de recherche — les deux sont indépendants
+          _nameSearch='';
+          var sw=document.getElementById('tw-search');if(sw)sw.value='';
+        } else if(filterKey==='_catFilter') _catFilter=this.getAttribute('data-val');
         else if(filterKey==='_precFilter') _precFilter=this.getAttribute('data-val');
         drop.style.display='none';
         renderTable();
