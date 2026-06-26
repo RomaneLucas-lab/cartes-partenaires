@@ -62,8 +62,7 @@ tr:hover td{background:#fafafa}
 </div>
 
 <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-  <button class="expbtn" onclick="openDashboard()" style="background:#1D9E75;font-size:13px;padding:8px 20px">&#128196; Dashboard export</button>
-  <button class="expbtn" onclick="exportAllCSV()" style="font-size:13px;padding:8px 20px;margin-left:8px">&#8595; Export CSV complet</button>
+  <button class="expbtn" onclick="exportAll()" style="background:#1D9E75;font-size:13px;padding:8px 20px">&#8595; Export complet</button>
 </div>
 
 <div class="cards">
@@ -593,100 +592,70 @@ function exportLocCSV(){
 
 function esc(v){return '"'+(v||'').toString().replace(/"/g,'""')+'"';}
 function fmtDate(iso){if(!iso)return '';try{return iso.slice(0,10);}catch(e){return '';}}
-function exportAllCSV(){
+function exportAll(){
   var f=getFilters();
   var prog=f.prog||'Tous';
-  var date=new Date().toISOString().split('T')[0];
+  var date=new Date().toISOString().slice(0,10);
+  var lines=['sep=;'];
 
-  // Colonnes :
-  // Programme | Date
-  // | Recherche | Variantes
-  // | Clic offre
-  // | Clic marqueur | Catégorie marqueur | Adresse marqueur
-  // | Ville localisation | N° département | Nom département
+  function addSection(title, header, rows){
+    lines.push('');
+    lines.push(title);
+    lines.push(header);
+    rows.forEach(function(r){
+      lines.push(r.map(function(v){return '"'+(v||'').toString().replace(/"/g,'""')+'"';}).join(';'));
+    });
+  }
 
-  var rows=[];
-  rows.push('sep=;');
-  rows.push([
-    'Programme','Date',
-    'Recherche','Variantes groupées',
-    'Clic offre',
-    'Clic marqueur','Catégorie','Adresse',
-    'Ville','N° département','Nom département'
-  ].join(';'));
-
-  // Map termes -> label principal
+  // ── Recherches ──
   var searches=filterData(allSearches,'searched_at');
   var terms={};
-  searches.forEach(function(d){
-    var q=(d.query||'').toLowerCase().trim();
-    if(!q)return;
-    if(!terms[q])terms[q]={count:0,progs:{}};
-    terms[q].count++;
-    terms[q].progs[d.programme]=(terms[q].progs[d.programme]||0)+1;
-  });
+  searches.forEach(function(d){var q=(d.query||'').toLowerCase().trim();if(!q)return;if(!terms[q])terms[q]={count:0,progs:{}};terms[q].count++;terms[q].progs[d.programme]=(terms[q].progs[d.programme]||0)+1;});
   var varMap={};
-  groupTerms(terms).forEach(function(g){
-    g.variants.forEach(function(v){varMap[v]=g;});
-  });
-
-  // Recherches
+  groupTerms(terms).forEach(function(g){g.variants.forEach(function(v){varMap[v]=g;});});
+  var sRows=[];
   searches.forEach(function(d){
-    var q=(d.query||'').toLowerCase().trim();
-    if(!q)return;
+    var q=(d.query||'').toLowerCase().trim();if(!q)return;
     var g=varMap[q]||{label:q,variants:[q]};
     var others=g.variants.filter(function(v){return v!==g.label;});
-    rows.push([
-      esc(d.programme),esc(fmtDate(d.searched_at)),
-      esc(g.label),esc(others.join(', ')),
-      esc(''),
-      esc(''),esc(''),esc(''),
-      esc(''),esc(''),esc('')
-    ].join(';'));
+    sRows.push([(d.searched_at||'').slice(0,10),d.programme||'',g.label,others.join(', ')]);
   });
+  addSection('=== RECHERCHES ('+sRows.length+') ===','Date;Programme;Terme recherché;Variantes',sRows);
 
-  // Clics offres
+  // ── Clics offres ──
+  var cRows=[];
   filterData(allClicks,'clicked_at').forEach(function(d){
-    rows.push([
-      esc(d.programme),esc(fmtDate(d.clicked_at)),
-      esc(''),esc(''),
-      esc(d.offer_name||''),
-      esc(''),esc(''),esc(''),
-      esc(''),esc(''),esc('')
-    ].join(';'));
+    cRows.push([(d.clicked_at||'').slice(0,10),d.programme||'',d.offer_name||'',d.offer_address||'']);
   });
+  addSection('=== CLICS OFFRES ('+cRows.length+') ===','Date;Programme;Offre;Adresse',cRows);
 
-  // Clics marqueurs
+  // ── Clics marqueurs ──
+  var mRows=[];
   filterData(allMarkers,'clicked_at').forEach(function(d){
-    rows.push([
-      esc(d.programme),esc(fmtDate(d.clicked_at)),
-      esc(''),esc(''),
-      esc(''),
-      esc(d.offer_name||''),esc(d.offer_category||''),esc(d.offer_address||''),
-      esc(''),esc(''),esc('')
-    ].join(';'));
+    mRows.push([(d.clicked_at||'').slice(0,10),d.programme||'',d.offer_name||'',d.offer_category||'',d.offer_address||'']);
   });
+  addSection('=== CLICS MARQUEURS ('+mRows.length+') ===','Date;Programme;Offre;Catégorie;Adresse',mRows);
 
-  // Localisations
+  // ── Localisations ──
+  var lRows=[];
   filterData(allLocs,'clicked_at').forEach(function(d){
     var num=d.department_num||'';
     var nom=DEPT_NAMES[num]||d.department||'';
-    rows.push([
-      esc(d.programme),esc(fmtDate(d.clicked_at)),
-      esc(''),esc(''),
-      esc(''),
-      esc(''),esc(''),esc(''),
-      esc(d.city||''),esc(num),esc(nom)
-    ].join(';'));
+    lRows.push([(d.clicked_at||'').slice(0,10),d.programme||'',d.city||'',num,nom,d.region||'']);
   });
+  addSection('=== LOCALISATIONS ('+lRows.length+') ===','Date;Programme;Ville;N° département;Nom département;Région',lRows);
 
-  downloadCSV(rows.join('\n'),'export_complet_'+prog+'_'+date+'.csv');
+  // Télécharger
+  var csv=lines.join('\n');
+  var bytes=[];
+  for(var i=0;i<csv.length;i++){var c=csv.charCodeAt(i);bytes.push(c<256?c:63);}
+  var blob=new Blob([new Uint8Array(bytes)],{type:'text/csv;charset=windows-1252;'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='export_analytics_'+prog+'_'+date+'.csv';
+  a.click();
 }
 
-function openDashboard(){
-  var base=window.location.origin+'/';
-  window.open(base+'dashboard.html','_blank');
-}
 
 function downloadCSV(content,filename){
   var bytes=[];
