@@ -422,6 +422,9 @@ function openProg(name){
   loadGlobalLogos();
   var hb=document.getElementById('header-bar');if(hb)hb.style.display='none';
   currentProg=name;results=[];iconCfg={};logoCfg={};logoCfg={};
+  // Réinitialiser tous les filtres au changement de programme
+  _nameSearch='';_nameFilter='';_catFilter='';_precFilter='';
+  var sw=document.getElementById('tw-search');if(sw)sw.value='';
   document.getElementById('prog-screen').style.display='none';
   document.getElementById('main-app').style.display='block';
   document.getElementById('prog-label').textContent=name;
