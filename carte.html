@@ -323,7 +323,7 @@ var _lm=null,_lw=null,_la=false;
 function handleLocClick(){
   var btn=document.getElementById('loc-btn');
   if(!navigator.geolocation){alert('Géolocalisation non supportée.');return;}
-  if(_la){if(_lw!==null){navigator.geolocation.clearWatch(_lw);_lw=null;}if(_lm){_lm.remove();_lm=null;}_la=false;btn.textContent='📍 Me localiser';btn.style.background='';btn.style.color='';return;}
+  if(_la){if(_lw!==null){navigator.geolocation.clearWatch(_lw);_lw=null;}if(_lm){_lm.remove();_lm=null;}_la=false;_userLat=null;_userLng=null;btn.textContent='📍 Me localiser';btn.style.background='';btn.style.color='';var rw=document.getElementById('radius-wrap');if(rw)rw.style.display='none';_activeRadius=0;document.getElementById('radius-btn').textContent='🎯 Autour de moi';document.getElementById('radius-btn').style.background='rgba(255,255,255,0.9)';document.getElementById('radius-btn').style.color='';document.querySelectorAll('.rbtn').forEach(function(b){b.classList.remove('active');});applyRadiusFilter();return;}
   btn.textContent='⏳ Localisation...';btn.disabled=true;
   function updPos(pos){
     var lat=pos.coords.latitude,lng=pos.coords.longitude;
