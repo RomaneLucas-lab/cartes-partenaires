@@ -516,19 +516,26 @@ function fmtDist(km){
   document.getElementById('load-status').textContent='Chargement de "'+PROG+'"...';
   try{
     // Tout en parallèle
+    // Offres + config en parallèle — logos chargés en background après
     var results=await Promise.all([
-      fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(PROG)+'&ok=eq.true&order=id',{headers:SB_HDR}).then(function(r){return r.json();}),
-      fetch(SB_URL+'/rest/v1/configs?programme=eq.'+encodeURIComponent(PROG),{headers:SB_HDR}).then(function(r){return r.json();}),
-      fetch(SB_URL+'/rest/v1/logos?select=offer_name,logo_data',{headers:SB_HDR}).then(function(r){return r.json();})
+      fetch(SB_URL+'/rest/v1/offres?programme=eq.'+encodeURIComponent(PROG)+'&ok=eq.true&order=id&select=name,lat,lng,category,subcategory,description,url,remise,address,place_id',{headers:SB_HDR}).then(function(r){return r.json();}),
+      fetch(SB_URL+'/rest/v1/configs?programme=eq.'+encodeURIComponent(PROG)+'&select=cfg',{headers:SB_HDR}).then(function(r){return r.json();})
     ]);
-    var rows=results[0], cfgData=results[1], logoRows=results[2];
+    var rows=results[0], cfgData=results[1];
     if(!rows||!rows.length){document.getElementById('load-status').textContent='Aucune offre trouvée pour ce programme.';return;}
     var rawCfg=(cfgData&&cfgData[0])?cfgData[0].cfg:{};
     var cfg=rawCfg.iconCfg||rawCfg;
-    var logoCfg={};
-    (logoRows||[]).forEach(function(r){if(r.offer_name&&r.logo_data)logoCfg[r.offer_name]=r.logo_data;});
-    var progLogos=rawCfg.logoCfg||{};
-    Object.assign(logoCfg,progLogos);
+    var logoCfg=rawCfg.logoCfg||{};
+    // Logos chargés en background après affichage
+    fetch(SB_URL+'/rest/v1/logos?select=offer_name,logo_data',{headers:SB_HDR})
+      .then(function(r){return r.json();})
+      .then(function(logoRows){
+        (logoRows||[]).forEach(function(r){if(r.offer_name&&r.logo_data&&!logoCfg[r.offer_name])logoCfg[r.offer_name]=r.logo_data;});
+        // Mettre à jour les popups existants avec les logos
+        for(var i=0;i<S.length;i++){
+          if(logoCfg[S[i].name]&&!S[i].logo){S[i].logo=logoCfg[S[i].name];}
+        }
+      }).catch(function(){});
 
     // Build catData
     var catData={};
