@@ -645,6 +645,14 @@ function renderTable(){
       +'<label id="tw-warn-label" style="font-size:12px;color:#e67e22;cursor:pointer;white-space:nowrap;background:#fff8f0;border:1px solid #f0c080;border-radius:6px;padding:4px 10px"><input type="checkbox" id="tw-warn-only" style="margin-right:4px"/>⚠️ À vérifier</label>'
       +'<label id="tw-dup-label" style="font-size:12px;color:#b26a00;cursor:pointer;white-space:nowrap;background:#fffbe6;border:1px solid #ffe082;border-radius:6px;padding:4px 10px"><input type="checkbox" id="tw-dup-only" style="margin-right:4px"/>2x Doublons</label>';
     w.parentNode.insertBefore(fw, w);
+    // Barre de sélection multiple
+    var selBar=document.createElement('div');
+    selBar.id='sel-bar';
+    selBar.style.cssText='display:none;gap:8px;align-items:center;margin-top:6px;padding:6px 10px;background:#f0f0ff;border-radius:8px;border:1px solid #c0c0ee';
+    selBar.innerHTML='<button id="sel-all-btn" style="font-size:12px;padding:3px 12px;border-radius:6px;border:1px solid #7F77DD;background:#fff;color:#7F77DD;cursor:pointer">Sélectionner tout</button>'
+      +'<span id="sel-count" style="font-size:12px;color:#666"></span>'
+      +'<button id="sel-del-btn" style="font-size:12px;padding:3px 12px;border-radius:6px;border:1px solid #e74c3c;background:#fff;color:#e74c3c;cursor:pointer;margin-left:auto">🗑 Supprimer la sélection</button>';
+    fw.parentNode.insertBefore(selBar, w);
     var _searchTimer=null;
     document.getElementById('tw-search').addEventListener('input',function(){
       var val=this.value.toLowerCase();
@@ -750,6 +758,7 @@ function renderTable(){
   var h='<table style="width:100%;border-collapse:collapse;table-layout:fixed">'
     +'<colgroup><col style="width:30px"><col style="width:120px"><col style="width:90px"><col><col style="width:85px"><col style="width:85px"><col style="width:35px"><col style="width:90px"></colgroup>'
     +'<thead><tr>'
+    +'<th style="'+ths+'padding:8px 4px"><input type="checkbox" id="th-sel-all" style="cursor:pointer"/></th>'
     +'<th style="'+ths+'">#</th>'
     +'<th style="'+ths+'position:relative;cursor:pointer;user-select:none" id="th-nom">'+nLabel+mkDrop('nom-drop',nomItems,'data-val',_nameFilter,nomSearch)+'</th>'
     +'<th style="'+ths+'position:relative;cursor:pointer;user-select:none" id="th-cat">'+cLabel+mkDrop('cat-drop',catItems,'data-val',_catFilter)+'</th>'
@@ -787,7 +796,7 @@ function renderTable(){
     var td='padding:6px;font-size:12px;border-bottom:1px solid #f5f5f3;vertical-align:middle';
     if(r.ok){
       h+='<tr data-idx="'+i+'" style="'+baseStyle+'">'
-        +'<td style="'+td+';color:#aaa;width:28px">'+(i+1)+'</td>'
+        +'<td style="'+td+';padding:6px 4px"><input type="checkbox" class="row-sel-chk" data-idx="'+i+'" '+(r._sel?'checked':'')+' style="cursor:pointer"/></td>'        +'<td style="'+td+';color:#aaa;width:28px">'+(i+1)+'</td>'
         +'<td style="'+td+'"><b class="name-click" data-idx="'+i+'" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">'+r.name+'</b>'+(t.isDup?' <span style="font-size:10px;background:#ffe082;color:#b26a00;border-radius:4px;padding:1px 5px;font-weight:700;vertical-align:middle">2x</span>':'')+'</td>'
         +'<td style="'+td+'">'+r.category+'</td>'
         +'<td style="'+td+'"><input class="editcell addr-edit" data-idx="'+i+'" value="'+(r.fmt||'').replace(/"/g,'&quot;')+'" style="border:none;background:transparent;font-size:11px;color:#555;width:100%;font-family:inherit;padding:0;outline:none"/></td>'
@@ -801,7 +810,7 @@ function renderTable(){
         +'</td></tr>';
     }else{
       h+='<tr data-idx="'+i+'" style="'+baseStyle+'">'
-        +'<td style="'+td+';color:#aaa;width:28px">'+(i+1)+'</td>'
+        +'<td style="'+td+';padding:6px 4px"><input type="checkbox" class="row-sel-chk" data-idx="'+i+'" '+(r._sel?'checked':'')+' style="cursor:pointer"/></td>'        +'<td style="'+td+';color:#aaa;width:28px">'+(i+1)+'</td>'
         +'<td style="'+td+'"><b class="name-click" data-idx="'+i+'" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">'+r.name+'</b>'+(t.isDup?' <span style="font-size:10px;background:#ffe082;color:#b26a00;border-radius:4px;padding:1px 5px;font-weight:700;vertical-align:middle">2x</span>':'')+'</td>'
         +'<td style="'+td+'">'+r.category+'</td>'
         +'<td style="'+td+'"><input class="editcell addr-edit" data-idx="'+i+'" value="'+(r.address||'').replace(/"/g,'&quot;')+'" style="border:none;background:transparent;font-size:11px;color:#e74c3c;width:100%;font-family:inherit;padding:0;outline:none"/></td>'
@@ -980,7 +989,51 @@ function renderTable(){
       if(!r||!r.ok) return;
       openMapModal(idx, r.lat, r.lng, r.name);
     });
+  // ── Checkboxes sélection ──
+  w.querySelectorAll('.row-sel-chk').forEach(function(chk){
+    chk.addEventListener('change',function(){
+      var idx=parseInt(this.getAttribute('data-idx'));
+      results[idx]._sel=this.checked;
+      updateSelBar();
+    });
   });
+
+  // th-sel-all
+  var thAll=document.getElementById('th-sel-all');
+  if(thAll){
+    thAll.checked=filtered.length>0&&filtered.every(function(t){return t.r._sel;});
+    thAll.onchange=function(){
+      filtered.forEach(function(t){t.r._sel=thAll.checked;});
+      renderTable();
+    };
+  }
+
+  // Bouton Sélectionner tout
+  var selAllBtn=document.getElementById('sel-all-btn');
+  if(selAllBtn){
+    var allSel=filtered.length>0&&filtered.every(function(t){return t.r._sel;});
+    selAllBtn.textContent=allSel?'Désélectionner tout':'Sélectionner tout';
+    selAllBtn.onclick=function(){
+      var nowSel=filtered.every(function(t){return t.r._sel;});
+      filtered.forEach(function(t){t.r._sel=!nowSel;});
+      renderTable();
+    };
+  }
+
+  // Bouton Supprimer la sélection
+  var selDelBtn=document.getElementById('sel-del-btn');
+  if(selDelBtn){
+    selDelBtn.onclick=function(){
+      var sel=results.filter(function(r){return r._sel;});
+      if(!sel.length)return;
+      if(!confirm('Supprimer '+sel.length+' offre'+(sel.length>1?'s':'')+' ?'))return;
+      results=results.filter(function(r){return !r._sel;});
+      saveData();renderTable();
+      document.getElementById('gs').textContent='✅ '+results.filter(function(r){return r.ok;}).length+' offres';
+    };
+  }
+
+  updateSelBar();
 }
 
 function buildCatCfg(){
