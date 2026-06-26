@@ -341,8 +341,14 @@ function handleLocClick(){
         if(!startTime)startTime=ts;
         var progress=Math.min((ts-startTime)/duration,1);
         var ease=progress<0.5?2*progress*progress:(4-2*progress)*progress-1;
-        _lm.setLatLng([startLat+(endLat-startLat)*ease, startLng+(endLng-startLng)*ease]);
+        var curLat=startLat+(endLat-startLat)*ease;
+        var curLng=startLng+(endLng-startLng)*ease;
+        _lm.setLatLng([curLat,curLng]);
         if(progress<1)requestAnimationFrame(animateMarker);
+        // En fin d'animation, recentrer si le point sort du viewport
+        else if(!map.getBounds().contains([endLat,endLng])){
+          map.panTo([endLat,endLng],{animate:true,duration:0.5});
+        }
       }
       requestAnimationFrame(animateMarker);
     }else{
